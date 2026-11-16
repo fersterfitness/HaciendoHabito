@@ -1,4 +1,8 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { lazy, Suspense, useEffect, useState, useCallback, useRef } from 'react'
+import type { SheetTab } from '@/pages/students/studentDetail/studentDetailShared'
+
+// La ficha del alumno se abre encima de la rutina (accesos directos de la cabecera); se carga solo si se usa.
+const StudentDetailView = lazy(() => import('@/pages/students/StudentDetailPage').then((m) => ({ default: m.StudentDetailView })))
 import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Plus, X, Calendar, Clock, CheckCircle2 } from 'lucide-react'
@@ -138,6 +142,7 @@ export function RoutineDetailPage() {
   const [savingCompletionNote, setSavingCompletionNote] = useState(false)
   const [savingBlueprint, setSavingBlueprint] = useState(false)
   const [libraryBlueprintId, setLibraryBlueprintId] = useState<string | null>(null)
+  const [sheetTab, setSheetTab] = useState<SheetTab | null>(null)
   const libraryBlueprintIdRef = useRef<string | null>(null)
   const libraryPayloadRef = useRef<Json | null>(null)
   const blocksRef = useRef<BlockWithDays[]>([])
@@ -1203,9 +1208,33 @@ export function RoutineDetailPage() {
             onWhatsApp={() => void handleSendRoutineWhatsApp()}
             onPdf={handleGeneratePdf}
             onDelete={() => setShowDelete(true)}
+            onOpenSheet={(tab) => setSheetTab(tab)}
           />
         }
       />
+
+      {sheetTab && routine.student_id ? (
+        <>
+          <div
+            aria-hidden="true"
+            className="fixed inset-0 z-[9990] bg-black/30 backdrop-blur-[3px] dark:bg-black/55"
+            onClick={() => setSheetTab(null)}
+          />
+          <div
+            role="dialog"
+            aria-modal
+            aria-label="Ficha del alumno"
+            className="fixed inset-3 z-[9991] flex flex-col overflow-hidden rounded-2xl border border-surface-border/85 bg-surface-panel shadow-lg sm:inset-auto sm:bottom-5 sm:right-5 sm:top-5 sm:w-full sm:max-w-3xl lg:max-w-5xl"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setSheetTab(null)
+            }}
+          >
+            <Suspense fallback={<div className="p-6 text-sm text-ink-muted">Cargando ficha…</div>}>
+              <StudentDetailView key={sheetTab} studentId={routine.student_id} variant="panel" initialTab={sheetTab} onClosePanel={() => setSheetTab(null)} />
+            </Suspense>
+          </div>
+        </>
+      ) : null}
 
       <div className={showCompare ? 'lg:flex lg:items-start' : undefined}>
       {showCompare && routine.student_id ? (

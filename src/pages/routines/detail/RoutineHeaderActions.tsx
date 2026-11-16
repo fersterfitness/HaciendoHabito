@@ -14,6 +14,7 @@ import {
   Table2,
   Trash2,
   UserPlus,
+  UserRound,
 } from 'lucide-react'
 import { IS_V2 } from '@/lib/uiVersion'
 import { Popover } from '@/components/ui/Popover'
@@ -50,7 +51,16 @@ type Props = {
   onWhatsApp: () => void
   onPdf: () => void
   onDelete: () => void
+  /** v2 · Accesos directos a la ficha del alumno (se abre en un panel, sin salir de la rutina). */
+  onOpenSheet?: (tab: 'ficha' | 'nutricion' | 'seguimiento' | 'progreso') => void
 }
+
+const SHEET_SHORTCUTS: { tab: 'ficha' | 'nutricion' | 'seguimiento' | 'progreso'; label: string; hint: string }[] = [
+  { tab: 'ficha', label: 'Información', hint: 'Datos, lesiones, 1RM' },
+  { tab: 'nutricion', label: 'Nutrición', hint: 'Plan de alimentación' },
+  { tab: 'seguimiento', label: 'Seguimiento', hint: 'Peso, fuerza, medidas' },
+  { tab: 'progreso', label: 'Progreso', hint: 'Chequeos y adherencia' },
+]
 
 /**
  * Acciones de la cabecera de la rutina. Lo de todos los días queda a la vista (guía, volumen,
@@ -58,6 +68,7 @@ type Props = {
  */
 export function RoutineHeaderActions(p: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   function run(fn: () => void) {
     setMenuOpen(false)
@@ -95,6 +106,36 @@ export function RoutineHeaderActions(p: Props) {
           <BarChart3 className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Volumen</span>
         </button>
+      ) : null}
+
+      {IS_V2 && p.hasStudent && p.onOpenSheet ? (
+        <Popover
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          align="end"
+          className="w-56"
+          trigger={({ ref, onClick, ...a11y }) => (
+            <button
+              ref={ref}
+              type="button"
+              onClick={onClick}
+              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-primary transition-colors hover:bg-surface-border/60"
+              title="Ver la ficha del alumno sin salir de la rutina"
+              {...a11y}
+            >
+              <UserRound className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Ficha</span>
+            </button>
+          )}
+        >
+          <div className="py-1">
+            {SHEET_SHORTCUTS.map((s) => (
+              <MenuItem key={s.tab} icon={<UserRound />} hint={s.hint} onClick={() => { setSheetOpen(false); p.onOpenSheet!(s.tab) }}>
+                {s.label}
+              </MenuItem>
+            ))}
+          </div>
+        </Popover>
       ) : null}
 
       {IS_V2 && p.canCompare && p.onCompare ? (

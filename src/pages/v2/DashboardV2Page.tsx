@@ -853,15 +853,18 @@ export function DashboardV2Page() {
         title="Inicio"
         actions={
           <>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden sm:inline-flex"
-              icon={<LayoutGrid className="h-3.5 w-3.5" />}
-              onClick={() => navigate('/dashboard/completo')}
-            >
-              Estadísticas
-            </Button>
+            {/* Entrenador: «Estadísticas» se sacó (pedido nov3): esos datos ya están en el Inicio. */}
+            {trains ? null : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex"
+                icon={<LayoutGrid className="h-3.5 w-3.5" />}
+                onClick={() => navigate('/dashboard/completo')}
+              >
+                Estadísticas
+              </Button>
+            )}
             {trains ? (
               <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate('/students?create=1')}>
                 Nuevo alumno
@@ -1669,13 +1672,15 @@ export function DashboardV2Page() {
         <div className="mt-10 space-y-4">
           {handlesMoney ? <PriceIncreaseNotice /> : null}
           {role === 'admin' || role === 'trainer' ? <WebIntakeAccessRequestsPanel variant="dashboard" /> : null}
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard/completo')}
-            className="text-[13px] text-ink-muted underline-offset-4 hover:text-ink-primary hover:underline sm:hidden"
-          >
-            Ver estadísticas del mes
-          </button>
+          {trains ? null : (
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/completo')}
+              className="text-[13px] text-ink-muted underline-offset-4 hover:text-ink-primary hover:underline sm:hidden"
+            >
+              Ver estadísticas del mes
+            </button>
+          )}
         </div>
       </PageV2>
     </MotionConfig>

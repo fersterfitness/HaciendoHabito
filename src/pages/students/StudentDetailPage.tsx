@@ -66,6 +66,8 @@ export interface StudentDetailViewProps {
   onClosePanel?: () => void
   /** Sincroniza lista / finanzas cuando cambian prefs en el panel lateral. */
   onStudentPatch?: (patch: Partial<Student> & { id: string }) => void
+  /** Solapa con la que abre (por ejemplo desde los accesos directos del editor de rutinas). */
+  initialTab?: SheetTab
 }
 
 // ─── Ficha ─────────────────────────────────────────────────────────────────────
@@ -83,6 +85,7 @@ export function StudentDetailView({
   variant = 'page',
   onClosePanel,
   onStudentPatch,
+  initialTab,
 }: StudentDetailViewProps) {
   const navigate = useAppNavigate()
   const { deleteStudent } = useStudents()
@@ -97,7 +100,7 @@ export function StudentDetailView({
   const [loading,    setLoading]    = useState(true)
   const [showDelete, setShowDelete] = useState(false)
   const [deleting,   setDeleting]   = useState(false)
-  const [sheetTab,      setSheetTab]      = useState<SheetTab>('ficha')
+  const [sheetTab,      setSheetTab]      = useState<SheetTab>(initialTab ?? 'ficha')
   const [seguimientoTab, setSeguimientoTab] = useState<SeguimientoTab>('peso')
 
   const [tags, setTags] = useState<string[]>([])

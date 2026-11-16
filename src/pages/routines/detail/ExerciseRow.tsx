@@ -8,7 +8,7 @@ import { type ExerciseMeta, type SeriesPlanEntry, parseExerciseMeta, buildExerci
 import { isMultiarticularExercise } from '@/lib/routine/copyDayPrescriptions'
 import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
 import type { RoutineExercise, TrainingMethod } from '@/types/database'
-import { type ExWithExercise, parseRestToSeconds, parseRpeToNumber } from './routineDetailShared'
+import { type ExWithExercise, parseRestToSeconds } from './routineDetailShared'
 import { useExerciseLogs } from '@/lib/routine/exerciseLogs'
 import { BORG_LABELS, useExerciseFeedback } from '@/lib/routine/studentTrainingLog'
 import { formatDate } from '@/lib/utils'
@@ -39,7 +39,8 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
   const initialMeta = parseExerciseMeta(exercise.technical_notes)
   const [restText, setRestText]   = useState(initialMeta.meta.restText ?? (exercise.rest_seconds !== null ? String(exercise.rest_seconds) : ''))
   const [weight, setWeight]       = useState<number | null>(exercise.weight_kg ?? null)
-  const [rpeText, setRpeText]     = useState(initialMeta.meta.rpeText ?? (exercise.rpe != null ? String(exercise.rpe) : ''))
+  // RPE general viejo: ya no se edita (va por serie en la tabla), pero se conserva al guardar.
+  const [rpeText]                 = useState(initialMeta.meta.rpeText ?? (exercise.rpe != null ? String(exercise.rpe) : ''))
   const [percent1rm, setPercent1rm] = useState(initialMeta.meta.percent1rm ?? '')
   const [seriesPlan, setSeriesPlan] = useState<SeriesPlanEntry[]>(initialMeta.meta.seriesPlan ?? [])
   const [notes, setNotes]         = useState(initialMeta.userNotes)
@@ -197,7 +198,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
         onApplyWeekPlanAllDays={onApplyMethodWeekPlanAllDays}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
         <div>
           <label className="block text-3xs text-ink-muted mb-0.5">Descanso</label>
           <input
@@ -243,25 +244,10 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
             {rmKg != null ? `${rmKg} kg` : '—'}
           </div>
         </div>
-        <div>
-          <label className="block text-3xs text-ink-muted mb-0.5">RPE / RIR</label>
-          <input
-            type="text"
-            placeholder="RIR 8/9"
-            className={cn(controlSmClassName, 'w-full px-2 text-center')}
-            value={rpeText}
-            onChange={(e) => {
-              const v = e.target.value
-              setRpeText(v)
-              const parsed = parseRpeToNumber(v)
-              saveMeta({ restText: restText || undefined, rpeText: v || undefined, percent1rm: percent1rm || undefined }, { rpe: parsed })
-            }}
-          />
-        </div>
       </div>
 
-      {/* Multiarticulares: plan serie por serie (%RM → kg desde 1RM, reps, RPE/RIR) */}
-      {isMultiarticular && (sets ?? 0) > 0 ? (
+      {/* Plan serie por serie (%RM → kg desde 1RM, reps, RPE/RIR), para todos los ejercicios. El RPE va acá, no en un campo suelto. */}
+      {(sets ?? 0) > 0 ? (
         <div className="rounded-xl border border-brand-primary/25 bg-brand-primary/5 p-2">
           <p className="mb-1.5 text-3xs font-semibold text-brand-primary">
             Series por porcentaje {rmKg != null ? `· 1RM ${rmKg} kg` : '· sin 1RM en ficha (no calcula kg)'}

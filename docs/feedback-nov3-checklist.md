@@ -15,15 +15,15 @@ Fuente: `CORRECIONES EN APP-nov3.docx`. Cada punto dice de dónde sale (número 
 - [x] (5) Más naranja del logo en el link del alumno (acentos y bordes), sin perder verde = completado y rojo = no completado.
 
 **Editor de rutinas (entrenador)**
-- [ ] (Rutinas, rosa) Sacar el campo suelto «RPE / RIR» del ejercicio.
-- [ ] (Rutinas, azul) La tabla por serie (% RM, kg, reps, RPE) disponible para todos los ejercicios, no solo los multiarticulares.
-- [ ] (Otras cosas) Al crear una rutina, llevar directo a la rutina creada (hoy queda en la pantalla con error).
-- [ ] (Otras cosas) Sacar «Duración (semanas)» y la fecha de fin al crear la rutina: la cantidad sale de las semanas que se arman.
-- [ ] (Pagos) Sacar el precio al crear la rutina.
-- [ ] (Otras cosas) Accesos directos a las pestañas de la ficha (Información, Nutrición, Seguimiento, Progreso) desde el editor de la rutina.
+- [x] (Rutinas, rosa) Sacar el campo suelto «RPE / RIR» del ejercicio.
+- [x] (Rutinas, azul) La tabla por serie (% RM, kg, reps, RPE) disponible para todos los ejercicios, no solo los multiarticulares.
+- [x] (Otras cosas) Al crear una rutina, llevar directo a la rutina creada (hoy queda en la pantalla con error).
+- [x] (Otras cosas) Sacar «Duración (semanas)» y la fecha de fin al crear la rutina: la cantidad sale de las semanas que se arman.
+- [x] (Pagos) Sacar el precio al crear la rutina.
+- [x] (Otras cosas) Accesos directos a las pestañas de la ficha (Información, Nutrición, Seguimiento, Progreso) desde el editor de la rutina.
 
 **Menú del entrenador**
-- [ ] (Estadísticas) Sacar «Estadísticas» del menú: esos datos ya están en el Inicio.
+- [x] (Estadísticas) Sacar «Estadísticas» del menú: esos datos ya están en el Inicio.
 
 ## Tanda 2 — reps en segundos y RPE para el alumno
 
