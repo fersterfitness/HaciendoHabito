@@ -301,6 +301,35 @@ export function PublicRoutinePage() {
     )
   }
 
+  // Rutina que el entrenador ve como «Sin rutina activa» (pausada, cancelada, terminada): no se deja anotar,
+  // así lo que ve el alumno coincide con lo que ve el entrenador. Sin `status` (base sin la migración) se muestra como siempre.
+  const inactiveStatus = routine?.status && !['activa', 'por_vencer'].includes(routine.status) ? routine.status : null
+  if (inactiveStatus) {
+    const wa = normalizePhoneForWhatsApp(data.professional_phone)
+    const pro = data.professional_name && !data.professional_name.includes('@') ? niceCase(data.professional_name.trim().split(/\s+/)[0]) : ''
+    const title = inactiveStatus === 'completada' ? 'Terminaste esta rutina' : inactiveStatus === 'pausada' ? 'Tu rutina está en pausa' : 'No tenés una rutina activa'
+    return (
+      <Shell>
+        <div className="hhr-state">
+          <span className="hhr-state-icon" aria-hidden>
+            <Art name="general" className="hhr-art-lg" fallback={<Dumbbell size={26} strokeWidth={1.8} />} />
+          </span>
+          <h1>{title}</h1>
+          <p>
+            {inactiveStatus === 'completada'
+              ? `Cuando ${pro || 'tu entrenador'} te arme la próxima, la vas a ver en este mismo link.`
+              : `Por ahora no hay nada para anotar. Cuando ${pro || 'tu entrenador'} la active, la vas a ver en este mismo link.`}
+          </p>
+          {wa ? (
+            <a className="hhr-cta hhr-state-cta" href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer">
+              <MessageCircle size={18} strokeWidth={1.8} aria-hidden /> Escribirle{pro ? ` a ${pro}` : ''}
+            </a>
+          ) : null}
+        </div>
+      </Shell>
+    )
+  }
+
   const blocks = routine?.blocks ?? []
   const today = todayYmd()
   const currentWeek = currentBlockIndex(blocks, today)

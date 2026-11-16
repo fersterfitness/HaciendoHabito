@@ -320,17 +320,15 @@ describe('pickMonitorRoutines', () => {
       // Ana: la activa le gana a una pausada más nueva.
       c('ana-activa', 'ana', 'activa', '2026-10-01'),
       c('ana-pausada', 'ana', 'pausada', '2026-11-01'),
-      // Agustín: sin activa, el link le muestra la pausada (no la completada).
+      // Agustín: sin activa, el link avisa «rutina en pausa» y no deja anotar → no entra.
       c('agus-completada', 'agus', 'completada', '2026-11-10'),
       c('agus-pausada', 'agus', 'pausada', '2026-10-20'),
       // Sofía: solo completadas → no entra.
       c('sofi-completada', 'sofi', 'completada', '2026-11-01'),
-      // Leo: pausada pero el alumno está inactivo → no entra.
-      c('leo-pausada', 'leo', 'pausada', '2026-11-01', 'inactivo'),
       // Mía: activa aunque el alumno figure inactivo → entra, como antes.
       c('mia-activa', 'mia', 'activa', '2026-11-01', 'inactivo'),
     ])
-    expect(ids.sort()).toEqual(['agus-pausada', 'ana-activa', 'mia-activa'])
+    expect(ids.sort()).toEqual(['ana-activa', 'mia-activa'])
   })
 })
 

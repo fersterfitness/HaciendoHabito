@@ -610,9 +610,9 @@ export interface RoutineCandidate {
 
 /**
  * Qué rutina mira el monitor por cada alumno: la misma que muestra su link (`get_shared_routine`), o sea
- * la activa o por vencer más reciente y, si no tiene, la última que no esté completada (por ejemplo una
- * pausada). Así lo que el alumno anota siempre aparece. Las que no están activas solo entran si el alumno
- * está activo, para no llenar el monitor de alumnos que ya no entrenan.
+ * la activa o por vencer más reciente. Si la que muestra el link no está activa (pausada, cancelada,
+ * terminada), el link avisa que no hay rutina activa y no deja anotar, así que acá tampoco entra: coincide
+ * con «Sin rutina activa» de Alumnos.
  */
 export function pickMonitorRoutines(candidates: RoutineCandidate[]): string[] {
   const live = (s: string) => s === 'activa' || s === 'por_vencer'
@@ -631,8 +631,7 @@ export function pickMonitorRoutines(candidates: RoutineCandidate[]): string[] {
         (b.start_date ?? '').localeCompare(a.start_date ?? '') ||
         b.created_at.localeCompare(a.created_at),
     )
-    if (!pick || pick.status === 'completada') continue
-    if (live(pick.status) || pick.student_status === 'activo') out.push(pick.id)
+    if (pick && live(pick.status)) out.push(pick.id)
   }
   return out
 }

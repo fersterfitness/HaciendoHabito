@@ -83,6 +83,8 @@ export interface SharedRoutine {
   professional_phone: string | null
   routine: {
     name: string
+    /** Estado de la rutina (desde la migración 20261119120000; antes no venía). */
+    status?: string | null
     objective: string | null
     start_date: string | null
     end_date: string | null
