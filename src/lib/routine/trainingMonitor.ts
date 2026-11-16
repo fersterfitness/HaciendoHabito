@@ -141,6 +141,8 @@ export interface MonitorRow {
   checkin?: MonitorCheckin
   /** Esfuerzo de la sesión que marcó al cerrar el día hoy (Borg 1 a 10). */
   dayEffort?: number | null
+  /** true si cerró hoy el día como terminado. */
+  closed?: boolean
 }
 
 export interface MonitorCurrent {
@@ -285,6 +287,7 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
       startedAt,
       checkin,
       dayEffort: status === 'done' ? (log?.effort ?? null) : null,
+      closed: status === 'done',
     }
 
     const minutesAgo = lastAt ? (opts.now.getTime() - new Date(lastAt).getTime()) / 60_000 : Infinity

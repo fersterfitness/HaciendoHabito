@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ChevronDown, MessageSquareText } from 'lucide-react'
+import { Bell, BellOff, ChevronDown, MessageSquareText } from 'lucide-react'
+import { browserNotificationsGranted, setMonitorAlertPrefs, useMonitorAlertPrefs } from '@/lib/routine/monitorAlertPrefs'
 import { Button } from '@/components/ui/Button'
 import { AvatarV2, TONE_TINT } from '@/components/v2/ui'
 import { LiveDot, MONITOR_FAST_REFRESH_MS, firstName, useTrainingMonitor } from '@/components/dashboard/TrainingMonitorCardV2'
@@ -246,6 +247,54 @@ function ExerciseLine({ e, isCurrent }: { e: MonitorCurrent; isCurrent: boolean 
         ) : null}
       </span>
     </li>
+  )
+}
+
+/**
+ * Avisos: prender o silenciar los de la app y pedir permiso para que también lleguen como notificación
+ * del navegador cuando la pestaña no está a la vista.
+ */
+function AlertControls() {
+  const prefs = useMonitorAlertPrefs()
+  const supported = typeof window !== 'undefined' && 'Notification' in window
+  const [permission, setPermission] = useState(() => (supported ? Notification.permission : 'denied'))
+  const browserOn = prefs.browser && browserNotificationsGranted()
+  async function enableBrowser() {
+    if (!supported) return
+    const p = permission === 'granted' ? 'granted' : await Notification.requestPermission()
+    setPermission(p)
+    setMonitorAlertPrefs({ browser: p === 'granted', enabled: true })
+  }
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        aria-pressed={prefs.enabled}
+        onClick={() => setMonitorAlertPrefs({ enabled: !prefs.enabled })}
+        className="h-7 gap-1.5 px-2 text-xs font-medium"
+        title={prefs.enabled ? 'Silenciar los avisos' : 'Prender los avisos'}
+      >
+        {prefs.enabled ? <Bell className="h-3.5 w-3.5" aria-hidden /> : <BellOff className="h-3.5 w-3.5" aria-hidden />}
+        {prefs.enabled ? 'Avisos prendidos' : 'Avisos silenciados'}
+      </Button>
+      {prefs.enabled && supported ? (
+        browserOn ? (
+          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setMonitorAlertPrefs({ browser: false })} title="Dejar de avisar fuera de la app">
+            Fuera de la app: prendido
+          </Button>
+        ) : permission === 'denied' ? (
+          <span className="px-2" title="Se puede habilitar desde el candado de la barra de direcciones">
+            El navegador bloqueó las notificaciones
+          </span>
+        ) : (
+          <Button type="button" size="sm" variant="secondary" className="h-7 px-2 text-xs" onClick={() => void enableBrowser()}>
+            Avisarme fuera de la app
+          </Button>
+        )
+      ) : null}
+    </span>
   )
 }
 
@@ -677,7 +726,10 @@ export function TrainingMonitorBoardV2({ ownerId, onOpenRoutine }: { ownerId: st
             <Clock />
           </span>
         </span>
-        <span>{pushed ? 'Tiempo real' : `Actualizado ${format(new Date(updatedAt), 'HH:mm:ss')}`}</span>
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <AlertControls />
+          <span>{pushed ? 'Tiempo real' : `Actualizado ${format(new Date(updatedAt), 'HH:mm:ss')}`}</span>
+        </span>
       </div>
 
       <KpiStrip rows={rows} summary={summary} nowHour={now.getHours()} weekday={now.getDay()} />

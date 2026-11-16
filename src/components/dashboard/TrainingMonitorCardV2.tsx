@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Activity, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -34,6 +34,8 @@ export function LiveDot({ className }: { className?: string }) {
 export function useTrainingMonitor(ownerId: string, opts: { refreshMs?: number; realtime?: boolean } = {}) {
   const refreshMs = opts.refreshMs ?? REFRESH_MS
   const queryClient = useQueryClient()
+  // Cada uso del hook (pantalla del monitor, avisos) abre su propio canal: con el mismo nombre se pisarían.
+  const instance = useId()
   // El reloj avanza solo: así «entrenando ahora» caduca aunque no lleguen datos nuevos.
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
@@ -71,7 +73,7 @@ export function useTrainingMonitor(ownerId: string, opts: { refreshMs?: number; 
         }, 400)
     }
     const channel = supabase
-      .channel(`training-monitor-${ownerId}`)
+      .channel(`training-monitor-${ownerId}-${instance}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'routine_exercise_logs' }, bump)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'routine_day_logs' }, bump)
       .subscribe()
@@ -79,7 +81,7 @@ export function useTrainingMonitor(ownerId: string, opts: { refreshMs?: number; 
       if (timer != null) window.clearTimeout(timer)
       void supabase.removeChannel(channel)
     }
-  }, [opts.realtime, ownerId, routineIds.length, logsKey, queryClient])
+  }, [opts.realtime, ownerId, routineIds.length, logsKey, queryClient, instance])
 
   const input = useMemo(
     () => ({ routines: routinesQ.data ?? [], setLogs: logsQ.data?.setLogs ?? [], dayLogs: logsQ.data?.dayLogs ?? [], feedback: logsQ.data?.feedback ?? [], now }),

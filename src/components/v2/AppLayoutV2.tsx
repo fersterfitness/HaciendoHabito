@@ -4,6 +4,7 @@ import { AnimatedOutlet } from '@/components/layout/AnimatedOutlet'
 import { SidebarProvider } from '@/contexts/SidebarContext'
 import { SidebarV2 } from './SidebarV2'
 import { ShortcutsHelpV2 } from './ShortcutsHelpV2'
+import { TrainingAlertsWatcherV2 } from '@/components/dashboard/TrainingAlertsWatcherV2'
 
 /**
  * Marco de la v2: lienzo gris con la barra lateral y el contenido en un panel blanco con borde,
@@ -23,6 +24,7 @@ export function AppLayoutV2() {
       </div>
       <GlobalSearch />
       <ShortcutsHelpV2 />
+      <TrainingAlertsWatcherV2 />
     </SidebarProvider>
   )
 }
