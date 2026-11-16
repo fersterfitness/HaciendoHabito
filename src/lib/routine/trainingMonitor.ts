@@ -246,7 +246,9 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
     const log = dayLogById.get(active.id)
     const status = log?.status_date === today ? log.status : null
     const dayLabel = labelOf(active)
-    if (status === 'missed') {
+    // «No entrené» pero después anotó series: entrenó al final, cuenta como entrenamiento.
+    const trainedAfterMissed = status === 'missed' && !!lastAt && !!log?.updated_at && lastAt > log.updated_at
+    if (status === 'missed' && !trainedAfterMissed) {
       return { ...base, state: 'missed', dayLabel, detail: log?.missed_reason?.trim() || 'No dejó el motivo', pct: null, lastAt }
     }
 

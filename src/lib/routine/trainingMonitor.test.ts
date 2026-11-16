@@ -333,3 +333,13 @@ describe('pickMonitorRoutines', () => {
     expect(ids.sort()).toEqual(['agus-pausada', 'ana-activa', 'mia-activa'])
   })
 })
+
+describe('día marcado «no entrené» con series después', () => {
+  it('si anotó series después de marcarlo, cuenta como entrenando', () => {
+    const missed: MonitorDayLog = { routine_day_id: 'a-w1-d0', status: 'missed', status_date: TODAY, missed_reason: '', updated_at: minsAgo(30) }
+    const [after] = run([routine('a', 'Agustín')], sets('a-w1-d0-press', 1, 40, minsAgo(2)), [missed])
+    expect(after!.state).toBe('live')
+    const [before] = run([routine('a', 'Agustín')], sets('a-w1-d0-press', 1, 40, minsAgo(40)), [missed])
+    expect(before!.state).toBe('missed')
+  })
+})

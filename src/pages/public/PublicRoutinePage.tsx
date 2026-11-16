@@ -35,7 +35,7 @@ import {
 } from '@/lib/checkIn/questions'
 import type { Json } from '@/types/database'
 import './public-routine.css'
-import { EMPTY_DAY_LOG, fetchSharedExtras, hasCheckin, type DayLog, type ExerciseFeedback, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { EMPTY_DAY_LOG, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
 import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, UrgentCard } from './PublicRoutineLog'
 import { feedbackWindowOpen, weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
 import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/studentAppExtras'
@@ -248,13 +248,32 @@ export function PublicRoutinePage() {
     [logged],
   )
 
-  const onSaved = useCallback((exId: string, set: number, value: LoggedSet) => {
-    setLogged((prev) => {
-      const m = { ...(prev[exId] ?? {}) }
-      m[set] = value
-      return { ...prev, [exId]: m }
-    })
-  }, [])
+  // Para saber, al guardar una serie, si ese día estaba marcado «no entrenado».
+  const extrasRef = useRef(extras)
+  extrasRef.current = extras
+  const routineRef = useRef(routine)
+  routineRef.current = routine
+
+  const onSaved = useCallback(
+    (exId: string, set: number, value: LoggedSet) => {
+      setLogged((prev) => {
+        const m = { ...(prev[exId] ?? {}) }
+        m[set] = value
+        return { ...prev, [exId]: m }
+      })
+      // Si marcó una serie en un día que había dado por «no entrenado», entrenó al final: se saca esa marca
+      // (si no, el día seguiría figurando como no entrenado para el alumno y para el entrenador).
+      if (!value.completed) return
+      const dayId = routineRef.current?.blocks.flatMap((b) => b.days).find((d) => d.exercises.some((e) => e.id === exId))?.id
+      if (!dayId || extrasRef.current?.days[dayId]?.status !== 'missed') return
+      onDayLog(dayId, { status: null, status_date: null, missed_reason: '' })
+      void saveSharedDayStatus(token, dayId, { status: null, date: todayYmd() }).catch(() => {
+        // Si falla, la marca vuelve a mostrarse y el alumno puede deshacerla a mano.
+        void fetchSharedExtras(token).then((x) => setExtras(x))
+      })
+    },
+    [token, onDayLog],
+  )
 
   if (state.status === 'loading') {
     return (
