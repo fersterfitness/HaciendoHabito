@@ -596,16 +596,72 @@ type RoutineRow = {
   blocks: MonitorBlock[] | null
 }
 
-/** Rutinas activas del entrenador con su estructura (semanas, días, ejercicios). Cambia poco: se pide de vez en cuando. */
+export interface RoutineCandidate {
+  id: string
+  student_id: string
+  status: string
+  start_date: string | null
+  created_at: string
+  /** Estado del alumno («activo», «inactivo»…). */
+  student_status: string | null
+}
+
+/**
+ * Qué rutina mira el monitor por cada alumno: la misma que muestra su link (`get_shared_routine`), o sea
+ * la activa o por vencer más reciente y, si no tiene, la última que no esté completada (por ejemplo una
+ * pausada). Así lo que el alumno anota siempre aparece. Las que no están activas solo entran si el alumno
+ * está activo, para no llenar el monitor de alumnos que ya no entrenan.
+ */
+export function pickMonitorRoutines(candidates: RoutineCandidate[]): string[] {
+  const live = (s: string) => s === 'activa' || s === 'por_vencer'
+  const byStudent = new Map<string, RoutineCandidate[]>()
+  for (const c of candidates) {
+    const list = byStudent.get(c.student_id)
+    if (list) list.push(c)
+    else byStudent.set(c.student_id, [c])
+  }
+  const out: string[] = []
+  for (const list of byStudent.values()) {
+    const [pick] = [...list].sort(
+      (a, b) =>
+        Number(live(b.status)) - Number(live(a.status)) ||
+        Number(b.status !== 'completada') - Number(a.status !== 'completada') ||
+        (b.start_date ?? '').localeCompare(a.start_date ?? '') ||
+        b.created_at.localeCompare(a.created_at),
+    )
+    if (!pick || pick.status === 'completada') continue
+    if (live(pick.status) || pick.student_status === 'activo') out.push(pick.id)
+  }
+  return out
+}
+
+/** Rutinas que miran los alumnos, con su estructura (semanas, días, ejercicios). Cambia poco: se pide de vez en cuando. */
 export async function loadMonitorRoutines(ownerId: string): Promise<MonitorRoutine[]> {
+  // Primero, liviano: todas las rutinas con alumno, para elegir la que ve cada uno.
+  const cands = await supabase
+    .from('routines')
+    .select('id, student_id, status, start_date, created_at, student:students(status)')
+    .eq('owner_id', ownerId)
+    .not('student_id', 'is', null)
+    .range(0, 4999)
+  if (cands.error || !cands.data) return []
+  const ids = pickMonitorRoutines(
+    (cands.data as unknown as (Omit<RoutineCandidate, 'student_status'> & { student: { status: string | null } | null })[]).map((c) => ({
+      id: c.id,
+      student_id: c.student_id,
+      status: c.status,
+      start_date: c.start_date,
+      created_at: c.created_at,
+      student_status: c.student?.status ?? null,
+    })),
+  )
+  if (ids.length === 0) return []
   const { data, error } = await supabase
     .from('routines')
     .select(
       'id, student_id, student:students(full_name, avatar_path), blocks:routine_blocks(id, sort_order, start_date, end_date, days:routine_days(id, day_name, muscle_focus, sort_order, day_of_week, exercises:routine_exercises(id, exercise_id, sets, weight_kg, rest_seconds, sort_order, exercise:exercise_library(name))))',
     )
-    .eq('owner_id', ownerId)
-    .in('status', ['activa', 'por_vencer'])
-    .not('student_id', 'is', null)
+    .in('id', ids)
   if (error || !data) return []
   return (data as unknown as RoutineRow[])
     .filter((r) => r.student_id && r.student)

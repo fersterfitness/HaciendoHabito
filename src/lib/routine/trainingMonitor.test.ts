@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
-import { checkinFlags, monitorFeed, weekMatrix, buildTrainingMonitor, fetchAllPages, monitorSummary, weekActivity, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
+import { checkinFlags, pickMonitorRoutines, monitorFeed, weekMatrix, buildTrainingMonitor, fetchAllPages, monitorSummary, weekActivity, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
 
 const NOW = new Date(2026, 10, 16, 18, 0, 0) // lunes 16/11/2026, 18:00 hora local
 const TODAY = '2026-11-16'
@@ -309,5 +309,27 @@ describe('weekMatrix', () => {
     expect(rows.map((x) => x.studentName)).toEqual(['Bruno', 'Ana'])
     expect(rows[0]!.cells).toEqual(['trained', 'none', 'missed', 'none', 'future', 'future', 'future'])
     expect(rows[1]!.cells).toEqual(['none', 'owed', 'none', 'due', 'future', 'future', 'future'])
+  })
+})
+
+describe('pickMonitorRoutines', () => {
+  const c = (id: string, student_id: string, status: string, start_date: string | null, student_status = 'activo') => ({ id, student_id, status, start_date, created_at: '2026-01-01T00:00:00Z', student_status })
+
+  it('elige por alumno la misma rutina que muestra su link', () => {
+    const ids = pickMonitorRoutines([
+      // Ana: la activa le gana a una pausada más nueva.
+      c('ana-activa', 'ana', 'activa', '2026-10-01'),
+      c('ana-pausada', 'ana', 'pausada', '2026-11-01'),
+      // Agustín: sin activa, el link le muestra la pausada (no la completada).
+      c('agus-completada', 'agus', 'completada', '2026-11-10'),
+      c('agus-pausada', 'agus', 'pausada', '2026-10-20'),
+      // Sofía: solo completadas → no entra.
+      c('sofi-completada', 'sofi', 'completada', '2026-11-01'),
+      // Leo: pausada pero el alumno está inactivo → no entra.
+      c('leo-pausada', 'leo', 'pausada', '2026-11-01', 'inactivo'),
+      // Mía: activa aunque el alumno figure inactivo → entra, como antes.
+      c('mia-activa', 'mia', 'activa', '2026-11-01', 'inactivo'),
+    ])
+    expect(ids.sort()).toEqual(['agus-pausada', 'ana-activa', 'mia-activa'])
   })
 })
