@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { currentBlockIndex, exerciseDetails, groupExercises, isSetComplete, restText, setsRepsText, type SharedRoutineExercise } from './sharedRoutine'
+import { currentBlockIndex, exerciseDetails, groupExercises, isSetComplete, isTimeReps, effortLabel, restText, setsRepsText, type SharedRoutineExercise } from './sharedRoutine'
 
 const ex = (over: Partial<SharedRoutineExercise> = {}): SharedRoutineExercise => ({
   id: 'e',
@@ -78,5 +78,18 @@ describe('rutina compartida', () => {
       [true, 'bc'],
       [false, 'd'],
     ])
+  })
+})
+
+describe('reps por tiempo y RPE por serie', () => {
+  it('reconoce segundos y minutos como los escribe el entrenador', () => {
+    for (const t of ['12´´', "20''", '30″', '1´', "1'", '30 s', '2 min']) expect(isTimeReps(t)).toBe(true)
+    for (const t of ['10', '8-10', '8 / 6 / 5', '6+6', '', null]) expect(isTimeReps(t)).toBe(false)
+  })
+  it('muestra el RPE de la serie con la palabra', () => {
+    expect(effortLabel('8')).toBe('RPE 8')
+    expect(effortLabel('@7-8')).toBe('RPE 7-8')
+    expect(effortLabel('RIR 2')).toBe('RIR 2')
+    expect(effortLabel('')).toBeNull()
   })
 })

@@ -14,6 +14,8 @@ import {
   parseKg,
   parseReps,
   repsText,
+  isTimeReps,
+  effortLabel,
   setsRepsText,
   type SharedRoutine,
   type SharedRoutineDay,
@@ -870,7 +872,7 @@ function ExerciseCard({
   const panelId = `hhr-ex-${ex.id}`
   const name = niceCase(ex.name) || 'Ejercicio'
   const artwork = movementArtwork(ex.name, athlete)
-  const tags = [main.replace(/''/g, '″'), chips[0]].filter(Boolean) as string[]
+  const tags = [main, chips[0]].filter(Boolean) as string[]
   return (
     <article className={`hhr-ex${flat ? ' is-flat' : ' hhr-card'}${complete ? ' is-done' : ''}${open ? ' is-open' : ''}`}>
       <button type="button" className="hhr-ex-head" aria-expanded={open} aria-controls={panelId} onClick={onToggle}>
@@ -935,26 +937,28 @@ function ExerciseCard({
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
-/** «10» o «8-10» llevan «reps»; «20''», «30 s» o «6+6» quedan como están. */
+/** «10» o «8-10» llevan «reps»; «12´´», «1´», «30 s» o «6+6» quedan tal cual los escribió el entrenador. */
 function withReps(reps: string): string {
   const t = reps.trim()
   if (!t) return ''
-  return /^\d+(\s*[-–]\s*\d+)?$/.test(t) ? `${t} reps` : t.replace(/''/g, '″')
+  return /^\d+(\s*[-–]\s*\d+)?$/.test(t) ? `${t} reps` : t
+}
+
+type PlanRow = { kg?: string; reps?: string; rpeRir?: string }
+
+/** Reps (o tiempo) indicadas para la serie i: manda el plan por serie; si no, «8 / 6 / 5» o el esquema general. */
+function rowReps(ex: SharedRoutineExercise, plan: PlanRow[], i: number): string {
+  const scheme = repsText(ex)
+  const parts = /[/,;]/.test(scheme) ? scheme.split(/\s*[/,;]\s*/) : []
+  return plan[i]?.reps?.trim() || parts[i] || (parts.length ? '' : scheme)
 }
 
 /** Lo indicado para la serie i: «10 reps · 60 kg». */
-function setTarget(ex: SharedRoutineExercise, plan: { kg?: string; reps?: string }[], i: number): string {
-  const scheme = repsText(ex)
-  const parts = scheme.includes('/') ? scheme.split('/').map((s) => s.trim()) : []
-  const reps = plan[i]?.reps?.trim() || parts[i] || (parts.length ? '' : scheme)
+function setTarget(ex: SharedRoutineExercise, plan: PlanRow[], i: number): string {
+  const reps = rowReps(ex, plan, i)
   const kgRaw = plan[i]?.kg?.trim()
   const kg = kgRaw ? kgRaw.replace('.', ',') : ex.weight_kg != null && ex.weight_kg > 0 ? formatKg(ex.weight_kg) : ''
   return [withReps(reps), kg ? `${kg} kg` : ''].filter(Boolean).join(' · ')
-}
-
-/** Indicado por tiempo («20 s», «30''», «1 min»): ahí no se piden repeticiones. */
-function isTimeBased(ex: SharedRoutineExercise): boolean {
-  return /″|''|"|\d\s*(s|seg|min)\b/i.test(repsText(ex))
 }
 
 /** Reps y peso opcionales y check independiente. Solo se confirma el progreso al guardar en el servidor. */
@@ -970,7 +974,10 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
   const [repsValues, setRepsValues] = useState<string[]>(() =>
     Array.from({ length: sets }, (_, i) => (logged[i + 1]?.reps != null ? String(logged[i + 1]!.reps) : '')),
   )
-  const timeBased = isTimeBased(ex)
+  // Por tiempo se decide serie por serie: en esas no hay casillero de reps.
+  const timeRows = useMemo(() => Array.from({ length: sets }, (_, i) => isTimeReps(rowReps(ex, plan, i))), [ex, plan, sets])
+  const allTime = timeRows.every(Boolean)
+  const anyTime = timeRows.some(Boolean)
   const [status, setStatus] = useState<SaveState[]>(() => Array.from({ length: sets }, () => 'idle'))
   const [errors, setErrors] = useState<Record<number, string>>({})
   const timers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
@@ -1046,30 +1053,32 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
 
   /** Lo indicado como sugerencia en el casillero: «8-10» → «8», «12» → «12». */
   function repsPlaceholder(i: number): string {
-    const scheme = repsText(ex)
-    const parts = scheme.includes('/') ? scheme.split('/').map((s) => s.trim()) : []
-    const r = plan[i]?.reps?.trim() || parts[i] || (parts.length ? '' : scheme)
-    const m = /\d+/.exec(r)
+    const m = /\d+/.exec(rowReps(ex, plan, i))
     return m ? m[0] : '—'
   }
 
   return (
     <div className="hhr-kg">
-      <p className="hhr-kg-hint">Tildá cada serie al terminar. {timeBased ? 'Los kilos son opcionales.' : 'Las reps y los kilos son opcionales.'}</p>
+      <p className="hhr-kg-hint">Tildá cada serie al terminar. {allTime ? 'Los kilos son opcionales.' : 'Las reps y los kilos son opcionales.'}{anyTime ? ' ´´ son segundos y ´ minutos.' : ''}</p>
       <div className="hhr-sets-head" aria-hidden>
-        <span>Serie</span><span>Indicado</span><span>{timeBased ? '' : 'Reps'}</span><span>Kg</span>
+        <span>Serie</span><span>Indicado</span><span>{allTime ? '' : 'Reps'}</span><span>Kg</span>
       </div>
       <ol className="hhr-sets">
         {values.map((v, i) => {
           const completed = logged[i + 1]?.completed ?? false
           const saving = status[i] === 'saving'
           // Con la columna «Reps» a la vista, lo indicado va sin la palabra: «8-10 · 60 kg».
+          const timeBased = timeRows[i]
           const target = timeBased ? setTarget(ex, plan, i) : setTarget(ex, plan, i).replace(/ reps\b/, '')
+          const rpe = effortLabel(plan[i]?.rpeRir)
           const errorId = `hhr-save-error-${ex.id}-${i}`
           return (
             <li key={i} className={`hhr-setrow is-${status[i]}${completed ? ' is-logged' : ''}`} aria-busy={saving}>
               <span className="hhr-setno" aria-hidden>{i + 1}</span>
-              <span className="hhr-settarget">{target || '—'}</span>
+              <span className="hhr-settarget">
+                {target || '—'}
+                {rpe ? <small className="hhr-setrpe">{rpe}</small> : null}
+              </span>
               {timeBased ? (
                 <span className="hhr-repsfield is-empty" aria-hidden />
               ) : (

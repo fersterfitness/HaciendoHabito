@@ -179,7 +179,8 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           <label className="block text-3xs text-ink-muted mb-0.5">Reps por serie</label>
           <input
             type="text"
-            placeholder="ej: 8 / 6 / 5"
+            placeholder="ej: 8 / 6 / 5 · 30´´ · 1´"
+            title="Por tiempo: 30´´ son 30 segundos y 1´ es 1 minuto. El alumno lo ve tal cual."
             className={cn(controlSmClassName, 'w-full px-2')}
             value={reps}
             onChange={(e) => { setReps(e.target.value); save({ reps_scheme: e.target.value || null }) }}
@@ -292,8 +293,8 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
                   {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
                     <td key={i} className="px-0.5 py-0.5">
                       <input
-                        inputMode="decimal"
                         className={cn(controlSmClassName, 'w-full px-1 text-center')}
+                        title="Reps, o tiempo: 30´´ = 30 segundos, 1´ = 1 minuto"
                         value={seriesPlan[i]?.reps ?? ''}
                         onChange={(e) => patchSeriesPlan(i, 'reps', e.target.value)}
                       />

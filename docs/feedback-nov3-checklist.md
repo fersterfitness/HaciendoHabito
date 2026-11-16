@@ -27,8 +27,8 @@ Fuente: `CORRECIONES EN APP-nov3.docx`. Cada punto dice de dónde sale (número 
 
 ## Tanda 2 — reps en segundos y RPE para el alumno
 
-- [ ] (Rutinas + 2) En «Reps» se puede escribir segundos o minutos: `12´´` = 12 segundos, `1´` = 1 minuto. El alumno ve el símbolo tal cual (no «segundos»), y la columna de reps no le pide un número de repeticiones en esos casos.
-- [ ] (1) El alumno ve el RPE por serie en su tabla de series.
+- [x] (Rutinas + 2) En «Reps» se puede escribir segundos o minutos: `12´´` = 12 segundos, `1´` = 1 minuto. El alumno ve el símbolo tal cual (no «segundos»), y la columna de reps no le pide un número de repeticiones en esos casos.
+- [x] (1) El alumno ve el RPE por serie en su tabla de series.
 
 ## Tanda 3 — chequeo diario nuevo y obligatorio (necesita SQL)
 

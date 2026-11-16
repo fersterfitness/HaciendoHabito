@@ -237,8 +237,16 @@ export function restText(seconds: number | null | undefined): string | null {
   return s ? `${m}:${String(s).padStart(2, '0')} min` : `${m} min`
 }
 
+/**
+ * Reps indicadas por tiempo: `12´´` / `20''` / `30″` / `30 s` = segundos, `1´` / `1'` / `2 min` = minutos.
+ * Ahí no se piden repeticiones y se muestra tal cual lo escribió el entrenador.
+ */
+export function isTimeReps(text: string | null | undefined): boolean {
+  return /[´'’″"]|\d\s*(s|seg|min)\b/i.test(text?.trim() ?? '')
+}
+
 /** «8» → «RPE 8»; «RIR 2» o texto libre quedan como están. */
-function effortLabel(raw: string | null | undefined): string | null {
+export function effortLabel(raw: string | null | undefined): string | null {
   const t = raw?.trim().replace(/^@/, '') ?? ''
   if (!t) return null
   return /rir|rpe/i.test(t) || !/^\d/.test(t) ? t : `RPE ${t}`
