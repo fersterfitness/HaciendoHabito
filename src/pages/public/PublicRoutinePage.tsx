@@ -1,8 +1,8 @@
-import { Fragment, type FormEvent, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Fragment, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowLeft, Check, ChevronDown, ClipboardCheck, Dumbbell, Flame, Link2, MessageCircle, Play } from 'lucide-react'
+import { Check, ChevronDown, Dumbbell, Flame, Link2, MessageCircle, Play } from 'lucide-react'
 import {
   currentBlockIndex,
   exerciseDetails,
@@ -24,22 +24,10 @@ import {
 import { parseExerciseMeta } from '@/lib/routine/exerciseMeta'
 import { formatWarmupDisplayLines } from '@/lib/routine/warmupNotesFormat'
 import { normalizePhoneForWhatsApp } from '@/lib/whatsapp'
-import { supabasePublic } from '@/lib/supabasePublic'
-import { CheckInQuestionFields } from '@/components/checkIn/CheckInQuestionFields'
-import {
-  emptyAnswerDraft,
-  isQuestionVisible,
-  parseQuestions,
-  serializeDrafts,
-  validateDrafts,
-  type CheckInAnswerDraft,
-  type CheckInQuestion,
-} from '@/lib/checkIn/questions'
-import type { Json } from '@/types/database'
 import './public-routine.css'
 import { EMPTY_DAY_LOG, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
 import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, UrgentCard } from './PublicRoutineLog'
-import { feedbackWindowOpen, weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
+import { weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
 import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/studentAppExtras'
 import { CycleCard, MonthReviewCard, PaymentBanner, ProgressCard } from './PublicRoutineExtras'
 import { movementArtwork, routineAthlete, type Athlete } from '@/lib/routine/exerciseArtwork'
@@ -189,9 +177,6 @@ export function PublicRoutinePage() {
   const [day, setDay] = useState(0)
   const [logged, setLogged] = useState<LoggedMap>({})
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({})
-  const [feedbackSent, setFeedbackSent] = useState(false)
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const feedbackRef = useRef<HTMLElement | null>(null)
   const trainRef = useRef<HTMLElement | null>(null)
   // Notas, esfuerzo, chequeo y cierre de cada día. `null`: todavía no está activado en la base.
   const [extras, setExtras] = useState<TrainingExtras | null>(null)
@@ -250,7 +235,6 @@ export function PublicRoutinePage() {
   const data = state.status === 'ok' ? state.data : null
   const routine = data?.routine ?? null
   const firstName = niceCase(data?.student_first_name)
-  const feedbackPending = !!data?.feedback && !data.feedback.done && !feedbackSent
 
   useEffect(() => {
     document.title = firstName ? `Rutina de ${firstName}` : 'Tu rutina'
@@ -383,28 +367,20 @@ export function PublicRoutinePage() {
   // Semana en curso: cuántos días cerró. De eso depende cuándo se habilita el formulario semanal
   // (viernes a domingo, o en su último día de entrenamiento) y el mensaje de cierre de semana.
   const weekState = extras ? weekClose((weekBlock?.days ?? []).map((d) => d.id), (id) => extras.days[id]?.status) : null
-  const fbWindowOpen = !weekState || feedbackWindowOpen(new Date(), weekState)
-  const closeMessage = weekState
-    ? weekCloseMessage(weekState, { feedbackDone: !data.feedback || !feedbackPending, isLastWeek: blocks.length > 1 && currentWeek === blocks.length - 1 })
-    : null
-  // Para dar por terminado un día de esta semana con el formulario ya habilitado, primero hay que responderlo.
-  const mustAnswerFirst = feedbackPending && fbWindowOpen && wi === currentWeek
+  const closeMessage = weekState ? weekCloseMessage(weekState, { isLastWeek: blocks.length > 1 && currentWeek === blocks.length - 1 }) : null
   // Mes terminado: última semana con todos los días cerrados. Ahí se pide la devolución.
   const monthDone = !!weekState && weekState.total > 0 && weekState.open === 0 && currentWeek === blocks.length - 1
   const reviewDayId = blocks[0]?.days[0]?.id ?? null
   const reviewDone = reviewSent || (!!reviewDayId && !!studentExtras?.reviewed_days.includes(reviewDayId))
   const isWoman = /^(f|mujer|femenin)/i.test((data.student_gender ?? data.feedback?.gender ?? '').trim())
+  // Último día de la semana en curso (le queda solo este por cerrar): el chequeo suma pasos y ciclo.
+  const closesWeek = !!weekState && wi === currentWeek && weekState.total > 0 && weekState.open <= 1 && !dayLog?.status
   const askCheckin =
     !!selectedDay && !!dayLog && selectedDay.exercises.length > 0 && !hasCheckin(dayLog) && !dayLog.status && selectedProgress.done === 0
   // La lista prioriza explorar la rutina; cada alumno abre el ejercicio que va a realizar.
   const isOpen = (id: string) => !!openMap[id]
   const toggle = (id: string) => setOpenMap((prev) => ({ ...prev, [id]: !isOpen(id) }))
   let number = 0
-
-  function openFeedback() {
-    setFeedbackOpen(true)
-    requestAnimationFrame(() => feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
-  }
 
   function card(ex: SharedRoutineExercise, inCircuit = false) {
     const n = ++number
@@ -495,38 +471,6 @@ export function PublicRoutinePage() {
             </div>
           </section>
 
-          {data.feedback ? (
-            <section className="hhr-fb-area" ref={feedbackRef} aria-label="Feedback de la semana">
-              {feedbackPending && !fbWindowOpen ? (
-                <div className="hhr-fb hhr-fb-locked" role="status">
-                  <div className="hhr-fb-text">
-                    <b>Feedback de la semana</b>
-                    <span>Se habilita el viernes, o antes si llegás a tu último día de entrenamiento de la semana.</span>
-                  </div>
-                </div>
-              ) : feedbackPending ? (
-                <FeedbackCard
-                  publicToken={data.feedback.public_token}
-                  email={data.feedback.email}
-                  gender={data.feedback.gender ?? null}
-                  proLabel={proLabel}
-                  open={feedbackOpen}
-                  onOpen={() => setFeedbackOpen(true)}
-                  onSent={() => setFeedbackSent(true)}
-                />
-              ) : (
-                <div className="hhr-fb hhr-fb-done" role="status">
-                  <span className="hhr-fb-art is-done" aria-hidden>
-                    <Check size={22} strokeWidth={2.4} />
-                  </span>
-                  <div className="hhr-fb-text">
-                    <b>Feedback enviado</b>
-                    <span>{proFirst ? `${proFirst} ya lo puede ver.` : 'Tu entrenador ya lo puede ver.'} El próximo se habilita la semana que viene.</span>
-                  </div>
-                </div>
-              )}
-            </section>
-          ) : null}
           {extras ? <ProgressCard blocks={blocks} extras={extras} kgOf={kgOf} /> : null}
           {studentExtras && isWoman ? (
             <CycleCard token={token} extras={studentExtras} onChange={(patch) => setStudentExtras((prev) => (prev ? { ...prev, ...patch } : prev))} />
@@ -639,9 +583,16 @@ export function PublicRoutinePage() {
                   key={selectedDay.id}
                   token={token}
                   dayId={selectedDay.id}
-                  log={dayLog}
                   proLabel={proLabel}
+                  weekClose={closesWeek}
+                  woman={isWoman}
+                  sex={isWoman ? 'F' : 'M'}
                   onSaved={onDayLog}
+                  onCycle={({ date, onPill }) =>
+                    setStudentExtras((prev) =>
+                      prev ? { ...prev, cycles: date ? [date, ...prev.cycles.filter((c) => c !== date)] : prev.cycles, on_pill: onPill ?? prev.on_pill } : prev,
+                    )
+                  }
                 />
               ) : null}
               {selectedDay && dayLog && !askCheckin ? <DayCheckinSummary log={dayLog} /> : null}
@@ -718,8 +669,6 @@ export function PublicRoutinePage() {
                       today={today}
                       allSetsDone={selectedProgress.total > 0 && selectedProgress.done >= selectedProgress.total}
                       onSaved={onDayLog}
-                      proLabel={proLabel}
-                      onAnswerFeedback={mustAnswerFirst ? openFeedback : null}
                     />
                   ) : null}
                 </div>
@@ -741,16 +690,6 @@ export function PublicRoutinePage() {
           <button type="button" className="hhr-bar-btn" aria-label="Ir al entrenamiento" onClick={() => trainRef.current?.scrollIntoView({ behavior: 'smooth' })}>
             <Dumbbell size={21} strokeWidth={1.8} aria-hidden />
           </button>
-          {feedbackPending && fbWindowOpen ? (
-            <button type="button" className="hhr-bar-fb" onClick={openFeedback}>
-              <span className="hhr-dot" aria-hidden />
-              Mi feedback
-            </button>
-          ) : data.feedback && !feedbackPending ? (
-            <span className="hhr-bar-btn is-static" aria-label="Feedback enviado">
-              <ClipboardCheck size={21} strokeWidth={1.8} aria-hidden />
-            </span>
-          ) : null}
           {waDigits ? (
             <a className="hhr-bar-btn" href={`https://wa.me/${waDigits}`} target="_blank" rel="noopener noreferrer" aria-label="Escribir por WhatsApp">
               <MessageCircle size={21} strokeWidth={1.8} aria-hidden />
@@ -1117,216 +1056,6 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
           )
         })}
       </ol>
-    </div>
-  )
-}
-
-type FormPayload = { ok: boolean; title?: string; questions?: Json; error?: string }
-
-function isAnswered(q: CheckInQuestion, d: CheckInAnswerDraft | undefined): boolean {
-  if (!d) return false
-  if (q.type === 'choice') return !!d.optionId
-  return !!d.text.trim()
-}
-
-/** Feedback de la semana: tarjeta cerrada con el botón, y al abrirla una pregunta por vez. */
-function FeedbackCard({
-  publicToken,
-  email,
-  gender,
-  proLabel,
-  open,
-  onOpen,
-  onSent,
-}: {
-  publicToken: string
-  email: string | null
-  gender: string | null
-  proLabel: string
-  open: boolean
-  onOpen: () => void
-  onSent: () => void
-}) {
-  const [payload, setPayload] = useState<FormPayload | null>(null)
-  const [drafts, setDrafts] = useState<Record<string, CheckInAnswerDraft>>({})
-  const [step, setStep] = useState(0)
-  const [responderEmail, setResponderEmail] = useState(email ?? '')
-  const [sending, setSending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    void supabasePublic.rpc('get_check_in_form_by_public_token', { p_public_token: publicToken }).then(({ data }) => {
-      if (alive) setPayload((data as FormPayload | null) ?? { ok: false })
-    })
-    return () => {
-      alive = false
-    }
-  }, [publicToken])
-
-  const allQuestions = useMemo(() => (payload?.ok && payload.questions ? parseQuestions(payload.questions) : []), [payload])
-  const questions = useMemo(() => allQuestions.filter((q) => isQuestionVisible(q, gender)), [allQuestions, gender])
-  const total = questions.length
-  const si = Math.min(step, Math.max(0, total - 1))
-  const q = questions[si]
-  const last = si === total - 1
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(responderEmail.trim())
-  const duration = total <= 4 ? 'un minuto' : `unos ${Math.max(2, Math.round(total / 3))} minutos`
-
-  function next() {
-    if (!q) return
-    const err = validateDrafts([q], drafts, gender)
-    if (err) {
-      setError(err)
-      return
-    }
-    setError(null)
-    setStep(si + 1)
-  }
-
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    if (!last) {
-      next()
-      return
-    }
-    const err = validateDrafts(allQuestions, drafts, gender)
-    if (err) {
-      setError(err)
-      return
-    }
-    if (!emailOk) {
-      setError('Escribí el correo con el que te inscribiste.')
-      return
-    }
-    setError(null)
-    setSending(true)
-    const { data, error: rpcError } = await supabasePublic.rpc('submit_check_in_shared_response', {
-      p_public_token: publicToken,
-      p_answers: serializeDrafts(allQuestions, drafts, gender) as unknown as Json,
-      p_testimonial_consent: false,
-      p_responder_email: responderEmail.trim(),
-    })
-    setSending(false)
-    const res = data as { ok?: boolean; error?: string } | null
-    if ((!rpcError && res?.ok) || res?.error === 'already_submitted') {
-      onSent()
-      return
-    }
-    setError(
-      res?.error === 'rate_limited'
-        ? 'Demasiados intentos. Probá de nuevo en un rato.'
-        : res?.error && /email|student/.test(res.error)
-          ? 'No pudimos validar tu correo. Usá el mismo con el que te inscribiste.'
-          : 'No se pudo enviar. Probá de nuevo en unos minutos.',
-    )
-  }
-
-  const art = (
-    <span className="hhr-fb-art" aria-hidden>
-      <Art name="feedback" fallback={<ClipboardCheck size={22} strokeWidth={1.8} />} />
-    </span>
-  )
-
-  if (!open) {
-    return (
-      <div className="hhr-fb">
-        <div className="hhr-fb-row">
-          {art}
-          <div className="hhr-fb-text">
-            <span className="hhr-fb-badge">Pendiente</span>
-            <b>Feedback de la semana</b>
-            <span>{total ? `${total} preguntas · ${duration}` : `Lo lee ${proLabel} para ajustar tu rutina`}</span>
-          </div>
-        </div>
-        <button type="button" className="hhr-cta" onClick={onOpen}>
-          Responder ahora
-        </button>
-      </div>
-    )
-  }
-
-  const answeredBefore = questions.slice(0, si).length + (q && isAnswered(q, drafts[q.id]) ? 1 : 0)
-  return (
-    <div className="hhr-fb is-open">
-      <div className="hhr-fb-row">
-        {art}
-        <div className="hhr-fb-text">
-          <b>¿Cómo te fue esta semana?</b>
-          <span>Lo lee {proLabel} para ajustar tu rutina.</span>
-        </div>
-      </div>
-
-      {!payload ? (
-        <p className="hhr-fb-note">Cargando preguntas…</p>
-      ) : !payload.ok || total === 0 || !q ? (
-        <p className="hhr-fb-note">El formulario no está disponible ahora. Avisale a {proLabel}.</p>
-      ) : (
-        <form className="hhr-fb-form" onSubmit={(e) => void submit(e)}>
-          <div className="hhr-fb-progress">
-            <span className="hhr-fb-count" aria-live="polite">
-              Pregunta {si + 1} de {total}
-            </span>
-            {total <= 8 ? (
-              <span className="hhr-steps" aria-hidden>
-                {questions.map((qq, i) => (
-                  <span key={qq.id} className={i < si || (i === si && isAnswered(qq, drafts[qq.id])) ? 'is-on' : i === si ? 'is-cur' : ''} />
-                ))}
-              </span>
-            ) : (
-              <span className="hhr-fb-bar" aria-hidden>
-                <span style={{ width: `${(answeredBefore / total) * 100}%` }} />
-              </span>
-            )}
-          </div>
-          <div className="hhr-q" key={q.id}>
-            <CheckInQuestionFields
-              question={q}
-              index={si}
-              draft={drafts[q.id] ?? emptyAnswerDraft()}
-              onChange={(nextDraft) => {
-                setError(null)
-                setDrafts((prev) => ({ ...prev, [q.id]: nextDraft }))
-              }}
-            />
-          </div>
-          {last && !email ? (
-            <label className="hhr-fb-email">
-              <span>Tu correo (el mismo con el que te inscribiste)</span>
-              <input
-                type="email"
-                autoComplete="email"
-                value={responderEmail}
-                onChange={(e) => setResponderEmail(e.target.value)}
-                placeholder="tu@correo.com"
-              />
-            </label>
-          ) : null}
-          {error ? (
-            <p className="hhr-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <div className="hhr-fb-actions">
-            {si > 0 ? (
-              <button
-                type="button"
-                className="hhr-ghost"
-                aria-label="Pregunta anterior"
-                onClick={() => {
-                  setError(null)
-                  setStep(si - 1)
-                }}
-              >
-                <ArrowLeft size={18} strokeWidth={2} aria-hidden />
-              </button>
-            ) : null}
-            <button type="submit" className="hhr-cta" disabled={sending || !isAnswered(q, drafts[q.id])}>
-              {sending ? 'Enviando…' : last ? 'Enviar feedback' : 'Siguiente'}
-            </button>
-          </div>
-        </form>
-      )}
     </div>
   )
 }

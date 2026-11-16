@@ -108,6 +108,7 @@ function Figure({
   onHover,
   pains,
   compact = false,
+  onPick,
 }: {
   sex: BodySex
   view: BodyView
@@ -116,6 +117,8 @@ function Figure({
   onHover: (m: MuscleId | null) => void
   pains: BodyPain[]
   compact?: boolean
+  /** Tocar un músculo (mapa de dolor del chequeo diario). */
+  onPick?: (m: MuscleId) => void
 }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const [data, setData] = useState<ViewData | null>(null)
@@ -144,7 +147,7 @@ function Figure({
     return [...by.entries()]
   }, [pains, pos])
 
-  const muscleAt = (e: React.PointerEvent<HTMLCanvasElement>): MuscleId | null => {
+  const muscleAt = (e: React.MouseEvent<HTMLCanvasElement>): MuscleId | null => {
     if (!data) return null
     const r = e.currentTarget.getBoundingClientRect()
     const x = Math.floor(((e.clientX - r.left) / r.width) * data.w)
@@ -165,6 +168,15 @@ function Figure({
             onPointerMove={(e) => onHover(muscleAt(e))}
             onPointerLeave={() => onHover(null)}
             onPointerDown={(e) => onHover(muscleAt(e))}
+            onClick={
+              onPick
+                ? (e) => {
+                    const m = muscleAt(e)
+                    if (m) onPick(m)
+                  }
+                : undefined
+            }
+            style={onPick ? { cursor: 'pointer' } : undefined}
           />
           {markers.map(([m, texts]) => (
             <span
@@ -251,6 +263,33 @@ export function VolumeBodyMini({ sex, status, pains }: { sex: BodySex; status: R
         <Figure compact sex={sex} view="espalda" status={status} active={active} onHover={setActive} pains={pains} />
       </div>
       <p className="mt-0.5 h-4 text-[11.5px] text-ink-secondary">{active ? LABEL[active] : ''}</p>
+    </div>
+  )
+}
+
+/**
+ * Chequeo diario del alumno: tocar el cuerpo (o los nombres de abajo) para marcar dónde está el dolor no
+ * habitual. Los músculos marcados quedan en rojo.
+ */
+export function PainBodyPicker({ sex, selected, onToggle }: { sex: BodySex; selected: MuscleId[]; onToggle: (m: MuscleId) => void }) {
+  const [active, setActive] = useState<MuscleId | null>(null)
+  const status = useMemo(
+    () => Object.fromEntries(VOLUME_MUSCLES.map((m) => [m.id, selected.includes(m.id) ? 'high' : 'none'])) as Record<MuscleId, VolumeStatus>,
+    [selected],
+  )
+  return (
+    <div className="hhr-painmap">
+      <div className="hhr-painmap-figs">
+        <Figure sex={sex} view="frente" status={status} active={active} onHover={setActive} pains={[]} onPick={onToggle} />
+        <Figure sex={sex} view="espalda" status={status} active={active} onHover={setActive} pains={[]} onPick={onToggle} />
+      </div>
+      <div className="hhr-opts" role="group" aria-label="Músculos con dolor">
+        {VOLUME_MUSCLES.map((m) => (
+          <button key={m.id} type="button" aria-pressed={selected.includes(m.id)} onClick={() => onToggle(m.id)}>
+            {m.label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

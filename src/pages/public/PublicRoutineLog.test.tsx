@@ -7,11 +7,11 @@ import { fetchSharedRoutine, type SharedRoutine } from '@/lib/routine/sharedRout
 import {
   EMPTY_DAY_LOG,
   fetchSharedExtras,
-  saveSharedDayCheckin,
   saveSharedDayStatus,
   saveSharedExerciseFeedback,
   type TrainingExtras,
 } from '@/lib/routine/studentTrainingLog'
+import { saveSharedDailyCheckin } from '@/lib/routine/dailyCheckin'
 
 vi.mock('@/lib/routine/sharedRoutine', async (original) => ({
   ...(await original<typeof import('@/lib/routine/sharedRoutine')>()),
@@ -21,10 +21,13 @@ vi.mock('@/lib/routine/sharedRoutine', async (original) => ({
 vi.mock('@/lib/routine/studentTrainingLog', async (original) => ({
   ...(await original<typeof import('@/lib/routine/studentTrainingLog')>()),
   fetchSharedExtras: vi.fn(),
-  saveSharedDayCheckin: vi.fn(),
   saveSharedDayStatus: vi.fn(),
   saveSharedExerciseFeedback: vi.fn(),
   sendSharedUrgentMessage: vi.fn(),
+}))
+vi.mock('@/lib/routine/dailyCheckin', async (original) => ({
+  ...(await original<typeof import('@/lib/routine/dailyCheckin')>()),
+  saveSharedDailyCheckin: vi.fn(),
 }))
 
 const routine: SharedRoutine = {
@@ -74,7 +77,7 @@ describe('registro del alumno en la rutina por link', () => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
     vi.clearAllMocks()
     vi.mocked(fetchSharedRoutine).mockResolvedValue(routine)
-    vi.mocked(saveSharedDayCheckin).mockResolvedValue(undefined)
+    vi.mocked(saveSharedDailyCheckin).mockResolvedValue(undefined)
     vi.mocked(saveSharedDayStatus).mockResolvedValue(undefined)
     vi.mocked(saveSharedExerciseFeedback).mockResolvedValue(undefined)
     fontStub = document.createElement('link')
@@ -113,28 +116,39 @@ describe('registro del alumno en la rutina por link', () => {
     expect(button('Consulta urgente')).toBeUndefined()
   })
 
-  it('pide el chequeo antes de mostrar los ejercicios y lo guarda', async () => {
+  it('muestra el aviso obligatorio, pide el chequeo antes de los ejercicios y lo guarda', async () => {
     await open({ exercises: {}, days: {} })
-    expect(host.querySelector('.hhr-checkin')).not.toBeNull()
+    expect(host.querySelector('.hhr-must')?.textContent).toContain('LECTURA OBLIGATORIA')
     expect(host.querySelector('.hhr-ex-head')).toBeNull()
-    expect(button('Comenzar entreno')!.disabled).toBe(true)
+    await click(button('Entendí, completar mi chequeo'))
 
-    // Un valor en cada una de las cuatro escalas (4, 3, 2, 1).
+    // Un 4 en cada una de las ocho escalas, y las opciones (es su único día de la semana: suma los pasos).
     const scales = [...host.querySelectorAll('.hhr-checkin .hhr-scale')]
-    for (const [i, s] of scales.entries()) await click(s.querySelectorAll('button')[3 - i])
-    await click(button('Comenzar entreno'))
+    expect(scales).toHaveLength(8)
+    for (const s of scales) await click(s.querySelectorAll('button')[3])
+    await click(button('6 a 7 h'))
+    await click(host.querySelector('[aria-label="Tipo de dolor"] button:last-child'))
+    await click(button('Menos de 5.000'))
+    await click(button('Desbloquear mi rutina'))
 
-    expect(saveSharedDayCheckin).toHaveBeenCalledWith('test-token', 'day', { sleep: 4, energy: 3, stress: 2, soreness: 1, checkin_note: '' })
+    expect(saveSharedDailyCheckin).toHaveBeenCalledWith(
+      'test-token',
+      'day',
+      expect.objectContaining({ energy: 4, nutrition: 4, sleep_hours: '6to7', pain_kind: 'none', steps_avg: 'lt5000', cycle_answer: null }),
+    )
     expect(host.querySelector('.hhr-checkin')).toBeNull()
     expect(host.querySelector('.hhr-ex-head')).not.toBeNull()
-    expect(host.querySelector('.hhr-checkin-line')?.textContent).toContain('Sueño 4/5')
+    expect(host.querySelector('.hhr-checkin-line')?.textContent).toContain('Energía 4/5')
   })
 
-  it('el chequeo es obligatorio: no se puede dejar para después', async () => {
+  it('el chequeo es obligatorio: sin responder todo no se desbloquea', async () => {
     await open({ exercises: {}, days: {} })
     expect(button('Responder después')).toBeUndefined()
+    await click(button('Entendí, completar mi chequeo'))
+    await click(button('Desbloquear mi rutina'))
+    expect(saveSharedDailyCheckin).not.toHaveBeenCalled()
+    expect(host.querySelector('.hhr-checkin .is-error')?.textContent).toContain('Te falta responder')
     expect(host.querySelector('.hhr-ex-head')).toBeNull()
-    expect(button('Comenzar entreno')!.disabled).toBe(true)
   })
 
   it('cierra el día como terminado con el esfuerzo de la sesión', async () => {

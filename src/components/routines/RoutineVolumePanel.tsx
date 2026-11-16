@@ -832,7 +832,7 @@ export function RoutineVolumePanel({
   const bodyPains: BodyPain[] = useMemo(
     () =>
       (weekPains[safeIdx] ?? []).flatMap((p) =>
-        painMuscles(p.note).map((muscle) => ({ muscle, text: `${p.date.slice(8, 10)}/${p.date.slice(5, 7)} · ${p.note || 'sin aclaración'}` })),
+        (p.muscles?.length ? (p.muscles.filter((m) => (MUSCLE_IDS as string[]).includes(m)) as MuscleId[]) : painMuscles(p.note)).map((muscle) => ({ muscle, text: `${p.date.slice(8, 10)}/${p.date.slice(5, 7)} · ${p.note || 'sin aclaración'}` })),
       ),
     [weekPains, safeIdx],
   )

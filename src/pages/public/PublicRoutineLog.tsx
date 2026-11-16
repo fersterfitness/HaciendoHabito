@@ -1,13 +1,29 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { AlertTriangle, Check, MessageSquareText, Moon, X } from 'lucide-react'
+import type { BodySex } from '@/components/nutrition/body2d/zones'
+import {
+  CYCLE_ANSWERS,
+  DAILY_SCALES,
+  EMPTY_DRAFT,
+  NUTRITION_ISSUES,
+  NUTRITION_LABELS,
+  PAIN_KINDS,
+  SLEEP_HOURS,
+  STEPS,
+  dailySummary,
+  draftToLog,
+  missingAnswers,
+  needsNutritionIssue,
+  saveSharedDailyCheckin,
+  type DailyCheckinDraft,
+  type ScaleKey,
+} from '@/lib/routine/dailyCheckin'
+import { saveSharedCyclePill, saveSharedCycleStart } from '@/lib/routine/studentAppExtras'
 import {
   BORG_LABELS,
-  CHECKIN_SCALES,
-  checkinSummary,
   hasCheckin,
-  saveSharedDayCheckin,
   saveSharedDayStatus,
   saveSharedExerciseFeedback,
   sendSharedUrgentMessage,
@@ -19,6 +35,9 @@ import {
  * Piezas de la página del alumno (/rutina/:token) para lo que deja además de kilos y repeticiones:
  * nota y esfuerzo por ejercicio, chequeo de antes de entrenar, cierre del día y consulta urgente.
  */
+
+// El cuerpo para marcar el dolor se baja solo si el alumno elige «dolor no habitual».
+const PainBodyPicker = lazy(() => import('@/components/routines/volumeBody/VolumeBodyMap').then((m) => ({ default: m.PainBodyPicker })))
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : 'No se pudo guardar. Intentá de nuevo.')
 
@@ -127,31 +146,89 @@ export function ExerciseFeedbackBox({
 }
 
 /** Antes de empezar el día: cómo llega el alumno. */
+/** Opciones en pastillas, una elegida. */
+function Chips<T extends string>({ options, value, onChange, label }: { options: readonly { id: T; label: string }[]; value: T | null; onChange: (v: T) => void; label: string }) {
+  return (
+    <div className="hhr-opts" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.id} type="button" aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function ScaleField({ s, value, onChange, hint }: { s: (typeof DAILY_SCALES)[number]; value: number | null | undefined; onChange: (v: number | null) => void; hint?: string }) {
+  return (
+    <div className="hhr-field">
+      <span>{s.label}</span>
+      <Scale max={5} value={value ?? null} label={s.label} good={s.good} onChange={onChange} />
+      {hint ? (
+        <span className="hhr-scale-hint">{hint}</span>
+      ) : (
+        <span className="hhr-scale-ends">
+          <i>1 · {s.low}</i>
+          <i>5 · {s.high}</i>
+        </span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Chequeo diario obligatorio: primero el aviso «Atención · lectura obligatoria» y, al tocar «Entendí»,
+ * las preguntas. Hasta enviarlo, la rutina del día queda bloqueada. El último día de la semana suma
+ * pasos y (solo mujeres) ciclo menstrual.
+ */
 export function DayCheckinCard({
   token,
   dayId,
-  log,
   proLabel,
+  weekClose,
+  woman,
+  sex,
   onSaved,
+  onCycle,
 }: {
   token: string
   dayId: string
-  log: DayLog
   proLabel: string
+  weekClose: boolean
+  woman: boolean
+  sex: BodySex
   onSaved: (dayId: string, patch: Partial<DayLog>) => void
+  /** Ciclo registrado desde el chequeo: para actualizar la tarjeta «Tu ciclo». */
+  onCycle?: (patch: { date?: string; onPill?: boolean }) => void
 }) {
-  const [v, setV] = useState({ sleep: log.sleep, energy: log.energy, stress: log.stress, soreness: log.soreness })
-  const [note, setNote] = useState(log.checkin_note)
+  const [stage, setStage] = useState<'notice' | 'questions'>('notice')
+  const [d, setD] = useState<DailyCheckinDraft>(EMPTY_DRAFT)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const answered = CHECKIN_SCALES.every((s) => v[s.key] != null)
+  const [tried, setTried] = useState(false)
+  const opts = { weekClose, woman }
+  const missing = missingAnswers(d, opts)
+  const set = (patch: Partial<DailyCheckinDraft>) => setD((cur) => ({ ...cur, ...patch }))
+  const setScale = (key: ScaleKey, v: number | null) => setD((cur) => ({ ...cur, scales: { ...cur.scales, [key]: v } }))
+  const scale = (key: ScaleKey) => DAILY_SCALES.find((s) => s.key === key)!
+  const today = format(new Date(), 'yyyy-MM-dd')
 
   async function submit() {
+    setTried(true)
+    if (missing.length) return
     setBusy(true)
     setError('')
-    const patch = { ...v, checkin_note: note.trim() }
+    const patch = draftToLog(d, opts)
     try {
-      await saveSharedDayCheckin(token, dayId, patch)
+      if (weekClose && woman && d.cycle === 'not_logged' && d.cycleDate) {
+        await saveSharedCycleStart(token, d.cycleDate)
+        onCycle?.({ date: d.cycleDate })
+      }
+      if (weekClose && woman && d.cycle === 'pill') {
+        await saveSharedCyclePill(token, true)
+        onCycle?.({ onPill: true })
+      }
+      await saveSharedDailyCheckin(token, dayId, patch)
       onSaved(dayId, { ...patch, checkin_at: new Date().toISOString() })
     } catch (e) {
       setError(errText(e))
@@ -160,38 +237,133 @@ export function DayCheckinCard({
     }
   }
 
+  if (stage === 'notice') {
+    return (
+      <section className="hhr-card hhr-must" role="alert" aria-label="Atención, lectura obligatoria">
+        <p className="hhr-must-title">
+          <AlertTriangle size={20} strokeWidth={2.2} aria-hidden /> ATENCIÓN · LECTURA OBLIGATORIA
+        </p>
+        <p>
+          Para poder <b>DESBLOQUEAR</b> tu rutina de hoy, es <b>OBLIGATORIO</b> completar este chequeo diario.
+        </p>
+        <p>Te toma 30 segundos y le sirve a {proLabel} para cuidarte, adaptar tu entrenamiento y ver tu progreso semana a semana.</p>
+        <p>
+          Sin este registro, <b>NO</b> tendrás acceso a tu rutina.
+        </p>
+        <p className="hhr-must-sub">Respondé con sinceridad, por favor.</p>
+        <button type="button" className="hhr-cta hhr-cta-must" onClick={() => setStage('questions')}>
+          Entendí, completar mi chequeo
+        </button>
+      </section>
+    )
+  }
+
   return (
-    <section className="hhr-card hhr-checkin" aria-label="Antes de entrenar">
+    <section className="hhr-card hhr-checkin" aria-label="Chequeo diario">
       <div className="hhr-log-head">
         <span className="hhr-log-icon" aria-hidden>
           <Moon size={18} strokeWidth={1.9} />
         </span>
         <div>
-          <b>Antes de empezar, ¿cómo estás hoy?</b>
-          <span>Son 4 toques. {proLabel.charAt(0).toUpperCase() + proLabel.slice(1)} lo usa para ajustar tu entrenamiento.</span>
+          <b>Chequeo diario</b>
+          <span>{weekClose ? 'Último día de la semana: hay preguntas extra.' : 'Respondé todo para desbloquear tu rutina de hoy.'}</span>
         </div>
       </div>
-      {CHECKIN_SCALES.map((s) => (
-        <div key={s.key} className="hhr-field">
-          <span>{s.label}</span>
-          <Scale max={5} value={v[s.key]} label={s.label} good={s.key === 'stress' || s.key === 'soreness' ? 'low' : 'high'} onChange={(n) => setV((cur) => ({ ...cur, [s.key]: n }))} />
-          <span className="hhr-scale-ends">
-            <i>1 · {s.low}</i>
-            <i>5 · {s.high}</i>
-          </span>
+
+      <ScaleField s={scale('energy')} value={d.scales.energy} onChange={(v) => setScale('energy', v)} />
+
+      <ScaleField s={scale('sleep')} value={d.scales.sleep} onChange={(v) => setScale('sleep', v)} />
+      <div className="hhr-field hhr-subfield">
+        <span>¿Cuántas horas?</span>
+        <Chips options={SLEEP_HOURS} value={d.sleepHours} label="Horas de sueño" onChange={(v) => set({ sleepHours: v })} />
+      </div>
+
+      <ScaleField s={scale('stress')} value={d.scales.stress} onChange={(v) => setScale('stress', v)} />
+
+      <ScaleField s={scale('soreness')} value={d.scales.soreness} onChange={(v) => setScale('soreness', v)} />
+      <div className="hhr-field hhr-subfield">
+        <span>¿De qué tipo?</span>
+        <Chips options={PAIN_KINDS} value={d.painKind} label="Tipo de dolor" onChange={(v) => set({ painKind: v })} />
+      </div>
+      {d.painKind === 'unusual' ? (
+        <div className="hhr-field hhr-subfield">
+          <span>Marcá dónde te duele (tocá el músculo)</span>
+          <Suspense fallback={<span className="hhr-save">Cargando el cuerpo…</span>}>
+            <PainBodyPicker
+              sex={sex}
+              selected={d.painAreas}
+              onToggle={(m) => set({ painAreas: d.painAreas.includes(m) ? d.painAreas.filter((x) => x !== m) : [...d.painAreas, m] })}
+            />
+          </Suspense>
+          <textarea
+            rows={2}
+            maxLength={600}
+            value={d.painNote}
+            placeholder="Contá cómo es el dolor (por ejemplo: me tira al subir escaleras)"
+            aria-label="Aclaración del dolor"
+            onChange={(e) => set({ painNote: e.target.value })}
+          />
+          <span className="hhr-scale-hint">A {proLabel} le llega un aviso para revisarlo.</span>
         </div>
-      ))}
+      ) : null}
+
+      {weekClose ? (
+        <div className="hhr-field hhr-weekq">
+          <span>¿Cuántos pasos diarios promediaste esta semana, aproximadamente?</span>
+          <Chips options={STEPS} value={d.steps} label="Pasos diarios" onChange={(v) => set({ steps: v })} />
+        </div>
+      ) : null}
+
+      <ScaleField s={scale('hydration')} value={d.scales.hydration} onChange={(v) => setScale('hydration', v)} />
+      <ScaleField s={scale('motivation')} value={d.scales.motivation} onChange={(v) => setScale('motivation', v)} />
+      <ScaleField s={scale('recovery')} value={d.scales.recovery} onChange={(v) => setScale('recovery', v)} />
+      <ScaleField
+        s={scale('nutrition')}
+        value={d.scales.nutrition}
+        onChange={(v) => setScale('nutrition', v)}
+        hint={d.scales.nutrition ? `${d.scales.nutrition} · ${NUTRITION_LABELS[d.scales.nutrition]}` : '1 · Muy desordenada … 5 · Excelente, 100% el plan'}
+      />
+      {needsNutritionIssue(d) ? (
+        <div className="hhr-field hhr-subfield">
+          <span>¿Qué fue lo que más te complicó? (elegí una)</span>
+          <Chips options={NUTRITION_ISSUES} value={d.nutritionIssue} label="Qué complicó la alimentación" onChange={(v) => set({ nutritionIssue: v })} />
+          {d.nutritionIssue === 'other' ? (
+            <input
+              type="text"
+              maxLength={300}
+              value={d.nutritionIssueNote}
+              placeholder="Contanos qué pasó"
+              aria-label="Qué complicó la alimentación"
+              onChange={(e) => set({ nutritionIssueNote: e.target.value })}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {weekClose && woman ? (
+        <div className="hhr-field hhr-weekq">
+          <span>¿Registraste tu ciclo menstrual?</span>
+          <Chips options={CYCLE_ANSWERS} value={d.cycle} label="Ciclo menstrual" onChange={(v) => set({ cycle: v })} />
+          {d.cycle === 'not_logged' ? (
+            <label className="hhr-inline-date">
+              Primer día de tu última menstruación
+              <input type="date" max={today} value={d.cycleDate} onChange={(e) => set({ cycleDate: e.target.value })} />
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+
       <label className="hhr-field">
         <span>¿Algo más que quieras contar? (opcional)</span>
-        <textarea rows={2} maxLength={600} value={note} placeholder="Por ejemplo: dormí poco por el trabajo" onChange={(e) => setNote(e.target.value)} />
+        <textarea rows={2} maxLength={600} value={d.note} placeholder="Por ejemplo: dormí poco por el trabajo" onChange={(e) => set({ note: e.target.value })} />
       </label>
       {error ? <p className="hhr-save is-error">{error}</p> : null}
+      {tried && missing.length ? <p className="hhr-save is-error">Te falta responder: {missing.join(', ')}.</p> : null}
       <div className="hhr-log-actions">
-        <button type="button" className="hhr-cta" disabled={!answered || busy} onClick={() => void submit()}>
-          {busy ? 'Guardando…' : 'Comenzar entreno'}
+        <button type="button" className="hhr-cta" disabled={busy} onClick={() => void submit()}>
+          {busy ? 'Guardando…' : 'Desbloquear mi rutina'}
         </button>
       </div>
-      {!answered ? <p className="hhr-save">Elegí un número en cada pregunta para empezar.</p> : null}
     </section>
   )
 }
@@ -201,7 +373,7 @@ export function DayCheckinSummary({ log }: { log: DayLog }) {
   if (!hasCheckin(log)) return null
   return (
     <p className="hhr-checkin-line">
-      <Check size={13} strokeWidth={2.6} aria-hidden /> Cómo llegaste hoy: {checkinSummary(log)}
+      <Check size={13} strokeWidth={2.6} aria-hidden /> Cómo llegaste hoy: {dailySummary(log)}
     </p>
   )
 }
@@ -214,8 +386,6 @@ export function DayCloseCard({
   today,
   allSetsDone,
   onSaved,
-  proLabel,
-  onAnswerFeedback,
 }: {
   token: string
   dayId: string
@@ -224,9 +394,6 @@ export function DayCloseCard({
   today: string
   allSetsDone: boolean
   onSaved: (dayId: string, patch: Partial<DayLog>) => void
-  proLabel: string
-  /** Si viene, el formulario de la semana está habilitado y sin responder: va antes de terminar el día. */
-  onAnswerFeedback: (() => void) | null
 }) {
   const [mode, setMode] = useState<'idle' | 'done' | 'missed'>('idle')
   const [effort, setEffort] = useState<number | null>(log.effort)
@@ -276,32 +443,6 @@ export function DayCloseCard({
         <button type="button" className="hhr-link" disabled={busy} onClick={() => void save(null)}>
           Deshacer
         </button>
-      </section>
-    )
-  }
-
-  if (mode === 'done' && onAnswerFeedback) {
-    return (
-      <section className="hhr-card hhr-close-form" aria-label="Primero el feedback de la semana">
-        <b>Antes de terminar, completá el feedback de la semana</b>
-        <p className="hhr-close-why">
-          Tus pesos ya quedaron guardados. Para dar el día por terminado falta el feedback: son los datos que {proLabel} usa para ajustar tu rutina.
-        </p>
-        <div className="hhr-log-actions">
-          <button
-            type="button"
-            className="hhr-cta"
-            onClick={() => {
-              setMode('idle')
-              onAnswerFeedback()
-            }}
-          >
-            Completar el feedback
-          </button>
-          <button type="button" className="hhr-link" onClick={() => setMode('idle')}>
-            Ahora no
-          </button>
-        </div>
       </section>
     )
   }

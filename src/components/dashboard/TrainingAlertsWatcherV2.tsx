@@ -163,12 +163,15 @@ function Watcher({ ownerId }: { ownerId: string }) {
       fresh.map((m) => ({
         key: `urgent:${m.id}`,
         kind: 'urgent' as const,
-        title: `Consulta urgente de ${m.student_name.trim().split(/\s+/)[0]}`,
+        title:
+          m.kind === 'pain'
+            ? `${m.student_name.trim().split(/\s+/)[0]} tiene un dolor puntual`
+            : `Consulta urgente de ${m.student_name.trim().split(/\s+/)[0]}`,
         detail: m.message,
         studentName: m.student_name,
         avatarPath: null,
         important: true,
-        to: '/dashboard',
+        to: m.kind === 'pain' && m.routine_id ? `/routines/${m.routine_id}` : '/dashboard',
       })),
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -896,7 +896,7 @@ export function DashboardV2Page() {
 
         {user ? (
           <div className="mb-8 empty:hidden">
-            <UrgentMessagesPanelV2 ownerId={user.id} onOpenStudent={(sid) => navigate(`/students/${sid}`)} />
+            <UrgentMessagesPanelV2 ownerId={user.id} onOpenStudent={(sid) => navigate(`/students/${sid}`)} onOpenRoutine={(rid) => navigate(`/routines/${rid}`)} />
           </div>
         ) : null}
         {user && trains ? (

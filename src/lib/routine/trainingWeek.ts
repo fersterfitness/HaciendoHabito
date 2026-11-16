@@ -49,8 +49,8 @@ export function feedbackWindowOpen(date: Date, week: WeekClose): boolean {
 export const HABIT_PHRASE = 'A seguir haciéndolo hábito.'
 
 /** Mensaje de cierre de semana para el alumno; `null` si todavía le quedan días o el formulario. */
-export function weekCloseMessage(week: WeekClose, opts: { feedbackDone: boolean; isLastWeek: boolean }): { title: string; body: string } | null {
-  if (week.total === 0 || week.open > 0 || !opts.feedbackDone) return null
+export function weekCloseMessage(week: WeekClose, opts: { feedbackDone?: boolean; isLastWeek: boolean }): { title: string; body: string } | null {
+  if (week.total === 0 || week.open > 0 || opts.feedbackDone === false) return null
   if (opts.isLastWeek) {
     return {
       title: '¡Terminaste tu mes de rutina!',
@@ -61,7 +61,7 @@ export function weekCloseMessage(week: WeekClose, opts: { feedbackDone: boolean;
     }
   }
   if (week.missed === 0) {
-    return { title: '¡Semana completa!', body: `Hiciste todos tus entrenamientos y dejaste el formulario. Felicitaciones por el trabajo de esta semana. ${HABIT_PHRASE}` }
+    return { title: '¡Semana completa!', body: `Hiciste todos tus entrenamientos. Felicitaciones por el trabajo de esta semana. ${HABIT_PHRASE}` }
   }
   return {
     title: 'Semana cerrada',

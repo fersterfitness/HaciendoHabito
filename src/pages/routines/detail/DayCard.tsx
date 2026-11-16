@@ -18,7 +18,8 @@ import { ExerciseRow } from './ExerciseRow'
 import { IS_V2 } from '@/lib/uiVersion'
 import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
 import { ExerciseLogsContext } from '@/lib/routine/exerciseLogs'
-import { BORG_LABELS, checkinSummary, hasCheckin, useDayLog } from '@/lib/routine/studentTrainingLog'
+import { BORG_LABELS, hasCheckin, useDayLog } from '@/lib/routine/studentTrainingLog'
+import { dailySummary } from '@/lib/routine/dailyCheckin'
 
 export function DayCard({
   day,
@@ -222,7 +223,7 @@ export function DayCard({
               ) : null}
               {hasCheckin(dayLog) ? (
                 <p>
-                  <span className="font-semibold text-ink-primary">Cómo llegó</span> {checkinSummary(dayLog)}
+                  <span className="font-semibold text-ink-primary">Cómo llegó</span> {dailySummary(dayLog, { full: true })}
                   {dayLog.checkin_note ? ` · «${dayLog.checkin_note}»` : ''}
                 </p>
               ) : null}

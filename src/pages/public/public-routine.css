@@ -540,3 +540,24 @@
 .hhr-scale.is-toned button.q5 { --q: #1F9D55; --q-soft: #E5F5EC; }
 .hhr-scale.is-toned button { background: var(--q-soft); color: var(--q); }
 .hhr-scale.is-toned button[aria-pressed="true"] { background: var(--q); color: #fff; }
+
+/* ── Chequeo diario obligatorio (feedback nov3) ── */
+.hhr-must { border: 2px solid #F0B429; background: #FFF8E6; display: grid; gap: 8px; padding: 18px; font-size: 14px; line-height: 1.45; color: var(--ink); }
+.hhr-must p { margin: 0; }
+.hhr-must-title { display: flex; align-items: center; gap: 8px; color: var(--err); font-weight: 800; font-size: 15px; letter-spacing: .02em; }
+.hhr-must-sub { font-weight: 700; }
+.hhr .hhr-cta-must { margin-top: 6px; background: var(--err); }
+.hhr .hhr-cta-must:hover { background: #C2353A; }
+.hhr-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.hhr-opts button { border: 1px solid transparent; border-radius: 999px; padding: 8px 13px; background: var(--soft-2); color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; text-align: left; transition: background .15s ease, color .15s ease; }
+.hhr-opts button[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-ink); border-color: var(--brand); }
+.hhr-subfield { margin-top: -6px; padding-left: 12px; border-left: 2px solid var(--brand-soft); }
+.hhr-subfield input[type="text"], .hhr-subfield textarea { width: 100%; border: 0; border-radius: 14px; padding: 11px 13px; background: var(--soft); color: var(--ink); font: inherit; font-size: 16px; }
+.hhr-weekq { padding: 12px; border-radius: 16px; background: var(--brand-soft); }
+.hhr-weekq > span { font-weight: 700; color: var(--brand-ink); }
+.hhr-weekq .hhr-opts button { background: #fff; }
+.hhr-scale-hint { font-size: 11.5px; color: var(--muted); }
+.hhr-inline-date { display: grid; gap: 6px; font-size: 12.5px; }
+.hhr-inline-date input { border: 0; border-radius: 12px; padding: 10px 12px; background: #fff; font: inherit; font-size: 16px; color: var(--ink); }
+.hhr-painmap { display: grid; gap: 10px; }
+.hhr-painmap-figs { display: flex; justify-content: center; gap: 4px; }

@@ -1,5 +1,9 @@
-/** Dolores o molestias puntuales que el alumno reportó en el check-in semanal (pregunta `pain`). */
+/**
+ * Dolores o molestias puntuales del alumno: los del check-in semanal viejo (pregunta `pain`) y los
+ * «dolor no habitual» del chequeo diario del link, que ya traen los músculos marcados en el cuerpo.
+ */
 
+import { supabase } from '@/lib/supabase'
 import { loadCheckInPoints } from '@/lib/checkIn/loadPoints'
 import { CHECK_IN_SKIP_OPTION, optionById, parseStoredChoice, questionByKey, type CheckInQuestion } from '@/lib/checkIn/questions'
 
@@ -11,6 +15,8 @@ export type PainEvent = {
   /** Zona / aclaración del alumno. */
   note: string
   submittedAt: string
+  /** Músculos marcados en el mapa (chequeo diario). Si falta, se deducen de la nota. */
+  muscles?: string[]
 }
 
 type Point = { submittedAt: string; questions: CheckInQuestion[]; responses: Record<string, unknown> }
@@ -37,8 +43,29 @@ export function extractPainEvents(points: Point[]): PainEvent[] {
   return out.sort((a, b) => a.date.localeCompare(b.date))
 }
 
+/** Dolores no habituales del chequeo diario (20261120120000_daily_checkin_v2.sql). Sin la migración, vacío. */
+async function loadDailyPainEvents(studentId: string): Promise<PainEvent[]> {
+  const { data, error } = await supabase
+    .from('routine_day_logs')
+    .select('checkin_at, status_date, pain_areas, pain_note')
+    .eq('student_id', studentId)
+    .eq('pain_kind', 'unusual')
+  if (error || !data) return []
+  type Row = { checkin_at: string | null; status_date: string | null; pain_areas: string[] | null; pain_note: string | null }
+  return (data as unknown as Row[])
+    .filter((r) => r.checkin_at || r.status_date)
+    .map((r) => ({
+      date: r.status_date ?? r.checkin_at!.slice(0, 10),
+      approximate: false,
+      note: r.pain_note?.trim() ?? '',
+      submittedAt: r.checkin_at ?? r.status_date!,
+      muscles: r.pain_areas ?? [],
+    }))
+}
+
 export async function loadPainEvents(studentId: string): Promise<PainEvent[]> {
-  return extractPainEvents(await loadCheckInPoints(studentId))
+  const [weekly, daily] = await Promise.all([loadCheckInPoints(studentId).then(extractPainEvents), loadDailyPainEvents(studentId)])
+  return [...weekly, ...daily].sort((a, b) => a.date.localeCompare(b.date))
 }
 
 /** Dolores que caen dentro de [start, end] (fechas YYYY-MM-DD). */

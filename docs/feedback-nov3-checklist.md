@@ -32,22 +32,22 @@ Fuente: `CORRECIONES EN APP-nov3.docx`. Cada punto dice de dónde sale (número 
 
 ## Tanda 3 — chequeo diario nuevo y obligatorio (necesita SQL)
 
-- [ ] (Cuestionario, 1) Aviso inicial «ATENCIÓN — LECTURA OBLIGATORIA» con el texto del entrenador y botón «Entendí, completar mi chequeo»; la rutina del día queda bloqueada hasta completarlo.
+- [x] (Cuestionario, 1) Aviso inicial «ATENCIÓN — LECTURA OBLIGATORIA» con el texto del entrenador y botón «Entendí, completar mi chequeo»; la rutina del día queda bloqueada hasta completarlo.
 - [x] (3) Sacar «Responder después»: el chequeo es obligatorio para empezar.
-- [ ] Preguntas de todos los días:
-  - [ ] Energía 1-5.
-  - [ ] Sueño 1-5 + horas (No dormí / menos de 5 h / 6-7 h / más de 8 h).
-  - [ ] Estrés 1-5.
-  - [ ] Dolores 1-5 + tipo: «Dolores normales del entrenamiento», «Dolor no habitual», «No».
-  - [ ] Si es dolor no habitual: mapa muscular para marcar dónde + aclaración. Queda ligado a la rutina (para cruzarlo con el volumen) y le llega al entrenador «X tiene un dolor puntual» con botón «Revisar».
-  - [ ] Hidratación 1-5.
-  - [ ] Ganas de entrenar 1-5.
-  - [ ] Recuperación de la sesión anterior 1-5.
-  - [ ] Alimentación 1-5; si marca 1 o 2, obligatorio «¿Qué fue lo que más te complicó?» (falta de tiempo, ansiedad o picoteo, comí afuera, no tenía la comida lista, otro con texto).
-- [ ] Preguntas solo al cerrar la semana:
-  - [ ] Pasos diarios promedio (menos de 5.000 / 5.000-7.500 / 7.500-10.000 / 10.000-12.000 / más de 12.000).
-  - [ ] Ciclo menstrual, solo mujeres (Ya lo registré / No, con fecha / Tomo anticonceptivas / Menopausia).
-- [ ] (Cuestionario) Se elimina el cuestionario semanal aparte: todo sale del chequeo diario.
+- [x] Preguntas de todos los días:
+  - [x] Energía 1-5.
+  - [x] Sueño 1-5 + horas (No dormí / menos de 5 h / 6-7 h / más de 8 h).
+  - [x] Estrés 1-5.
+  - [x] Dolores 1-5 + tipo: «Dolores normales del entrenamiento», «Dolor no habitual», «No».
+  - [x] Si es dolor no habitual: mapa muscular para marcar dónde + aclaración. Queda ligado a la rutina (para cruzarlo con el volumen) y le llega al entrenador «X tiene un dolor puntual» con botón «Revisar».
+  - [x] Hidratación 1-5.
+  - [x] Ganas de entrenar 1-5.
+  - [x] Recuperación de la sesión anterior 1-5.
+  - [x] Alimentación 1-5; si marca 1 o 2, obligatorio «¿Qué fue lo que más te complicó?» (falta de tiempo, ansiedad o picoteo, comí afuera, no tenía la comida lista, otro con texto).
+- [x] Preguntas solo al cerrar la semana:
+  - [x] Pasos diarios promedio (menos de 5.000 / 5.000-7.500 / 7.500-10.000 / 10.000-12.000 / más de 12.000).
+  - [x] Ciclo menstrual, solo mujeres (Ya lo registré / No, con fecha / Tomo anticonceptivas / Menopausia).
+- [x] (Cuestionario) Se elimina el cuestionario semanal aparte: todo sale del chequeo diario. (Hecho en el link; el menú «Consultas semanales» del entrenador se saca en la tanda 6.)
 
 ## Tanda 4 — avisos del alumno al entrenador (necesita SQL)
 

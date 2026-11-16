@@ -30,6 +30,19 @@ export interface DayLog {
   status_date: string | null
   missed_reason: string
   effort: number | null
+  // Chequeo diario nuevo (20261120120000_daily_checkin_v2.sql). Ver dailyCheckin.ts.
+  sleep_hours?: string | null
+  pain_kind?: string | null
+  pain_areas?: string[]
+  pain_note?: string
+  hydration?: number | null
+  motivation?: number | null
+  recovery?: number | null
+  nutrition?: number | null
+  nutrition_issue?: string | null
+  nutrition_issue_note?: string
+  steps_avg?: string | null
+  cycle_answer?: string | null
 }
 
 export const EMPTY_DAY_LOG: DayLog = {
@@ -115,7 +128,7 @@ export async function fetchSharedExtras(token: string): Promise<TrainingExtras |
   }
 }
 
-async function call(fn: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
+export async function call(fn: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const { data, error } = await supabasePublic.rpc(fn, args)
   if (error) throw new Error(missingFunction(error) ? 'Esto todavía no está activado. Avisale a tu entrenador.' : 'No se pudo guardar. Intentá de nuevo.')
   const res = (data ?? {}) as { ok?: boolean; error?: string }
@@ -193,6 +206,9 @@ export function useDayLog(dayId: string): DayLog | null {
 
 export interface UrgentMessage {
   id: string
+  /** 'urgent' = consulta urgente; 'pain' = dolor no habitual marcado en el chequeo diario. */
+  kind: 'urgent' | 'pain'
+  routine_id: string | null
   student_id: string
   student_name: string
   student_phone: string | null
@@ -204,16 +220,26 @@ export interface UrgentMessage {
 export async function fetchUnreadUrgentMessages(ownerId: string): Promise<UrgentMessage[]> {
   const { data, error } = await supabase
     .from('student_urgent_messages')
-    .select('id, student_id, message, created_at, student:students(full_name, phone)')
+    .select('*, student:students(full_name, phone)')
     .eq('owner_id', ownerId)
     .is('read_at', null)
     .order('created_at', { ascending: false })
     .limit(20)
   if (error || !data) return []
   type S = { full_name?: string | null; phone?: string | null }
-  return (data as unknown as { id: string; student_id: string; message: string; created_at: string; student: S | S[] | null }[]).map((r) => {
+  type Row = { id: string; student_id: string; message: string; created_at: string; kind?: string | null; routine_id?: string | null; student: S | S[] | null }
+  return (data as unknown as Row[]).map((r) => {
     const s = Array.isArray(r.student) ? r.student[0] : r.student
-    return { id: r.id, student_id: r.student_id, message: r.message, created_at: r.created_at, student_name: s?.full_name ?? 'Alumno', student_phone: s?.phone ?? null }
+    return {
+      id: r.id,
+      kind: r.kind === 'pain' ? 'pain' : 'urgent',
+      routine_id: r.routine_id ?? null,
+      student_id: r.student_id,
+      message: r.message,
+      created_at: r.created_at,
+      student_name: s?.full_name ?? 'Alumno',
+      student_phone: s?.phone ?? null,
+    }
   })
 }
 
