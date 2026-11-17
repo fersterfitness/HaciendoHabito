@@ -1,13 +1,16 @@
 .hhr {
-  --complete: #C3FF4D; --complete-ink: #24350B;
-  --canvas: #F5F5F5; --card: #FFFFFF; --soft: #F7F7F7; --soft-2: #EAEAEA; --line: #EEEEEE;
-  --ink: #242424; --ink-2: #575757; --muted: #777777; --faint: #B5B5B5;
-  --accent: #292929; --accent-soft: #ECECEC; --ring: #888888;
-  --hero: #161616; --err: #C2253D; --arc-track: #E4E4E4;
-  --brand: #FF5A0A; --brand-ink: #C24100; --brand-soft: #FFEDE2; --ok: #1F9D55;
+  /* Tema oscuro (2026-11-17, estilo app): fondo casi negro, tarjetas un escalón más claras. */
+  --complete: #C3FF4D; --complete-ink: #172200;
+  --canvas: #0B0B0C; --card: #17171A; --soft: #1F1F23; --soft-2: #2A2A2F; --line: #26262B;
+  --ink: #F4F4F5; --ink-2: #B4B4BB; --muted: #8A8A92; --faint: #56565D;
+  --accent: #F4F4F5; --accent-soft: #232327; --ring: #FF5A0A;
+  --hero: #000; --err: #FF5D6C; --arc-track: #313136;
+  --brand: #FF5A0A; --brand-ink: #FF8A4D; --brand-soft: rgba(255, 90, 10, .14); --ok: #A3E635;
+  /* Botón neutro: claro sobre el fondo oscuro. */
+  --btn: #F4F4F5; --on-btn: #0B0B0C;
   --r-xl: 28px; --r-lg: 24px; --r-md: 18px;
-  --shadow: 0 8px 26px -18px rgba(0,0,0,.12);
-  min-height: 100vh; background: var(--canvas); color: var(--ink); color-scheme: light;
+  --shadow: none;
+  min-height: 100vh; background: var(--canvas); color: var(--ink); color-scheme: dark;
   font-family: 'Plus Jakarta Sans', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased;
 }
@@ -15,7 +18,7 @@
 .hhr button, .hhr a, .hhr input { font: inherit; -webkit-tap-highlight-color: transparent; }
 .hhr button { cursor: pointer; }
 .hhr button:focus-visible, .hhr a:focus-visible, .hhr summary:focus-visible, .hhr input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.hhr-inner { max-width: 1240px; margin: 0 auto; padding: 20px max(18px, env(safe-area-inset-right)) 32px max(18px, env(safe-area-inset-left)); }
+.hhr-inner { max-width: 1240px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 32px max(18px, env(safe-area-inset-left)); }
 .hhr-muted { margin: 4px; color: var(--muted); }
 
 /* Estados */
@@ -27,7 +30,7 @@
 .hhr-mascot { display: block; height: 200px; width: auto; margin: 0 auto 14px; filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.12)); }
 .hhr-mascot-sm { height: 150px; margin-bottom: 8px; }
 .hhr-skeleton { display: grid; gap: 16px; max-width: 520px; margin: 0 auto; padding-top: 12px; }
-.hhr-sk { display: block; border-radius: var(--r-lg); background: linear-gradient(90deg, #EAEAE7 0%, #F5F5F3 50%, #EAEAE7 100%); background-size: 200% 100%; animation: hhr-sh 1.3s ease-in-out infinite; }
+.hhr-sk { display: block; border-radius: var(--r-lg); background: linear-gradient(90deg, var(--soft) 0%, var(--soft-2) 50%, var(--soft) 100%); background-size: 200% 100%; animation: hhr-sh 1.3s ease-in-out infinite; }
 .hhr-sk-title { height: 48px; width: 62%; border-radius: 16px; }
 .hhr-sk-hero { height: 210px; border-radius: var(--r-xl); }
 .hhr-sk-card { height: 100px; }
@@ -110,21 +113,21 @@
 .hhr-q > section > p:first-child { font-size: 18px; font-weight: 700; letter-spacing: -0.015em; }
 .hhr-q > section > p:first-child > span:first-child { display: none; }
 .hhr-q [role="group"] button { border: 0 !important; background: var(--soft) !important; color: var(--ink-2) !important; border-radius: 16px; }
-.hhr-q [role="group"] button[aria-pressed="true"] { background: var(--ink) !important; color: #fff !important; }
+.hhr-q [role="group"] button[aria-pressed="true"] { background: var(--btn) !important; color: var(--on-btn) !important; }
 .hhr-q [role="radio"] { border: 0 !important; background-color: var(--soft); box-shadow: none !important; border-radius: 16px; color: var(--ink) !important; }
-.hhr-q [role="radio"][aria-checked="true"] { background-color: var(--ink) !important; color: #fff !important; }
+.hhr-q [role="radio"][aria-checked="true"] { background-color: var(--btn) !important; color: var(--on-btn) !important; }
 .hhr-q [role="radio"] > span:first-child { border-color: var(--faint) !important; background: transparent !important; }
-.hhr-q [role="radio"][aria-checked="true"] > span:first-child { border-color: #fff !important; background: #fff !important; color: var(--ink); }
-.hhr-q [role="radio"][aria-checked="true"] > span:first-child svg { color: var(--ink) !important; }
+.hhr-q [role="radio"][aria-checked="true"] > span:first-child { border-color: var(--on-btn) !important; background: var(--on-btn) !important; color: var(--btn); }
+.hhr-q [role="radio"][aria-checked="true"] > span:first-child svg { color: var(--btn) !important; }
 .hhr-q textarea, .hhr-q input { border: 0 !important; background: var(--soft) !important; border-radius: 16px !important; box-shadow: none !important; font-size: 16px !important; }
 .hhr-fb-email { display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); }
 .hhr-fb-email input { border: 0; border-radius: 16px; padding: 14px 16px; background: var(--soft); font-size: 16px; }
 .hhr-fb-actions { display: flex; gap: 10px; }
 .hhr-fb-actions .hhr-cta { flex: 1 1 auto; }
-.hhr-cta { border: 0; border-radius: 999px; background: var(--ink); color: #fff; height: 54px; padding: 0 22px; font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; width: 100%; transition: transform .12s ease, background .15s ease, opacity .15s ease; }
-.hhr-cta:hover { background: #26262B; }
+.hhr-cta { border: 0; border-radius: 999px; background: var(--btn); color: var(--on-btn); height: 54px; padding: 0 22px; font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; width: 100%; transition: transform .12s ease, background .15s ease, opacity .15s ease; }
+.hhr-cta:hover { background: #DCDCE0; }
 .hhr-cta:active { transform: scale(.98); }
-.hhr-cta:disabled { opacity: .28; cursor: default; transform: none; background: var(--ink); }
+.hhr-cta:disabled { opacity: .28; cursor: default; transform: none; background: var(--btn); }
 .hhr-ghost { flex: 0 0 auto; width: 54px; height: 54px; border: 0; border-radius: 50%; background: var(--soft); color: var(--ink); display: grid; place-items: center; }
 .hhr-ghost:hover { background: var(--soft-2); }
 .hhr-fb-done .hhr-fb-text > span:last-child { color: var(--ink-2); }
@@ -138,7 +141,7 @@
 .hhr-weeks::-webkit-scrollbar { display: none; }
 .hhr-week { position: relative; flex: 0 0 auto; border: 0; background: var(--card); color: var(--ink-2); border-radius: 999px; height: 46px; padding: 0 22px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); transition: background .15s ease, color .15s ease; }
 .hhr-week:hover { color: var(--ink); }
-.hhr-week[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: none; }
+.hhr-week[aria-pressed="true"] { background: var(--btn); color: var(--on-btn); box-shadow: none; }
 .hhr-now { position: absolute; top: 9px; right: 11px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .hhr-week[aria-pressed="true"] .hhr-now { background: var(--ring); }
 
@@ -189,8 +192,8 @@
 .hhr-chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
 .hhr-chips li { border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--soft); font-variant-numeric: tabular-nums; }
 .hhr-notes { margin: 0; font-size: 14px; color: var(--ink-2); white-space: pre-line; }
-.hhr-video { justify-self: start; display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px 0 14px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
-.hhr-video:hover { background: #26262B; }
+.hhr-video { justify-self: start; display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px 0 14px; border-radius: 999px; background: var(--btn); color: var(--on-btn); font-size: 13px; font-weight: 700; text-decoration: none; }
+.hhr-video:hover { background: #DCDCE0; }
 
 /* Series */
 .hhr-kg { border: 1px solid var(--line); display: grid; gap: 6px; border-radius: 20px; background: var(--soft); padding: 10px 8px 8px; }
@@ -211,7 +214,7 @@
 .hhr-kgfield input:focus { outline: none; border-color: var(--ink); background: var(--card); }
 .hhr-repsfield input { padding: 0 8px; text-align: center; }
 .hhr-kgfield span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 600; color: var(--muted); pointer-events: none; }
-.hhr-setcheck { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #D9D9DD; display: grid; place-items: center; color: #fff; transition: background .2s ease, border-color .2s ease; }
+.hhr-setcheck { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--faint); display: grid; place-items: center; color: #fff; transition: background .2s ease, border-color .2s ease; }
 .hhr-setrow.is-logged .hhr-setcheck { background: var(--ink); border-color: var(--ink); animation: hhr-pop .3s ease; }
 .hhr-setrow.is-saving .hhr-setcheck { border-color: var(--accent); border-right-color: transparent; animation: hhr-spin .7s linear infinite; }
 .hhr-setrow.is-error .hhr-setcheck, .hhr-setrow.is-error .hhr-kgfield input { border-color: var(--err); }
@@ -269,7 +272,7 @@
 .hhr-overview .hhr-hero-foot span { color: var(--ink-2); }
 .hhr-overview .hhr-ring { width: 64px; height: 64px; }
 .hhr-overview .hhr-ring svg { width: 64px; height: 64px; }
-.hhr-overview .hhr-ring circle:first-child { stroke: #DDD; }
+.hhr-overview .hhr-ring circle:first-child { stroke: var(--arc-track); }
 .hhr-overview .hhr-ring small { color: var(--muted); }
 .hhr-main { order: 2; gap: 18px; scroll-margin-top: 20px; }
 .hhr-fb-area { order: 4; }
@@ -277,34 +280,34 @@
 .hhr-main-head h2 { font-size: 24px; font-weight: 700; letter-spacing: -.8px; }
 .hhr-main-head > span { font-size: 12px; }
 .hhr-weeks { margin: 0; padding: 0 0 2px; gap: 6px; }
-.hhr-week { flex: 1 0 auto; height: 36px; padding: 0 15px; box-shadow: none; background: #EBEBEB; font-size: 11px; }
-.hhr-week[aria-pressed="true"] { background: #292929; box-shadow: none; }
+.hhr-week { flex: 1 0 auto; height: 36px; padding: 0 15px; box-shadow: none; background: var(--soft); font-size: 11px; }
+.hhr-week[aria-pressed="true"] { background: var(--btn); box-shadow: none; }
 .hhr-now { width: 4px; height: 4px; top: 7px; right: 9px; }
-.hhr-days { padding: 5px; border-radius: 18px; background: #EBEBEB; box-shadow: none; }
+.hhr-days { padding: 5px; border-radius: 18px; background: var(--soft); box-shadow: none; }
 .hhr-day { display: flex; align-items: center; justify-content: center; gap: 5px; border-radius: 14px; padding: 10px 4px; flex: 1 0 54px; }
-.hhr-day-label, .hhr-day-num { font-size: 12px; font-weight: 600; color: #777; }
-.hhr-day[aria-pressed="true"] { background: white; box-shadow: 0 3px 8px #00000006; }
-.hhr-day[aria-pressed="true"] .hhr-day-label, .hhr-day[aria-pressed="true"] .hhr-day-num { color: #222; }
+.hhr-day-label, .hhr-day-num { font-size: 12px; font-weight: 600; color: var(--muted); }
+.hhr-day[aria-pressed="true"] { background: var(--soft-2); box-shadow: none; }
+.hhr-day[aria-pressed="true"] .hhr-day-label, .hhr-day[aria-pressed="true"] .hhr-day-num { color: var(--ink); }
 .hhr-arc { width: 14px; height: 14px; margin: 0 0 0 3px; }
 .hhr-dayhead { margin: 6px 0 0; }
 .hhr-dayhead h3 { font-size: 17px; font-weight: 700; }
 .hhr-dayhead-text span { font-size: 11px; }
 .hhr-count { font-size: 11px; }
 .hhr-count b { font-size: 13px; }
-.hhr-warmup { background: transparent; border-block: 1px solid #E5E5E5; border-radius: 0; box-shadow: none; }
+.hhr-warmup { background: transparent; border-block: 1px solid var(--line); border-radius: 0; box-shadow: none; }
 .hhr-warmup summary { padding: 12px 2px; gap: 10px; }
-.hhr-warmup .hhr-tile { background: #EAEAEA; width: 34px; height: 34px; border-radius: 12px; }
+.hhr-warmup .hhr-tile { background: var(--soft-2); width: 34px; height: 34px; border-radius: 12px; }
 .hhr-warmup-title b { font-size: 12px; }
 .hhr-warmup-title small { font-size: 10px; }
 .hhr-list { gap: 24px; }
 .hhr-circuit { background: transparent; padding: 0; box-shadow: none; border-radius: 0; }
-.hhr-circuit-label { margin: 0 2px 10px; color: #555; font-size: 10px; gap: 6px; }
-.hhr-circuit-label span { flex-basis: auto; font-size: 10px; color: #888; }
+.hhr-circuit-label { margin: 0 2px 10px; color: var(--ink-2); font-size: 10px; gap: 6px; }
+.hhr-circuit-label span { flex-basis: auto; font-size: 10px; color: var(--muted); }
 .hhr-circuit-list { gap: 12px; }
-.hhr-ex.is-flat, .hhr-ex { background: white; border-radius: 22px; box-shadow: var(--shadow); }
+.hhr-ex.is-flat, .hhr-ex { background: var(--card); border-radius: 22px; box-shadow: var(--shadow); }
 .hhr-ex.is-flat + .hhr-ex.is-flat::before { display: none; }
 .hhr-ex-head { min-height: 110px; padding: 12px 14px 12px 6px; gap: 10px; }
-.hhr-ex-head .hhr-tile { width: 96px; height: 84px; background: #FFF; border-radius: 15px; }
+.hhr-ex-head .hhr-tile { width: 96px; height: 84px; background: #FFF; color: #111; border-radius: 15px; }
 .hhr-movement { display: block; width: 84px; height: 84px; flex: 0 0 auto; background-size: 300% 300%; background-repeat: no-repeat; }
 .hhr-hero-male { background-image: url('/routine/training-hero-male.webp'); }
 .hhr-hero-neutral { background-image: linear-gradient(135deg, #151515, #393939); }
@@ -318,12 +321,12 @@
 .hhr-ex-name { font-size: 14px; font-weight: 700; line-height: 1.35; letter-spacing: -.3px; }
 .hhr-ex-info { gap: 7px; }
 .hhr-ex-tags { gap: 3px 8px; }
-.hhr-ex-tags span { padding: 0; background: none; color: #777; font-size: 10px; font-weight: 400; }
+.hhr-ex-tags span { padding: 0; background: none; color: var(--muted); font-size: 10px; font-weight: 400; }
 .hhr-progress { gap: 6px; }
-.hhr-progress-track { height: 7px; background: #E8E8E8; max-width: 170px; }
+.hhr-progress-track { height: 7px; background: var(--soft-2); max-width: 170px; }
 .hhr-progress-fill { background: #333; }
 .hhr-progress-label { font-size: 9px; white-space: nowrap; font-weight: 500; }
-.hhr-ex-head .hhr-chev { width: 16px; height: 16px; color: #777; }
+.hhr-ex-head .hhr-chev { width: 16px; height: 16px; color: var(--muted); }
 .hhr-ex-panel { padding: 6px 16px 16px; gap: 12px; }
 .hhr-register-title { font-size: 10px; color: var(--muted); padding-top: 8px; border-top: 1px solid var(--line); }
 .hhr-notes { font-size: 12px; line-height: 1.6; }
@@ -336,8 +339,8 @@
 .hhr-row-error button { background: none; border: 0; padding: 4px; text-decoration: underline; font-weight: 700; }
 .hhr-settarget { white-space: normal; overflow: visible; font-size: 12px; }
 
-.hhr-fb { background: white; box-shadow: var(--shadow); padding: 20px; }
-.hhr-fb-art { background: #F2F2F2; }
+.hhr-fb { background: var(--card); box-shadow: var(--shadow); padding: 20px; }
+.hhr-fb-art { background: var(--soft); }
 .hhr-fb-art .hhr-art { filter: grayscale(1); }
 .hhr-fb-text b { font-size: 15px; }
 .hhr-fb-text > span:last-child { font-size: 11px; }
@@ -346,7 +349,7 @@
 .hhr-bar { width: 300px; justify-content: space-around; padding: 5px 12px; background: #292929; box-shadow: 0 10px 28px #00000020; }
 .hhr-bar-btn { width: 46px; height: 46px; }
 .hhr-bar-fb { height: 42px; background: #454545; color: white; font-size: 12px; padding: 0 18px; }
-.hhr-dot { background: #DDD; width: 5px; height: 5px; }
+.hhr-dot { background: var(--faint); width: 5px; height: 5px; }
 .hhr-foot { font-size: 10px; line-height: 1.7; }
 @media (max-width: 639px) {
   .hhr-inner { padding: 20px 20px 32px; }
@@ -401,13 +404,13 @@
 
 /* Circuito bien separado de los ejercicios sueltos (pedido del entrenador, nov-2026): bloque con fondo
    propio, etiqueta oscura y un «+» entre ejercicio y ejercicio para que se lea que van combinados. */
-.hhr-circuit { background: #E9E9E9; border-radius: 30px; padding: 14px 8px 12px; }
+.hhr-circuit { background: var(--soft); border-radius: 30px; padding: 14px 8px 12px; }
 .hhr-circuit-label { margin: 0 6px 12px; gap: 6px 8px; color: #555; font-size: 12px; font-weight: 500; }
 .hhr-circuit-label span { flex-basis: auto; font-size: 12px; color: #555; }
-.hhr-circuit-tag { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px; border-radius: 999px; background: #242424; color: #fff; font-size: 11.5px; font-weight: 700; letter-spacing: .01em; }
+.hhr-circuit-tag { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px; border-radius: 999px; background: var(--btn); color: var(--on-btn); font-size: 11.5px; font-weight: 700; letter-spacing: .01em; }
 .hhr-circuit-list { gap: 0; }
-.hhr-circuit-plus { justify-self: center; display: grid; place-items: center; width: 24px; height: 24px; margin: 5px 0; border-radius: 50%; background: #242424; color: #fff; font-size: 16px; font-weight: 700; line-height: 1; }
-.hhr-circuit-foot { margin: 10px 8px 0; font-size: 12px; color: #666; text-align: center; }
+.hhr-circuit-plus { justify-self: center; display: grid; place-items: center; width: 24px; height: 24px; margin: 5px 0; border-radius: 50%; background: var(--btn); color: var(--on-btn); font-size: 16px; font-weight: 700; line-height: 1; }
+.hhr-circuit-foot { margin: 10px 8px 0; font-size: 12px; color: var(--muted); text-align: center; }
 
 /* Registro del alumno (nov-2026): nota y esfuerzo por ejercicio, chequeo previo, cierre del día, consulta urgente. */
 .hhr-field { display: grid; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
@@ -418,7 +421,7 @@
 .hhr-scale.is-wide { grid-template-columns: repeat(10, 1fr); gap: 4px; }
 .hhr-scale button { height: 40px; border: 0; border-radius: 12px; background: var(--soft-2); color: var(--ink-2); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; transition: background .15s ease, color .15s ease; }
 .hhr-scale.is-wide button { height: 36px; border-radius: 10px; font-size: 13px; padding: 0; }
-.hhr-scale button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.hhr-scale button[aria-pressed="true"] { background: var(--btn); color: var(--on-btn); }
 .hhr-scale-ends { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); }
 .hhr-scale-ends i { font-style: normal; }
 .hhr-borg { display: grid; gap: 6px; }
@@ -450,7 +453,7 @@
 .hhr-close-text span { font-size: 12px; color: var(--ink-2); }
 .hhr-close.is-done .hhr-log-icon { background: var(--complete); color: var(--complete-ink); }
 .hhr-close.is-missed .hhr-log-icon { background: #F6DDE1; color: var(--err); }
-.hhr-day.is-missed .hhr-day-label, .hhr-day.is-missed .hhr-day-num { text-decoration: line-through; color: #A5A5A5; }
+.hhr-day.is-missed .hhr-day-label, .hhr-day.is-missed .hhr-day-num { text-decoration: line-through; color: var(--faint); }
 
 .hhr-urgent { order: 5; display: grid; gap: 8px; }
 .hhr-urgent-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border: 1px solid #E3C9CD; border-radius: 999px; background: #FBF1F2; color: var(--err); font-size: 13px; font-weight: 700; }
@@ -490,9 +493,9 @@
 .hhr-lifts li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
 .hhr-lifts li b { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
 .hhr-lifts em { font-style: normal; font-weight: 600; color: var(--muted); }
-.hhr-lifts em.is-up { color: #3F6212; }
+.hhr-lifts em.is-up { color: var(--ok); }
 .hhr-check { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--ink-2); }
-.hhr-check input { width: 20px; height: 20px; margin: 0; flex: 0 0 auto; accent-color: var(--ink); }
+.hhr-check input { width: 20px; height: 20px; margin: 0; flex: 0 0 auto; accent-color: var(--brand); }
 .hhr-inline { display: flex; gap: 8px; }
 .hhr-inline input { flex: 1 1 auto; min-width: 0; height: 44px; border: 0; border-radius: 14px; padding: 0 12px; background: var(--soft); color: var(--ink); font-size: 16px; }
 .hhr-inline .hhr-cta { width: auto; flex: 0 0 auto; }
@@ -506,7 +509,7 @@
 .hhr-review > b { font-size: 16px; letter-spacing: -0.01em; }
 .hhr-review-sub { font-size: 12.5px; color: var(--muted); margin-top: -6px; }
 .hhr-stars { display: flex; gap: 4px; }
-.hhr-stars button { border: 0; background: transparent; padding: 4px; color: #C9C9C9; }
+.hhr-stars button { border: 0; background: transparent; padding: 4px; color: var(--faint); }
 .hhr-stars button[aria-pressed="true"] { color: #F5A524; }
 
 /* nov3 · marca del entrenador: naranja del logo en acentos, verde = terminé, rojo = no pude. */
@@ -533,11 +536,11 @@
 .hhr-circuit-note b { font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--brand-ink); }
 .hhr-circuit-note.is-default { background: none; padding: 0 2px; color: var(--muted); font-weight: 500; font-size: 12.5px; }
 /* Escalas del chequeo con color: q1 = peor, q5 = mejor. */
-.hhr-scale.is-toned button.q1 { --q: #E5484D; --q-soft: #FDECEC; }
-.hhr-scale.is-toned button.q2 { --q: #F0782D; --q-soft: #FEF0E6; }
-.hhr-scale.is-toned button.q3 { --q: #D99A00; --q-soft: #FDF5DD; }
-.hhr-scale.is-toned button.q4 { --q: #5BAF3E; --q-soft: #EDF7E8; }
-.hhr-scale.is-toned button.q5 { --q: #1F9D55; --q-soft: #E5F5EC; }
+.hhr-scale.is-toned button.q1 { --q: #E5484D; --q-soft: color-mix(in srgb, var(--q) 16%, transparent); }
+.hhr-scale.is-toned button.q2 { --q: #F0782D; --q-soft: color-mix(in srgb, var(--q) 16%, transparent); }
+.hhr-scale.is-toned button.q3 { --q: #D99A00; --q-soft: color-mix(in srgb, var(--q) 16%, transparent); }
+.hhr-scale.is-toned button.q4 { --q: #5BAF3E; --q-soft: color-mix(in srgb, var(--q) 16%, transparent); }
+.hhr-scale.is-toned button.q5 { --q: #1F9D55; --q-soft: color-mix(in srgb, var(--q) 16%, transparent); }
 .hhr-scale.is-toned button { background: var(--q-soft); color: var(--q); }
 .hhr-scale.is-toned button[aria-pressed="true"] { background: var(--q); color: #fff; }
 
@@ -546,7 +549,7 @@
 .hhr-must p { margin: 0; }
 .hhr-must-title { display: flex; align-items: center; gap: 8px; color: var(--err); font-weight: 800; font-size: 15px; letter-spacing: .02em; }
 .hhr-must-sub { font-weight: 700; }
-.hhr .hhr-cta-must { margin-top: 6px; background: var(--err); }
+.hhr .hhr-cta-must { margin-top: 6px; background: var(--err); color: #fff; }
 .hhr .hhr-cta-must:hover { background: #C2353A; }
 .hhr-opts { display: flex; flex-wrap: wrap; gap: 6px; }
 .hhr-opts button { border: 1px solid transparent; border-radius: 999px; padding: 8px 13px; background: var(--soft-2); color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; text-align: left; transition: background .15s ease, color .15s ease; }
@@ -555,10 +558,10 @@
 .hhr-subfield input[type="text"], .hhr-subfield textarea { width: 100%; border: 0; border-radius: 14px; padding: 11px 13px; background: var(--soft); color: var(--ink); font: inherit; font-size: 16px; }
 .hhr-weekq { padding: 12px; border-radius: 16px; background: var(--brand-soft); }
 .hhr-weekq > span { font-weight: 700; color: var(--brand-ink); }
-.hhr-weekq .hhr-opts button { background: #fff; }
+.hhr-weekq .hhr-opts button { background: var(--soft-2); }
 .hhr-scale-hint { font-size: 11.5px; color: var(--muted); }
 .hhr-inline-date { display: grid; gap: 6px; font-size: 12.5px; }
-.hhr-inline-date input { border: 0; border-radius: 12px; padding: 10px 12px; background: #fff; font: inherit; font-size: 16px; color: var(--ink); }
+.hhr-inline-date input { border: 0; border-radius: 12px; padding: 10px 12px; background: var(--soft); font: inherit; font-size: 16px; color: var(--ink); }
 .hhr-painmap { display: grid; gap: 10px; }
 .hhr-painmap-figs { display: flex; justify-content: center; gap: 4px; }
 
@@ -616,7 +619,7 @@
    Un color por significado. Naranja de marca = lo que se toca o avanza. Verde flúor (--complete) = completado,
    con texto oscuro encima. Rojo = no completado / urgente, solo en texto e íconos (sin rellenos rosas).
    Todo lo demás en neutros. Las escalas del chequeo (rojo → verde) quedan como están: las pidió el entrenador. */
-.hhr { --ok: #4D7C0F; --ring: var(--brand); --complete-soft: #F3FFDB; }
+.hhr { --complete-soft: rgba(195, 255, 77, .12); }
 
 /* Tarjetas: todas blancas, mismo borde y esquinas. */
 .hhr .hhr-overview { background: var(--card); box-shadow: var(--shadow); }
@@ -629,18 +632,18 @@
 /* Cierre del día: verde flúor para «Terminé», blanco con texto rojo para «No pude». */
 .hhr .hhr-cta-ok { background: var(--complete); color: var(--complete-ink); }
 .hhr .hhr-cta-ok:hover { background: #B4F23A; }
-.hhr .hhr-cta-miss { background: var(--card); color: var(--err); border: 1px solid #E2E2E2; }
-.hhr .hhr-cta-miss:hover { background: #FAFAFA; }
-.hhr .hhr-urgent-btn { background: var(--card); border-color: #E2E2E2; color: var(--ink); }
+.hhr .hhr-cta-miss { background: var(--card); color: var(--err); border: 1px solid var(--line); }
+.hhr .hhr-cta-miss:hover { background: var(--soft); }
+.hhr .hhr-urgent-btn { background: var(--card); border-color: var(--line); color: var(--ink); }
 .hhr .hhr-urgent-btn svg { color: var(--err); }
 .hhr-close.is-missed .hhr-log-icon { background: var(--soft-2); }
 .hhr-weekbar i.is-missed { background: var(--faint); }
 
 /* Notas y aclaraciones: fondo neutro; el naranja queda solo en la etiqueta. */
 .hhr .hhr-mynote { border: 0; border-left: 3px solid var(--brand); background: var(--soft); }
-.hhr .hhr-mynote-add { border-color: #D6D6D6; color: var(--ink-2); }
+.hhr .hhr-mynote-add { border-color: var(--faint); color: var(--ink-2); }
 .hhr .hhr-ex-mynote { color: var(--ink-2); }
-.hhr .hhr-circuit-note { background: var(--card); }
+.hhr .hhr-circuit-note { background: var(--card); color: var(--ink); }
 .hhr .hhr-setrpe { color: var(--muted); }
 
 /* Avisos y chequeo: un solo acento (naranja), sin amarillos ni violetas. */
@@ -655,9 +658,66 @@
 
 /* Lo completado, siempre con el verde flúor. */
 .hhr .hhr-notice.is-routine_done { border-color: var(--complete); background: var(--complete-soft); }
-.hhr .hhr-notice.is-routine_done .hhr-notice-title { color: var(--complete-ink); }
+.hhr .hhr-notice.is-routine_done .hhr-notice-title { color: var(--complete); }
 .hhr .hhr-notice.is-routine_done .hhr-cta-notice { background: var(--complete); color: var(--complete-ink); }
-.hhr .hhr-prog-stat.is-done { background: var(--complete-soft); color: var(--complete-ink); }
+.hhr .hhr-prog-stat.is-done { background: var(--complete-soft); color: var(--complete); }
 .hhr .hhr-prog-stat.is-missed { background: var(--soft); }
 .hhr .hhr-minibars i.is-good { background: var(--complete); }
 .hhr .hhr-day .hhr-arc.is-done circle { stroke: var(--complete); }
+
+/* ───────────── Estilo app en el celular (2026-11-17) ─────────────
+   Pestañas abajo (Entrenar · Progreso · Ciclo · Consulta), franja de marca compacta, días fijos arriba
+   y «Terminé este entrenamiento» pegado al pie. En la compu (≥ 1024 px) sigue la vista en dos columnas. */
+.hhr-tabs { display: none; }
+.hhr .hhr-tile-check { box-shadow: 0 0 0 3px var(--card); }
+.hhr .hhr-start { background: #fff; color: #111; }
+.hhr .hhr-overview { border: 1px solid var(--line); }
+.hhr .hhr-ex, .hhr .hhr-card, .hhr .hhr-fb, .hhr .hhr-pay { border: 1px solid var(--line); }
+.hhr .hhr-circuit .hhr-ex { border-color: transparent; }
+.hhr .hhr-warmup { border-inline: 0; }
+@media (max-width: 1023px) {
+  .hhr-inner { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .hhr-app.has-bar { padding-bottom: 0; }
+  .hhr-masthead { display: none; }
+  .hhr-app { gap: 16px; }
+  .hhr-pane-wrap { order: 5; }
+  .hhr-app[data-tab="entrenar"] .hhr-pane:not(.hhr-pane-entrenar),
+  .hhr-app[data-tab="progreso"] .hhr-pane:not(.hhr-pane-progreso),
+  .hhr-app[data-tab="ciclo"] .hhr-pane:not(.hhr-pane-ciclo),
+  .hhr-app[data-tab="consulta"] .hhr-pane:not(.hhr-pane-consulta) { display: none; }
+
+  /* Encabezado: saludo chico y la frase del entrenador en una franja. */
+  .hhr .hhr-top { padding: 4px 0 0; }
+  .hhr .hhr-hello h1 { font-size: 22px; letter-spacing: -.6px; }
+  .hhr .hhr-avatar { width: 36px; height: 36px; }
+  .hhr .hhr-hero-brand { min-height: 0; flex-direction: row; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--card); }
+  .hhr .hhr-hero-brand .hhr-hero-top, .hhr .hhr-hero-brand .hhr-start { display: none; }
+  .hhr .hhr-hero-brand .hhr-hero-logo, .hhr .hhr-hero-brand .hhr-hero-logo .hhr-brand-mark { width: 34px; height: 34px; flex: 0 0 auto; }
+  .hhr .hhr-hero-brand .hhr-hero-heading { font-size: 13px; line-height: 1.3; letter-spacing: -.2px; font-weight: 600; color: var(--ink-2); }
+  .hhr .hhr-hero-brand .hhr-hero-heading span { display: inline; font-weight: 800; letter-spacing: 0; }
+  .hhr .hhr-main-head { display: none; }
+
+  /* Semanas y días: chips; los días quedan fijos arriba al bajar. */
+  .hhr .hhr-weeks { margin: 0 -20px; padding: 0 20px 2px; }
+  .hhr .hhr-week { flex: 0 0 auto; height: 32px; border-radius: 999px; font-size: 12px; }
+  .hhr .hhr-days { position: sticky; top: env(safe-area-inset-top); z-index: 20; box-shadow: 0 0 0 8px var(--canvas); }
+
+  /* Cierre del día pegado al pie, arriba de las pestañas. «No pude» queda como enlace. */
+  .hhr .hhr-close-actions { position: sticky; bottom: calc(58px + env(safe-area-inset-bottom)); z-index: 15; gap: 0; padding: 16px 0 8px; background: linear-gradient(to top, var(--canvas) 82%, transparent); }
+  .hhr .hhr-cta-ok { height: 50px; font-size: 15px; font-weight: 700; }
+  .hhr .hhr-cta-miss { height: 38px; border: 0; background: transparent; font-size: 13px; font-weight: 600; }
+  .hhr .hhr-cta-miss:hover { background: transparent; }
+
+  /* Barra de pestañas. */
+  .hhr-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; justify-content: space-around; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: rgba(11, 11, 12, .92); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-top: 1px solid var(--line); }
+  .hhr-tab { position: relative; flex: 1 1 0; max-width: 110px; display: grid; justify-items: center; gap: 3px; padding: 6px 0 4px; color: var(--muted); font-size: 10.5px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .hhr-tab input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .hhr-tab:has(input:checked) { color: var(--brand); }
+  .hhr-tab:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
+  .hhr-bar { display: none; }
+
+  /* Tarjetas de Progreso / Ciclo / Consulta a todo el ancho. */
+  .hhr .hhr-overview { order: 1; }
+}
+/* Sin foto: el ícono de respaldo va sobre gris oscuro, no sobre un cuadro blanco. */
+.hhr .hhr-ex-head .hhr-tile:not(:has(img)) { background: var(--soft); color: var(--ink-2); }

@@ -2,7 +2,7 @@ import { Fragment, type ReactNode, useCallback, useEffect, useId, useMemo, useRe
 import { useParams, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Check, ChevronDown, Dumbbell, Flame, Link2, MessageCircle, Pin, Play } from 'lucide-react'
+import { CalendarHeart, Check, ChevronDown, Dumbbell, Flame, LifeBuoy, Link2, MessageCircle, Pin, Play, TrendingUp } from 'lucide-react'
 import {
   currentBlockIndex,
   exerciseDetails,
@@ -211,6 +211,14 @@ export function PublicRoutinePage() {
     }
   }, [wantsPreview, token])
   const gatesOff = preview === 'on' && !previewGates
+
+  // Celular (estilo app): una pestaña por sección, con la barra abajo. En la compu se ve todo junto.
+  const [tab, setTab] = useState<AppTab>('entrenar')
+  const goTab = (t: AppTab) => {
+    setTab(t)
+    window.scrollTo({ top: 0 })
+  }
+  useInstallableRoutine()
 
   useEffect(() => {
     let alive = true
@@ -458,7 +466,13 @@ export function PublicRoutinePage() {
     )
   }
 
-  const showBar = true
+  const showCycle = !!studentExtras && isWoman
+  const appTabs: { id: AppTab; label: string; icon: typeof Dumbbell }[] = [
+    { id: 'entrenar', label: 'Entrenar', icon: Dumbbell },
+    { id: 'progreso', label: 'Progreso', icon: TrendingUp },
+    ...(showCycle ? [{ id: 'ciclo' as const, label: 'Ciclo', icon: CalendarHeart }] : []),
+    ...(extras ? [{ id: 'consulta' as const, label: 'Consulta', icon: LifeBuoy }] : []),
+  ]
   const heroLine =
     weekProgress.total === 0
       ? 'Todavía no hay series cargadas'
@@ -485,7 +499,7 @@ export function PublicRoutinePage() {
         <span className="hhr-wordmark"><BrandMark /> haciéndolo<span>hábito</span><span className="hhr-brand-period">.</span></span>
         <span className="hhr-space-label">TODO EMPIEZA CUANDO ESTÁS <b>HACIÉNDOLO HÁBITO</b></span>
       </div>
-      <div className={showBar ? 'hhr-app has-bar' : 'hhr-app'}>
+      <div className="hhr-app has-bar" data-tab={tab}>
         <aside className="hhr-side">
           <header className="hhr-top">
             <span className="hhr-avatar" aria-hidden>
@@ -508,7 +522,7 @@ export function PublicRoutinePage() {
             ) : null}
           </header>
 
-          <div className="hhr-hero hhr-hero-brand">
+          <div className="hhr-hero hhr-hero-brand hhr-pane hhr-pane-entrenar">
             <div className="hhr-hero-top">
               <span className="hhr-hero-kicker">{blocks.length > 1 ? `Semana ${currentWeek + 1} de ${blocks.length}` : 'Esta semana'}</span>
               {until ? <span className="hhr-hero-until">Hasta el {until}</span> : null}
@@ -519,7 +533,7 @@ export function PublicRoutinePage() {
               <Play size={13} fill="currentColor" aria-hidden /> A entrenar
             </button>
           </div>
-          <section className="hhr-overview" aria-label="Tu progreso semanal">
+          <section className="hhr-overview hhr-pane hhr-pane-progreso" aria-label="Tu progreso semanal">
             <div className="hhr-hero-mid">
               <div className="hhr-hero-text">
                 <span className="hhr-hero-big">
@@ -537,14 +551,29 @@ export function PublicRoutinePage() {
             </div>
           </section>
 
-          {extras ? <ProgressCard blocks={blocks} extras={extras} kgOf={kgOf} /> : null}
-          {studentExtras && isWoman ? (
-            <CycleCard token={token} extras={studentExtras} onChange={(patch) => setStudentExtras((prev) => (prev ? { ...prev, ...patch } : prev))} />
+          {extras ? (
+            <div className="hhr-pane hhr-pane-progreso hhr-pane-wrap">
+              <ProgressCard blocks={blocks} extras={extras} kgOf={kgOf} open={tab === 'progreso'} />
+            </div>
           ) : null}
-          {extras ? <UrgentCard token={token} proLabel={proLabel} /> : null}
+          {showCycle && studentExtras ? (
+            <div className="hhr-pane hhr-pane-ciclo hhr-pane-wrap">
+              <CycleCard
+                token={token}
+                extras={studentExtras}
+                open={tab === 'ciclo'}
+                onChange={(patch) => setStudentExtras((prev) => (prev ? { ...prev, ...patch } : prev))}
+              />
+            </div>
+          ) : null}
+          {extras ? (
+            <div className="hhr-pane hhr-pane-consulta hhr-pane-wrap">
+              <UrgentCard token={token} proLabel={proLabel} />
+            </div>
+          ) : null}
         </aside>
 
-        <main className="hhr-main" ref={trainRef} aria-label="Tu entrenamiento">
+        <main className="hhr-main hhr-pane hhr-pane-entrenar" ref={trainRef} aria-label="Tu entrenamiento">
           <div className="hhr-main-head">
             <h2>Tu entrenamiento</h2>
             <span>Elegí tu día. Encontrá tu ritmo.</span>
@@ -764,18 +793,15 @@ export function PublicRoutinePage() {
         </main>
       </div>
 
-      {showBar ? (
-        <nav className="hhr-bar" aria-label="Accesos">
-          <button type="button" className="hhr-bar-btn" aria-label="Ir al entrenamiento" onClick={() => trainRef.current?.scrollIntoView({ behavior: 'smooth' })}>
-            <Dumbbell size={21} strokeWidth={1.8} aria-hidden />
-          </button>
-          {waDigits ? (
-            <a className="hhr-bar-btn" href={`https://wa.me/${waDigits}`} target="_blank" rel="noopener noreferrer" aria-label="Escribir por WhatsApp">
-              <MessageCircle size={21} strokeWidth={1.8} aria-hidden />
-            </a>
-          ) : null}
-        </nav>
-      ) : null}
+      <nav className="hhr-tabs" aria-label="Secciones">
+        {appTabs.map((t) => (
+          <label key={t.id} className="hhr-tab">
+            <input type="radio" name="hhr-tab" checked={tab === t.id} onChange={() => goTab(t.id)} />
+            <t.icon size={22} strokeWidth={1.9} aria-hidden />
+            <span>{t.label}</span>
+          </label>
+        ))}
+      </nav>
     </Shell>
   )
 }
@@ -1176,4 +1202,67 @@ function Shell({ children }: { children: ReactNode }) {
       <div className="hhr-inner">{children}</div>
     </div>
   )
+}
+
+type AppTab = 'entrenar' | 'progreso' | 'ciclo' | 'consulta'
+
+/**
+ * «Agregar a inicio» abre el link como app: pantalla completa, fondo oscuro y el logo de ícono.
+ * El manifiesto se arma con la dirección de este link, así cada alumno instala su propia rutina.
+ */
+function useInstallableRoutine() {
+  useEffect(() => {
+    const head = document.head
+    const added: HTMLElement[] = []
+    const restore: (() => void)[] = []
+    const meta = (name: string, content: string) => {
+      const prev = head.querySelector<HTMLMetaElement>(`meta[name="${name}"]`)
+      if (prev) {
+        const old = prev.content
+        prev.content = content
+        restore.push(() => (prev.content = old))
+        return
+      }
+      const m = document.createElement('meta')
+      m.name = name
+      m.content = content
+      head.appendChild(m)
+      added.push(m)
+    }
+    meta('theme-color', '#0B0B0C')
+    meta('apple-mobile-web-app-capable', 'yes')
+    meta('mobile-web-app-capable', 'yes')
+    meta('apple-mobile-web-app-status-bar-style', 'black-translucent')
+    meta('apple-mobile-web-app-title', 'Mi rutina')
+    meta('viewport', 'width=device-width, initial-scale=1.0, viewport-fit=cover')
+
+    const origin = window.location.origin
+    const manifest = {
+      name: 'Haciéndolo Hábito · Mi rutina',
+      short_name: 'Mi rutina',
+      start_url: window.location.href.split('#')[0],
+      scope: `${origin}/rutina/`,
+      display: 'standalone',
+      background_color: '#0B0B0C',
+      theme_color: '#0B0B0C',
+      icons: [
+        { src: `${origin}/app-icon-180.png`, sizes: '180x180', type: 'image/png' },
+        { src: `${origin}/app-icon-512.png`, sizes: '512x512', type: 'image/png' },
+      ],
+    }
+    const link = document.createElement('link')
+    link.rel = 'manifest'
+    link.href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`
+    head.appendChild(link)
+    added.push(link)
+
+    const html = document.documentElement
+    const oldBg = html.style.background
+    html.style.background = '#0B0B0C'
+    return () => {
+      added.forEach((el) => el.remove())
+      restore.forEach((fn) => fn())
+      html.style.background = oldBg
+    }
+  }, [])
 }

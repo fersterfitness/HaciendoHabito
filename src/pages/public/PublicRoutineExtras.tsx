@@ -45,7 +45,18 @@ export function PaymentBanner({ extras }: { extras: StudentExtras }) {
  * «Tu progreso» (feedback nov3, punto 8): días entrenados, cómo llega a entrenar semana a semana y en qué
  * ejercicios subió, en gráficos simples y sin mostrar los kilos.
  */
-export function ProgressCard({ blocks, extras, kgOf }: { blocks: SharedRoutineBlock[]; extras: TrainingExtras; kgOf: (exerciseId: string) => number[] }) {
+export function ProgressCard({
+  blocks,
+  extras,
+  kgOf,
+  open,
+}: {
+  blocks: SharedRoutineBlock[]
+  extras: TrainingExtras
+  kgOf: (exerciseId: string) => number[]
+  /** En la pestaña «Progreso» del celular se muestra abierta. */
+  open?: boolean
+}) {
   const weeks = useMemo(() => weeklyProgress(blocks, extras), [blocks, extras])
   const trends = useMemo(() => scaleTrends(blocks, extras), [blocks, extras])
   const gains = useMemo(() => liftProgress(blocks, kgOf, 6).filter((l) => liftGainPct(l) > 0), [blocks, kgOf])
@@ -64,7 +75,7 @@ export function ProgressCard({ blocks, extras, kgOf }: { blocks: SharedRoutineBl
   const better = trends.filter((t) => t.trend === 'better')
 
   return (
-    <details className="hhr-card hhr-progress-card">
+    <details className="hhr-card hhr-progress-card" open={open || undefined}>
       <summary>
         <span className="hhr-log-icon" aria-hidden>
           <TrendingUp size={18} strokeWidth={1.9} />
@@ -165,7 +176,17 @@ export function ProgressCard({ blocks, extras, kgOf }: { blocks: SharedRoutineBl
 }
 
 /** Registro del ciclo desde la app de la alumna. */
-export function CycleCard({ token, extras, onChange }: { token: string; extras: StudentExtras; onChange: (patch: Partial<StudentExtras>) => void }) {
+export function CycleCard({
+  token,
+  extras,
+  onChange,
+  open,
+}: {
+  token: string
+  extras: StudentExtras
+  onChange: (patch: Partial<StudentExtras>) => void
+  open?: boolean
+}) {
   const [date, setDate] = useState(extras.today)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -185,7 +206,7 @@ export function CycleCard({ token, extras, onChange }: { token: string; extras: 
   }
 
   return (
-    <details className="hhr-card hhr-progress-card">
+    <details className="hhr-card hhr-progress-card" open={open || undefined}>
       <summary>
         <span className="hhr-log-icon" aria-hidden>
           <CalendarHeart size={18} strokeWidth={1.9} />
