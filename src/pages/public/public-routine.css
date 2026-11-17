@@ -721,3 +721,58 @@
 }
 /* Sin foto: el ícono de respaldo va sobre gris oscuro, no sobre un cuadro blanco. */
 .hhr .hhr-ex-head .hhr-tile:not(:has(img)) { background: var(--soft); color: var(--ink-2); }
+
+/* ───────────── Ejercicios estilo app (2026-11-17, segunda entrega) ─────────────
+   Lista densa con un puntito por serie; al tocar un ejercicio se abre a pantalla completa (en el celu),
+   con «Anterior» en cada serie, cronómetro de descanso y «Siguiente» al pie. */
+.hhr-setdots { display: none; }
+.hhr-setprev { display: block; white-space: nowrap; margin-top: 1px; font-size: 10.5px; font-weight: 600; color: var(--muted); }
+.hhr-ex-foot { display: grid; gap: 10px; margin-top: 4px; }
+.hhr .hhr-next { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 50px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--btn); color: var(--on-btn); text-align: left; }
+.hhr-next span { font-size: 12px; font-weight: 600; opacity: .6; }
+.hhr-next b { flex: 1 1 auto; min-width: 0; font-size: 14.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hhr-next svg { flex: 0 0 auto; transform: rotate(-90deg); }
+.hhr-rest { position: relative; overflow: hidden; display: flex; align-items: baseline; justify-content: space-between; padding: 12px 16px 14px; border-radius: 16px; background: var(--brand-soft); color: var(--brand-ink); }
+.hhr-rest span { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.hhr-rest b { font-size: 26px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--ink); }
+.hhr-rest i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--brand); transition: width .25s linear; }
+
+@media (max-width: 1023px) {
+  /* Lista: filas compactas. */
+  .hhr .hhr-list { gap: 10px; }
+  .hhr .hhr-circuit-list { gap: 8px; }
+  .hhr .hhr-ex { border-radius: 18px; }
+  .hhr .hhr-ex-head { min-height: 76px; padding: 10px 14px 10px 10px; gap: 12px; }
+  .hhr .hhr-ex-head .hhr-tile { width: 56px; height: 56px; border-radius: 12px; }
+  .hhr .hhr-ex-head .hhr-movement { width: 56px; height: 56px; }
+  .hhr .hhr-ex-head .hhr-tile svg { width: 22px; height: 22px; }
+  .hhr .hhr-tile-check { width: 20px; height: 20px; right: -5px; bottom: -5px; }
+  .hhr .hhr-ex-info { gap: 4px; }
+  .hhr .hhr-ex-name { font-size: 15px; font-weight: 700; letter-spacing: -.3px; }
+  .hhr .hhr-ex-tags span { font-size: 12px; }
+  .hhr .hhr-ex-mynote { font-size: 11.5px; }
+  .hhr .hhr-ex-head .hhr-progress { display: none; }
+  .hhr .hhr-setdots { display: flex; gap: 4px; margin-top: 2px; }
+  .hhr-setdots i { width: 16px; height: 5px; border-radius: 99px; background: var(--soft-2); }
+  .hhr-setdots i.is-on { background: var(--complete); }
+  .hhr .hhr-circuit-plus { margin: 0; }
+
+  /* Ejercicio abierto: pantalla completa que sube desde abajo. */
+  html:has(.hhr-ex.is-open) { overflow: hidden; }
+  .hhr .hhr-ex.is-open { position: fixed; inset: 0; z-index: 60; overflow-y: auto; overscroll-behavior: contain; margin: 0; border: 0; border-radius: 0; background: var(--canvas); box-shadow: none; padding-top: env(safe-area-inset-top); animation: hhr-sheet .24s cubic-bezier(.2, .8, .2, 1); }
+  .hhr .hhr-ex.is-open .hhr-ex-head { position: sticky; top: 0; z-index: 2; min-height: 68px; padding: 10px 16px; background: rgba(11, 11, 12, .94); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
+  .hhr .hhr-ex.is-open .hhr-ex-head .hhr-tile { width: 44px; height: 44px; border-radius: 10px; }
+  .hhr .hhr-ex.is-open .hhr-ex-head .hhr-movement { width: 44px; height: 44px; }
+  .hhr .hhr-ex.is-open .hhr-ex-head .hhr-chev { transform: none; width: 26px; height: 26px; padding: 4px; border-radius: 50%; background: var(--soft-2); color: var(--ink); }
+  .hhr .hhr-ex.is-open .hhr-ex-head .hhr-setdots, .hhr .hhr-ex.is-open .hhr-ex-mynote { display: none; }
+  .hhr .hhr-ex.is-open .hhr-ex-panel { padding: 14px 16px 0; animation: none; }
+  .hhr .hhr-ex.is-open .hhr-ex-foot { position: sticky; bottom: 0; z-index: 2; margin: 6px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--canvas); border-top: 1px solid var(--line); }
+  .hhr .hhr-ex.is-open .hhr-kg { background: var(--card); }
+  .hhr .hhr-ex.is-open .hhr-setrow.is-logged { background: var(--complete-soft); }
+  .hhr .hhr-ex.is-open .hhr-setno { background: var(--soft-2); }
+}
+@keyframes hhr-sheet { from { transform: translateY(24px); opacity: .4; } }
+@media (max-width: 1023px) {
+  .hhr .hhr-ex.is-open .hhr-kgfield input { background: var(--soft-2); }
+  .hhr .hhr-ex.is-open .hhr-setrow.is-logged .hhr-kgfield input { background: rgba(195, 255, 77, .08); }
+}

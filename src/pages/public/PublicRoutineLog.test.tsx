@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { PublicRoutinePage } from './PublicRoutinePage'
-import { canPreviewRoutine, fetchSharedRoutine, type SharedRoutine } from '@/lib/routine/sharedRoutine'
+import { canPreviewRoutine, fetchSharedRoutine, saveSharedSet, type SharedRoutine } from '@/lib/routine/sharedRoutine'
 import {
   EMPTY_DAY_LOG,
   fetchSharedExtras,
@@ -204,6 +204,30 @@ describe('registro del alumno en la rutina por link', () => {
     expect((host.querySelector('.hhr-exfb textarea') as HTMLTextAreaElement).value).toBe('Me molestó la rodilla')
     await click(host.querySelectorAll('.hhr-exfb .hhr-scale button')[7])
     expect(saveSharedExerciseFeedback).toHaveBeenCalledWith('test-token', 'ex', { note: 'Me molestó la rodilla', effort: 8 })
+  })
+
+  it('al tildar una serie arranca el descanso, y «Siguiente» abre el próximo ejercicio', async () => {
+    const day = routine.routine!.blocks[0]!.days[0]!
+    const base = day.exercises[0]!
+    vi.mocked(fetchSharedRoutine).mockResolvedValue({
+      ...routine,
+      routine: {
+        ...routine.routine!,
+        blocks: [{ ...routine.routine!.blocks[0]!, days: [{ ...day, exercises: [{ ...base, rest_seconds: 60 }, { ...base, id: 'ex2', name: 'Remo' }] }] }],
+      },
+    })
+    vi.mocked(saveSharedSet).mockResolvedValue(undefined)
+    await open({ exercises: {}, days: checkedDay })
+    await click(host.querySelector('.hhr-ex-head'))
+    expect(host.querySelector('.hhr-rest')).toBeNull()
+    await click(host.querySelector('.hhr-setcheck'))
+    expect(saveSharedSet).toHaveBeenCalledWith('test-token', 'ex', 1, null, true, null)
+    expect(host.querySelector('.hhr-rest b')?.textContent).toBe('1:00')
+    await click(button('Siguiente'))
+    const open2 = host.querySelector('.hhr-ex.is-open .hhr-ex-name')
+    expect(open2?.textContent).toBe('Remo')
+    expect(host.querySelectorAll('.hhr-ex.is-open')).toHaveLength(1)
+    expect(button('Volver a la lista')).toBeTruthy()
   })
 
   it('muestra la nota propia del ejercicio en la tarjeta y adentro', async () => {

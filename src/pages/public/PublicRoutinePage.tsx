@@ -33,6 +33,7 @@ import { weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
 import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/studentAppExtras'
 import { CycleCard, MonthReviewCard, PaymentBanner, ProgressCard } from './PublicRoutineExtras'
 import { movementArtwork, routineAthlete, type Athlete } from '@/lib/routine/exerciseArtwork'
+import { clockLabel, previousLabel, previousSetsByExercise } from '@/lib/routine/previousSets'
 
 /**
  * Rutina que abre el alumno desde el link (sin cuenta). Dos cosas separadas:
@@ -440,11 +441,20 @@ export function PublicRoutinePage() {
   const blocked = askCheckin || !!noticeGate
   // La lista prioriza explorar la rutina; cada alumno abre el ejercicio que va a realizar.
   const isOpen = (id: string) => !!openMap[id]
-  const toggle = (id: string) => setOpenMap((prev) => ({ ...prev, [id]: !isOpen(id) }))
+  const toggle = (id: string) => setOpenMap((prev) => (prev[id] ? {} : { [id]: true }))
+  const openNext = (id: string) => {
+    setOpenMap({ [id]: true })
+    requestAnimationFrame(() => document.getElementById(`hhr-card-${id}`)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }))
+  }
   let number = 0
+
+  // «Anterior» en la tabla de series: lo que anotó la última vez que hizo ese ejercicio.
+  const previous = previousSetsByExercise(blocks, logged)
+  const dayOrder = selectedDay?.exercises ?? []
 
   function card(ex: SharedRoutineExercise, inCircuit = false) {
     const n = ++number
+    const nx = dayOrder[dayOrder.findIndex((e) => e.id === ex.id) + 1]
     return (
       <ExerciseCard
         key={ex.id}
@@ -462,6 +472,8 @@ export function PublicRoutinePage() {
         onFeedbackSaved={onExerciseFeedback}
         selfNote={extras?.selfNotes && exerciseNoteKey(ex.name) ? (extras.selfNotes[exerciseNoteKey(ex.name)] ?? '') : null}
         onSelfNoteSaved={onSelfNote}
+        previous={previous[ex.id]}
+        next={nx ? { label: niceCase(nx.name) || 'Siguiente', go: () => openNext(nx.id) } : null}
       />
     )
   }
@@ -895,7 +907,13 @@ function ExerciseCard({
   onFeedbackSaved,
   selfNote,
   onSelfNoteSaved,
+  previous,
+  next,
 }: {
+  /** Lo que anotó la vez anterior en este ejercicio, por serie. */
+  previous?: Record<number, LoggedSet>
+  /** Ejercicio que sigue en el día; `null` en el último. */
+  next: { label: string; go: () => void } | null
   /** Nota propia del alumno; `null` sin la migración de notas propias. */
   selfNote: string | null
   onSelfNoteSaved: (key: string, note: string) => void
@@ -922,8 +940,12 @@ function ExerciseCard({
   const name = niceCase(ex.name) || 'Ejercicio'
   const artwork = movementArtwork(ex.name, athlete)
   const tags = [main, chips[0]].filter(Boolean) as string[]
+  // Descanso: arranca al tildar una serie, con el tiempo que puso el entrenador.
+  const [restUntil, setRestUntil] = useState<number | null>(null)
+  const rest = ex.rest_seconds && ex.rest_seconds > 0 ? ex.rest_seconds : 0
+  const endRest = useCallback(() => setRestUntil(null), [])
   return (
-    <article className={`hhr-ex${flat ? ' is-flat' : ' hhr-card'}${complete ? ' is-done' : ''}${open ? ' is-open' : ''}`}>
+    <article id={`hhr-card-${ex.id}`} className={`hhr-ex${flat ? ' is-flat' : ' hhr-card'}${complete ? ' is-done' : ''}${open ? ' is-open' : ''}`}>
       <button type="button" className="hhr-ex-head" aria-expanded={open} aria-controls={panelId} onClick={onToggle}>
         <span className={`hhr-tile hhr-tile-${exerciseArt(ex.name)}`} aria-hidden>
           {ex.image_url ? (
@@ -957,6 +979,11 @@ function ExerciseCard({
             </span>
             <span className="hhr-progress-label">{complete ? 'Listo' : `${done}/${sets} series`}</span>
           </span>
+          <span className="hhr-setdots" aria-hidden>
+            {Array.from({ length: sets }, (_, i) => (
+              <i key={i} className={logged[i + 1]?.completed ? 'is-on' : undefined} />
+            ))}
+          </span>
         </span>
         <ChevronDown className="hhr-chev" size={20} strokeWidth={1.8} aria-hidden />
       </button>
@@ -982,8 +1009,33 @@ function ExerciseCard({
             </div>
           ) : null}
           {selfNote != null ? <SelfNoteBox token={token} noteKey={exerciseNoteKey(ex.name)} value={selfNote} onSaved={onSelfNoteSaved} /> : null}
-          <KgInputs ex={ex} sets={sets} token={token} logged={logged} onSaved={onSaved} />
+          <KgInputs
+            ex={ex}
+            sets={sets}
+            token={token}
+            logged={logged}
+            onSaved={onSaved}
+            previous={previous}
+            onCompleted={() => {
+              buzz(30)
+              if (rest) setRestUntil(Date.now() + rest * 1000)
+            }}
+          />
           {feedback ? <ExerciseFeedbackBox token={token} exerciseId={ex.id} value={feedback} proLabel={proLabel} onSaved={onFeedbackSaved} /> : null}
+          <div className="hhr-ex-foot">
+            {restUntil ? <RestTimer until={restUntil} total={rest} onDone={endRest} /> : null}
+            <button type="button" className="hhr-next" onClick={next ? next.go : onToggle}>
+              {next ? (
+                <>
+                  <span>Siguiente</span>
+                  <b>{next.label}</b>
+                </>
+              ) : (
+                <b>Volver a la lista</b>
+              )}
+              <ChevronDown size={18} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
         </div>
       ) : null}
     </article>
@@ -1017,12 +1069,15 @@ function setTarget(ex: SharedRoutineExercise, plan: PlanRow[], i: number): strin
 }
 
 /** Reps y peso opcionales y check independiente. Solo se confirma el progreso al guardar en el servidor. */
-function KgInputs({ ex, sets, token, logged, onSaved }: {
+function KgInputs({ ex, sets, token, logged, onSaved, previous, onCompleted }: {
   ex: SharedRoutineExercise
   sets: number
   token: string
   logged: Record<number, LoggedSet>
   onSaved: (exId: string, set: number, value: LoggedSet) => void
+  previous?: Record<number, LoggedSet>
+  /** Se llama cuando una serie pasa a hecha (para vibrar y arrancar el descanso). */
+  onCompleted?: () => void
 }) {
   const plan = useMemo(() => parseExerciseMeta(ex.technical_notes).meta.seriesPlan ?? [], [ex.technical_notes])
   const [values, setValues] = useState<string[]>(() => Array.from({ length: sets }, (_, i) => formatKg(logged[i + 1]?.kg)))
@@ -1086,6 +1141,7 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
       lastSaved.current[i + 1] = next
       onSaved(ex.id, i + 1, next)
       setStatusAt(i, 'saved')
+      if (completed && !before.completed) onCompleted?.()
     } catch (error) {
       setErrors((prev) => ({ ...prev, [i]: error instanceof Error ? error.message : 'No se pudo guardar. Intentá de nuevo.' }))
       setStatusAt(i, 'error')
@@ -1126,6 +1182,7 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
           const timeBased = timeRows[i]
           const target = timeBased ? setTarget(ex, plan, i) : setTarget(ex, plan, i).replace(/ reps\b/, '')
           const rpe = effortLabel(plan[i]?.rpeRir)
+          const before = previousLabel(previous?.[i + 1])
           const errorId = `hhr-save-error-${ex.id}-${i}`
           return (
             <li key={i} className={`hhr-setrow is-${status[i]}${completed ? ' is-logged' : ''}`} aria-busy={saving}>
@@ -1133,6 +1190,7 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
               <span className="hhr-settarget">
                 {target || '—'}
                 {rpe ? <small className="hhr-setrpe">{rpe}</small> : null}
+                {before ? <small className="hhr-setprev">Anterior {before}</small> : null}
               </span>
               {timeBased ? (
                 <span className="hhr-repsfield is-empty" aria-hidden />
@@ -1265,4 +1323,34 @@ function useInstallableRoutine() {
       html.style.background = oldBg
     }
   }, [])
+}
+
+function buzz(pattern: number | number[]) {
+  try {
+    navigator.vibrate?.(pattern)
+  } catch {
+    // Sin vibración (iPhone, compu): no pasa nada.
+  }
+}
+
+/** Cuenta regresiva del descanso; al llegar a cero vibra y se va. */
+function RestTimer({ until, total, onDone }: { until: number; total: number; onDone: () => void }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(t)
+  }, [until])
+  const left = Math.max(0, (until - now) / 1000)
+  useEffect(() => {
+    if (left > 0) return
+    buzz([90, 60, 90])
+    onDone()
+  }, [left, onDone])
+  return (
+    <div className="hhr-rest" role="timer" aria-label={`Descanso: quedan ${clockLabel(left)}`}>
+      <span>Descanso</span>
+      <b>{clockLabel(Math.ceil(left))}</b>
+      <i style={{ width: `${total ? (left / total) * 100 : 0}%` }} aria-hidden />
+    </div>
+  )
 }
