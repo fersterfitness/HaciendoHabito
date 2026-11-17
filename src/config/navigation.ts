@@ -11,7 +11,7 @@ import {
   ClipboardList,
   UtensilsCrossed,
   Ruler,
-  Sparkles,
+  Coffee,
   UserPlus,
   Dumbbell,
   HandCoins,
@@ -73,7 +73,7 @@ export const NAV_TRAINING_CORE: NavItem[] = [
   // Feedback nov3: las consultas semanales pasaron a la ficha (Progreso); queda Recursos en su lugar.
   { label: 'Recursos', href: '/resources', icon: Send },
   { label: 'Base de datos', href: '/exercises', icon: BookOpen },
-  { label: 'Saliendo de contexto', shortLabel: 'Contexto', href: '/contexto', icon: Sparkles },
+  { label: 'Saliendo de contexto', shortLabel: 'Contexto', href: '/contexto', icon: Coffee },
 ]
 
 export const NAV_MEAL_PLANS: NavItem = {
@@ -244,7 +244,7 @@ const V2_EXERCISES: NavItem = {
   icon: BookOpen,
   hint: 'Catálogo y métodos',
 }
-const V2_CONTEXT: NavItem = { label: 'Saliendo de contexto', shortLabel: 'Contexto', href: '/contexto', icon: Sparkles, hint: 'Pregunta de los miércoles' }
+const V2_CONTEXT: NavItem = { label: 'Saliendo de contexto', shortLabel: 'Contexto', href: '/contexto', icon: Coffee, hint: 'Pregunta de los miércoles' }
 
 const V2_MARKETPLACE: NavItem = { label: 'Marketplace', shortLabel: 'Marketplace', href: '/mi-pagina', icon: Store, hint: 'Tu página, planes y solicitudes' }
 

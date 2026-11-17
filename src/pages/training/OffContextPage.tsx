@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Coffee } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -66,7 +66,7 @@ export function OffContextPage() {
 
         <div className="rounded-2xl border border-surface-border bg-surface-card p-4">
           <p className="mb-2 flex items-center gap-1.5 text-2xs font-semibold text-ink-muted">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            <Coffee className="h-3.5 w-3.5" aria-hidden />
             Vista previa
           </p>
           <pre className="whitespace-pre-wrap text-sm leading-relaxed text-ink-primary">{message}</pre>
