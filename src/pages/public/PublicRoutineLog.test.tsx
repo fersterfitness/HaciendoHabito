@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { PublicRoutinePage } from './PublicRoutinePage'
-import { fetchSharedRoutine, type SharedRoutine } from '@/lib/routine/sharedRoutine'
+import { canPreviewRoutine, fetchSharedRoutine, type SharedRoutine } from '@/lib/routine/sharedRoutine'
 import {
   EMPTY_DAY_LOG,
   fetchSharedExtras,
@@ -19,6 +19,7 @@ vi.mock('@/lib/routine/sharedRoutine', async (original) => ({
   ...(await original<typeof import('@/lib/routine/sharedRoutine')>()),
   fetchSharedRoutine: vi.fn(),
   saveSharedSet: vi.fn(),
+  canPreviewRoutine: vi.fn(),
 }))
 vi.mock('@/lib/routine/studentTrainingLog', async (original) => ({
   ...(await original<typeof import('@/lib/routine/studentTrainingLog')>()),
@@ -97,11 +98,11 @@ describe('registro del alumno en la rutina por link', () => {
     fontStub.remove()
   })
 
-  async function open(extras: TrainingExtras | null) {
+  async function open(extras: TrainingExtras | null, url = '/rutina/test-token') {
     vi.mocked(fetchSharedExtras).mockResolvedValue(extras)
     await act(async () =>
       root.render(
-        <MemoryRouter initialEntries={['/rutina/test-token']}>
+        <MemoryRouter initialEntries={[url]}>
           <Routes>
             <Route path="/rutina/:token" element={<PublicRoutinePage />} />
           </Routes>
@@ -229,5 +230,22 @@ describe('registro del alumno en la rutina por link', () => {
     await open({ exercises: {}, days: checkedDay })
     await click(host.querySelector('.hhr-ex-head'))
     expect(button('Agregar una nota para mí')).toBeUndefined()
+  })
+
+  it('vista previa del entrenador: sin chequeo obligatorio y con el aviso arriba', async () => {
+    vi.mocked(canPreviewRoutine).mockResolvedValue(true)
+    await open({ exercises: {}, days: {} }, '/rutina/test-token?vista=entrenador')
+    expect(host.querySelector('.hhr-preview')?.textContent).toContain('Vista previa del entrenador')
+    expect(host.querySelector('.hhr-must')).toBeNull()
+    expect(host.querySelector('.hhr-ex-head')).not.toBeNull()
+    await click(host.querySelector('.hhr-preview-toggle input'))
+    expect(host.querySelector('.hhr-must')).not.toBeNull()
+  })
+
+  it('con ?vista=entrenador pero sin ser el dueño, es el link normal', async () => {
+    vi.mocked(canPreviewRoutine).mockResolvedValue(false)
+    await open({ exercises: {}, days: {} }, '/rutina/test-token?vista=entrenador')
+    expect(host.querySelector('.hhr-preview')).toBeNull()
+    expect(host.querySelector('.hhr-must')).not.toBeNull()
   })
 })

@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Check, ChevronDown, Dumbbell, Flame, Link2, MessageCircle, Pin, Play } from 'lucide-react'
@@ -20,11 +20,13 @@ import {
   type SharedRoutine,
   type SharedRoutineDay,
   type SharedRoutineExercise,
+  canPreviewRoutine,
 } from '@/lib/routine/sharedRoutine'
 import { parseExerciseMeta } from '@/lib/routine/exerciseMeta'
 import { formatWarmupDisplayLines } from '@/lib/routine/warmupNotesFormat'
 import { normalizePhoneForWhatsApp } from '@/lib/whatsapp'
 import './public-routine.css'
+import { setPublicPreview } from '@/lib/supabasePublic'
 import { EMPTY_DAY_LOG, exerciseNoteKey, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type RoutineNoticeKind, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
 import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, RoutineNoticeCard, SelfNoteBox, UrgentCard } from './PublicRoutineLog'
 import { weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
@@ -187,6 +189,29 @@ export function PublicRoutinePage() {
 
   useLightPage()
 
+  // Vista previa del entrenador (?vista=entrenador, solo si es el dueño del link): no guarda nada y,
+  // salvo que la pida, no muestra el chequeo ni los avisos obligatorios.
+  const [search] = useSearchParams()
+  const wantsPreview = search.get('vista') === 'entrenador'
+  const [preview, setPreview] = useState<'checking' | 'on' | 'off'>(wantsPreview ? 'checking' : 'off')
+  const [previewGates, setPreviewGates] = useState(false)
+  useEffect(() => {
+    if (!wantsPreview) return
+    let alive = true
+    void canPreviewRoutine(token)
+      .catch(() => false)
+      .then((ok) => {
+        if (!alive) return
+        setPublicPreview(ok)
+        setPreview(ok ? 'on' : 'off')
+      })
+    return () => {
+      alive = false
+      setPublicPreview(false)
+    }
+  }, [wantsPreview, token])
+  const gatesOff = preview === 'on' && !previewGates
+
   useEffect(() => {
     let alive = true
     void fetchSharedExtras(token).then((x) => {
@@ -284,7 +309,7 @@ export function PublicRoutinePage() {
     [token, onDayLog],
   )
 
-  if (state.status === 'loading') {
+  if (state.status === 'loading' || preview === 'checking') {
     return (
       <Shell>
         <div className="hhr-skeleton" aria-busy="true" aria-label="Cargando tu rutina">
@@ -385,7 +410,7 @@ export function PublicRoutinePage() {
   // Último día de la semana en curso (le queda solo este por cerrar): el chequeo suma pasos y ciclo.
   const closesWeek = !!weekState && wi === currentWeek && weekState.total > 0 && weekState.open <= 1 && !dayLog?.status
   const askCheckin =
-    !!selectedDay && !!dayLog && selectedDay.exercises.length > 0 && !hasCheckin(dayLog) && !dayLog.status && selectedProgress.done === 0
+    !gatesOff && !!selectedDay && !!dayLog && selectedDay.exercises.length > 0 && !hasCheckin(dayLog) && !dayLog.status && selectedProgress.done === 0
   // Avisos obligatorios antes del chequeo (puntos 7 y 13): primer día de la última semana, último día de
   // cada semana y último día de la rutina. Solo en la semana en curso y con la migración corrida.
   const notices = extras?.notices
@@ -393,7 +418,7 @@ export function PublicRoutinePage() {
   const lastIdx = blocks.length - 1
   const sentNotice = (kind: RoutineNoticeKind) => !!selBlock && !!notices?.some((n) => n.block_id === selBlock.id && n.kind === kind)
   const noticeGate: RoutineNoticeKind | null =
-    !notices || !selBlock || !selectedDay || !dayLog || dayLog.status || selectedDay.exercises.length === 0 || wi !== currentWeek
+    gatesOff || !notices || !selBlock || !selectedDay || !dayLog || dayLog.status || selectedDay.exercises.length === 0 || wi !== currentWeek
       ? null
       : blocks.length > 1 && wi === lastIdx && !sentNotice('last_week')
         ? 'last_week'
@@ -403,7 +428,7 @@ export function PublicRoutinePage() {
             ? 'week_done'
             : null
   // Rutina terminada: la devolución final (testimonio) es obligatoria y queda sola en pantalla.
-  const reviewDue = !!studentExtras && monthDone && !!reviewDayId && !reviewDone
+  const reviewDue = !gatesOff && !!studentExtras && monthDone && !!reviewDayId && !reviewDone
   const blocked = askCheckin || !!noticeGate
   // La lista prioriza explorar la rutina; cada alumno abre el ejercicio que va a realizar.
   const isOpen = (id: string) => !!openMap[id]
@@ -445,6 +470,17 @@ export function PublicRoutinePage() {
 
   return (
     <Shell>
+      {preview === 'on' ? (
+        <div className="hhr-preview" role="status">
+          <span>
+            <b>Vista previa del entrenador.</b> Nada de lo que toques se guarda ni lo ve {firstName || 'el alumno'}.
+          </span>
+          <label className="hhr-preview-toggle">
+            <input type="checkbox" checked={previewGates} onChange={(e) => setPreviewGates(e.target.checked)} />
+            Mostrar chequeo y avisos
+          </label>
+        </div>
+      ) : null}
       <div className="hhr-masthead">
         <span className="hhr-wordmark"><BrandMark /> haciéndolo<span>hábito</span><span className="hhr-brand-period">.</span></span>
         <span className="hhr-space-label">TODO EMPIEZA CUANDO ESTÁS <b>HACIÉNDOLO HÁBITO</b></span>

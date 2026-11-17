@@ -1,4 +1,5 @@
 import type { Income, PaymentMethod } from '@/types/database'
+import { numericFromPriceLabel } from '@/lib/publicIntakePlanPricing'
 
 export type PaymentState = 'pagado' | 'parcial' | 'pendiente' | 'vencido' | 'sin_cargo'
 
@@ -50,6 +51,7 @@ type StudentLite = {
   full_name: string
   phone?: string | null
   monthly_fee_amount?: number | null
+  selected_web_plan_slug?: string | null
   payment_day_from?: number | null
   payment_day_to?: number | null
   created_at?: string | null
@@ -136,8 +138,31 @@ export function computePaymentState(opts: {
  * Tablero de cobros de un mes: todos los alumnos activos (los que ya existían ese mes),
  * paguen cuota fija, por rutina o estén bonificados.
  */
+/** Precio mensual de cada plan web (slug → monto), leído de su etiqueta de precio. */
+export function webPlanPriceMap(plans: { slug: string; price_label?: string | null }[] | null | undefined): Map<string, number> {
+  const out = new Map<string, number>()
+  for (const p of plans ?? []) {
+    const n = numericFromPriceLabel(p.price_label ?? '')
+    if (n > 0) out.set(p.slug, n)
+  }
+  return out
+}
+
+/** Feedback nov3: lo que paga por mes. Primero la cuota cargada en la ficha; si no hay, el precio de su plan web. */
+export function studentMonthlyAmount(
+  s: Pick<StudentLite, 'monthly_fee_amount' | 'selected_web_plan_slug'>,
+  planPrices?: Map<string, number>,
+): number {
+  const fee = Number(s.monthly_fee_amount || 0)
+  if (fee > 0) return fee
+  const slug = s.selected_web_plan_slug?.trim()
+  return (slug && planPrices?.get(slug)) || 0
+}
+
 export function buildPaymentBoard(opts: {
   students: StudentLite[]
+  /** Precios de los planes web, para los alumnos sin cuota propia. */
+  planPrices?: Map<string, number>
   incomes: IncomeLite[]
   month: Date
   today: Date
@@ -155,7 +180,7 @@ export function buildPaymentBoard(opts: {
       // Pendientes: los del mes + los de meses anteriores que siguen sin cobrar (deuda arrastrada).
       const pendingRows = own.filter((i) => i.status === 'pendiente' && i.income_date.slice(0, 7) <= key)
       const pendingAmount = pendingRows.reduce((acc, i) => acc + Number(i.amount || 0), 0)
-      const fee = Number(s.monthly_fee_amount || 0)
+      const fee = studentMonthlyAmount(s, opts.planPrices)
       const expected = pendingAmount > 0 ? paid + pendingAmount : Math.max(fee, 0)
       const lastPaid = own
         .filter((i) => i.status === 'cobrado')

@@ -11,6 +11,7 @@ import {
   ensureRoutineShareToken,
   regenerateRoutineShareToken,
   sharedRoutineMessage,
+  sharedRoutinePreviewUrl,
   sharedRoutineUrl,
 } from '@/lib/routine/sharedRoutine'
 
@@ -40,7 +41,8 @@ export function ShareRoutineActionsV2({
     setBusy(kind)
     try {
       const token = await ensureRoutineShareToken(user.id, studentId)
-      await run(sharedRoutineUrl(token))
+      // «Ver como alumno» abre la vista previa: no pide el chequeo ni guarda nada en sus datos.
+      await run(kind === 'open' ? sharedRoutinePreviewUrl(token) : sharedRoutineUrl(token))
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo armar el link')
     }
@@ -85,6 +87,7 @@ export function ShareRoutineActionsV2({
         variant="secondary"
         icon={<ExternalLink className="h-3.5 w-3.5" />}
         loading={busy === 'open'}
+        title="Vista previa para vos: sin chequeo obligatorio y sin guardar nada en los datos del alumno."
         onClick={() => void withLink('open', (url) => void window.open(url, '_blank', 'noopener,noreferrer'))}
       >
         Ver como alumno

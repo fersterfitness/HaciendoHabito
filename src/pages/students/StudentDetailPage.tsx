@@ -21,7 +21,7 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn, formatCurrency, formatDate } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { RoutineWeekSquares } from '@/components/checkIn/RoutineWeekSquares'
 import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { loadBlockCountsByRoutine } from '@/lib/checkIn/routineWeekProgress'
@@ -42,7 +42,7 @@ import { StudentAppProgressPanel } from '@/components/students/StudentAppProgres
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { StudentVolumeMini } from '@/components/routines/volumeBody/StudentVolumeMini'
 import { canSeeTraining } from '@/config/navigation'
-import type { Student, Routine, StudentRmRecord, TrainerStudentMealPlan, Income } from '@/types/database'
+import type { Student, Routine, StudentRmRecord, TrainerStudentMealPlan } from '@/types/database'
 import { devLog } from '@/lib/devLog'
 import { fetchAccessibleStudentById } from '@/lib/students/studentAccess'
 import { migrateLocalTrainerPrefsToDb, updateStudentTrainerPrefs } from '@/lib/students/studentTrainerPrefs'
@@ -51,11 +51,11 @@ import { PesoTab } from '@/pages/students/studentDetail/PesoTab'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import toast from 'react-hot-toast'
 import { motion } from 'motion/react'
-import { MarkPaidModal } from '@/components/finances/MarkPaidModal'
-import { markRoutinePaid, unmarkRoutinePaid } from '@/lib/finance/routineIncome'
 import { type SeguimientoTab, type SheetTab, DETAIL_LEVEL_LABEL, intakeStatusPhrase, intakeRoutinePhrase, routineStatusPillClass, studentAccountStatusChipClass } from './studentDetail/studentDetailShared'
 import { FuerzaTab } from './studentDetail/FuerzaTab'
 import { QuickPayModal } from './studentDetail/QuickPayModal'
+import { useWebPlanPrices } from '@/data/priceIncrease'
+import { studentMonthlyAmount, webPlanPriceMap } from '@/lib/finance/studentPayments'
 
 /** Ficha completa del alumno: página dedicada o panel lateral desde la lista. */
 export interface StudentDetailViewProps {
@@ -164,13 +164,13 @@ export function StudentDetailView({
 
   // Pago rápido
   const [showPayModal,  setShowPayModal]  = useState(false)
+  const webPlansQ = useWebPlanPrices(showPayModal)
 
   const [mealPlans, setMealPlans] = useState<TrainerStudentMealPlan[]>([])
   const [mealPlansLoading, setMealPlansLoading] = useState(false)
   const [mealPlanPdfBusy, setMealPlanPdfBusy] = useState<string | null>(null)
 
   /** Rutina a la que se le está registrando el cobro (modal de medio y monto). */
-  const [payingRoutine, setPayingRoutine] = useState<Routine | null>(null)
 
   const [reactivating, setReactivating] = useState(false)
   /** v2 · Vuelve a activa una rutina cuyas fechas siguen corriendo (la habían marcado completada). */
@@ -185,46 +185,6 @@ export function StudentDetailView({
     }
     setRoutines((prev) => prev.map((r) => (r.id === routineId ? { ...r, status: 'activa', completed_at: null, last_status_change: now } : r)))
     toast.success('La rutina volvió a activa')
-  }
-
-  async function saveRoutinePaid(routineId: string, isPaid: boolean) {
-    const routine = routines.find((r) => r.id === routineId)
-    if (!routine) return
-    if (isPaid) {
-      setPayingRoutine(routine)
-      return
-    }
-    setSavingRoutinePaid(true)
-    const err = await unmarkRoutinePaid(routineId)
-    setSavingRoutinePaid(false)
-    if (err) {
-      toast.error(err)
-      return
-    }
-    setRoutines((prev) => prev.map((r) => (r.id === routineId ? { ...r, is_paid: false } : r)))
-    toast.success('Abono desmarcado: el cobro vuelve a pendiente')
-  }
-
-  async function confirmRoutinePaid(values: { amount: number; method: Income['payment_method']; date: string }) {
-    if (!user || !id || !payingRoutine) return
-    const err = await markRoutinePaid({
-      ownerId: user.id,
-      routineId: payingRoutine.id,
-      routineName: payingRoutine.name,
-      studentId: id,
-      amount: values.amount,
-      method: values.method,
-      date: values.date,
-    })
-    if (err) {
-      toast.error(err)
-      return
-    }
-    setRoutines((prev) =>
-      prev.map((r) => (r.id === payingRoutine.id ? { ...r, is_paid: true, price: values.amount || r.price } : r)),
-    )
-    setPayingRoutine(null)
-    toast.success('Cobro registrado en Finanzas')
   }
 
   async function savePaidOtherProfessional(routineId: string, paid: boolean) {
@@ -836,17 +796,8 @@ export function StudentDetailView({
         label="Peso · altura"
         value={`${student.weight_kg ? `${student.weight_kg} kg` : '—'} · ${student.height_cm ? `${student.height_cm} cm` : '—'}`}
       />
-      {showRoutineTab && activeRoutine ? (
-        <MetricCardV2
-          filled
-          icon={CreditCard}
-          tone={activeRoutine.is_paid ? 'lavender' : 'butter'}
-          title="Pago"
-          link={{ label: 'Registrar pago', onClick: () => setShowPayModal(true) }}
-          label={activeRoutine.price ? `Rutina actual · ${formatCurrency(activeRoutine.price)}` : 'Rutina actual'}
-          value={activeRoutine.is_paid ? 'Abonada' : 'Pendiente'}
-        />
-      ) : (
+      {/* Feedback nov3: el pago es del alumno (día de pago + plan web), no de cada rutina. */}
+      {(
         <MetricCardV2
           filled
           icon={CreditCard}
@@ -1216,28 +1167,6 @@ export function StudentDetailView({
                   </dl>
 
                   <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-surface-border/60 pt-4 ">
-                    <label className="inline-flex items-center gap-2 text-body-sm font-medium text-ink-primary ">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-surface-border accent-brand-secondary"
-                        checked={!!activeRoutine.is_paid}
-                        disabled={savingRoutinePaid}
-                        onChange={(e) => void saveRoutinePaid(activeRoutine.id, e.target.checked)}
-                      />
-                      ¿Abonó?
-                    </label>
-{activeRoutine.price ? (
-                      <span className="text-xs tabular-nums text-ink-secondary">{formatCurrency(activeRoutine.price)}</span>
-                    ) : null}
-                    {activeRoutine.is_paid ? (
-                      <span className={IS_V2 ? 'rounded-full bg-status-ok/15 px-2 py-0.5 text-3xs font-semibold text-status-ok-ink' : 'rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-3xs font-semibold text-emerald-700 dark:text-emerald-300'}>
-                        Abonada
-                      </span>
-                    ) : (
-                      <span className={IS_V2 ? 'hh-pastel rounded-full bg-pastel-butter px-2 py-0.5 text-3xs font-semibold text-pastel-butter-ink' : 'rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-3xs font-semibold text-amber-700 dark:text-amber-300'}>
-                        Pendiente
-                      </span>
-                    )}
                     <label className="inline-flex items-center gap-2 text-body-sm font-medium text-ink-primary ">
                       <input
                         type="checkbox"
@@ -1725,15 +1654,6 @@ export function StudentDetailView({
 
       </div>
 
-      <MarkPaidModal
-        open={!!payingRoutine}
-        title={student.full_name}
-        subtitle={payingRoutine?.name}
-        defaultAmount={payingRoutine?.price ?? null}
-        onClose={() => setPayingRoutine(null)}
-        onConfirm={confirmRoutinePaid}
-      />
-
       {dupSource && user ? (
         <DuplicateRoutineModal
           source={dupSource}
@@ -1763,6 +1683,7 @@ export function StudentDetailView({
         <QuickPayModal
           studentId={student.id}
           studentName={student.full_name}
+          defaultAmount={studentMonthlyAmount(student, webPlanPriceMap(webPlansQ.data))}
           onClose={() => setShowPayModal(false)}
         />
       )}

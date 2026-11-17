@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   addBusinessDays,
   buildPaymentBoard,
+  studentMonthlyAmount,
+  webPlanPriceMap,
   computePaymentState,
   dueReminderMessage,
   overduePaymentMessage,
@@ -132,5 +134,35 @@ describe('textos', () => {
   it('etiqueta del día de pago', () => {
     expect(paymentWindowLabel(30, 30)).toBe('Día 30')
     expect(paymentWindowLabel(null, null)).toBe('Sin fecha')
+  })
+})
+
+describe('cuota desde el plan web (feedback nov3)', () => {
+  const plans = webPlanPriceMap([
+    { slug: 'entreno', price_label: '$ 35.000 / mes' },
+    { slug: 'gratis', price_label: 'Consultar' },
+  ])
+
+  it('lee el precio de la etiqueta y saltea los que no tienen número', () => {
+    expect(plans.get('entreno')).toBe(35000)
+    expect(plans.has('gratis')).toBe(false)
+  })
+
+  it('manda la cuota de la ficha; si no hay, la del plan', () => {
+    expect(studentMonthlyAmount({ monthly_fee_amount: 20000, selected_web_plan_slug: 'entreno' }, plans)).toBe(20000)
+    expect(studentMonthlyAmount({ monthly_fee_amount: null, selected_web_plan_slug: 'entreno' }, plans)).toBe(35000)
+    expect(studentMonthlyAmount({ monthly_fee_amount: null, selected_web_plan_slug: null }, plans)).toBe(0)
+  })
+
+  it('el tablero espera el precio del plan para el alumno sin cuota', () => {
+    const [row] = buildPaymentBoard({
+      students: [{ id: 's1', full_name: 'Ana', selected_web_plan_slug: 'entreno', payment_day_from: 10 }],
+      incomes: [],
+      month: new Date(2026, 10, 1),
+      today: new Date(2026, 10, 12),
+      planPrices: plans,
+    })
+    expect(row.expected).toBe(35000)
+    expect(row.state).toBe('vencido')
   })
 })

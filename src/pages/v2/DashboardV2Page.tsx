@@ -10,7 +10,6 @@ import {
   ChevronDown,
   Dumbbell,
   Megaphone,
-  MessageSquareReply,
   CalendarDays,
   CalendarPlus,
   Check,
@@ -67,15 +66,14 @@ import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAcc
 import { canSeeTraining } from '@/config/navigation'
 import { useNavCounts } from '@/stores/navCounts'
 import { markReminderSent, unmarkReminderSent, useActiveStudents, useIncomes, useSentReminders } from '@/data/finance'
+import { useWebPlanPrices } from '@/data/priceIncrease'
 import { useDailyMissions, ymdLocal, type DailyTaskRow, type MissionDef, type TaskCategory } from '@/data/dailyTasks'
 import { loadWeekStatusByOwner } from '@/lib/checkIn/routineWeekProgress'
 import { fetchRoutineList, routineKeys } from '@/data/routines'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { loadStudentsMissingCheckIn } from '@/lib/dashboard/dashboardTrainerOps'
 import { loadNutritionistOps } from '@/lib/dashboard/nutritionistOps'
 import { buildNutritionistToday, tomorrowReminderMessage, type TodayAppointment } from '@/lib/dashboard/nutritionistToday'
-import { loadWeeklyPeriodStartYmd, weeklyPeriodMondayUtc } from '@/lib/checkIn/weeklyPeriod'
-import { buildPaymentBoard, monthKey, reminderMessage, type StudentPaymentRow } from '@/lib/finance/studentPayments'
+import { buildPaymentBoard, monthKey, reminderMessage, webPlanPriceMap, type StudentPaymentRow } from '@/lib/finance/studentPayments'
 import { supabase } from '@/lib/supabase'
 import { TRAINER_WEEKLY_REMINDERS, isTrainerReminderHighlightedToday } from '@/lib/trainerWeeklyReminders'
 import { copyWhatsAppMessage, normalizePhoneForWhatsApp, shareToWhatsApp, WHATSAPP_DIRECT_PASTE_HINT } from '@/lib/whatsapp'
@@ -96,8 +94,9 @@ type Filter = 'all' | 'cobros' | 'feedback' | 'rutinas' | 'semana' | 'turnos' | 
 const DAY_MS = 86_400_000
 
 /** Misiones: el naranja del «Para hoy» del entrenador (pedido oct-7: naranja y negro). */
-const CATEGORY_FILTER: Record<TaskCategory, Filter> = { feedback: 'feedback', rutinas: 'rutinas', avisos: 'semana', cobros: 'cobros' }
-const CATEGORY_LABEL: Record<TaskCategory, string> = { feedback: 'Feedback', rutinas: 'Rutina', avisos: 'Aviso', cobros: 'Cobro' }
+// Feedback nov3: «Progresos» junta lo de la semana del alumno (devolución, última semana, rutina terminada).
+const CATEGORY_FILTER: Record<TaskCategory, Filter> = { feedback: 'feedback', rutinas: 'feedback', avisos: 'semana', cobros: 'cobros' }
+const CATEGORY_LABEL: Record<TaskCategory, string> = { feedback: 'Progreso', rutinas: 'Rutina', avisos: 'Aviso', cobros: 'Cobro' }
 const CATEGORY_ICON: Record<TaskCategory, LucideIcon> = { feedback: MessageSquare, rutinas: Dumbbell, avisos: Megaphone, cobros: Wallet }
 
 /** Copy de los avisos semanales del entrenador (los mismos que el Inicio anterior). */
@@ -270,23 +269,21 @@ export function DashboardV2Page() {
     },
   })
 
-  const missingQ = useQuery({
-    queryKey: ['v2', 'missing-checkins', user?.id],
-    enabled: Boolean(user) && trains,
-    queryFn: () => loadStudentsMissingCheckIn(user!.id, weeklyPeriodMondayUtc(loadWeeklyPeriodStartYmd(user!.id))),
-  })
-
-  const unrepliedQ = useQuery({
-    queryKey: ['v2', 'unreplied-checkins', user?.id],
+  // Feedback nov3: el alumno avisa «terminé mi semana X» desde su link; le toca la devolución (los lunes).
+  const devolutionsQ = useQuery({
+    queryKey: ['v2', 'week-done-notices', user?.id],
     enabled: Boolean(user) && trains,
     queryFn: async () => {
-      const since = new Date(today.getTime() - 30 * DAY_MS)
-      const { count } = await supabase
-        .from('check_in_responses')
-        .select('id', { count: 'exact', head: true })
-        .gte('submitted_at', since.toISOString())
-        .is('trainer_replied_at', null)
-      return count ?? 0
+      const since = new Date(today.getTime() - 8 * DAY_MS)
+      const { data, error } = await supabase
+        .from('student_urgent_messages')
+        .select('id, student_id, week_number, created_at')
+        .eq('owner_id', user!.id)
+        .eq('kind', 'week_done')
+        .gte('created_at', since.toISOString())
+        .order('created_at', { ascending: false })
+      if (error) return []
+      return (data ?? []) as { id: string; student_id: string; week_number: number | null; created_at: string }[]
     },
   })
 
@@ -411,6 +408,7 @@ export function DashboardV2Page() {
     [nutriQ.data, students, remindedAll, now],
   )
 
+  const plansQ = useWebPlanPrices(handlesMoney)
   const board = useMemo(() => {
     const incomes = (incomesQ.data ?? []).filter((i) => (i.scope ?? 'business') === 'business' && i.student_id)
     return buildPaymentBoard({
@@ -418,8 +416,9 @@ export function DashboardV2Page() {
       incomes,
       month: new Date(today.getFullYear(), today.getMonth(), 1),
       today,
+      planPrices: webPlanPriceMap(plansQ.data),
     })
-  }, [students, incomesQ.data, today])
+  }, [students, incomesQ.data, today, plansQ.data])
 
   const payItems = useMemo(() => {
     const sent = new Set((sentQ.data ?? []).map((r) => `${r.student_id}:${r.kind}`))
@@ -461,8 +460,14 @@ export function DashboardV2Page() {
   const weekly = trains
     ? TRAINER_WEEKLY_REMINDERS.filter((r) => WEEKLY_COPY[r.id] && isTrainerReminderHighlightedToday(r, today) && (missionsOn || !isDone(r.id)))
     : []
-  const missing = trains ? (missingQ.data ?? []) : []
-  const unreplied = trains ? (unrepliedQ.data ?? 0) : 0
+  const devolutions = useMemo(() => {
+    if (!trains) return []
+    const byId = new Map(students.map((s) => [s.id, s]))
+    return (devolutionsQ.data ?? [])
+      .map((m) => ({ ...m, student: byId.get(m.student_id) }))
+      .filter((m): m is typeof m & { student: NonNullable<typeof m.student> } => Boolean(m.student))
+  }, [devolutionsQ.data, students, trains])
+  const weekClosers = new Set(devolutions.map((d) => d.student_id)).size
   const weekAppointments = useMemo(() => appointmentsQ.data ?? [], [appointmentsQ.data])
   const dayIndex = (iso: string) => Math.floor((new Date(iso).getTime() - weekStart.getTime()) / DAY_MS)
   const todayIndex = (today.getDay() + 6) % 7
@@ -488,8 +493,7 @@ export function DashboardV2Page() {
     closing: (studentId: string, at: string | null) => `cierre:${studentId}:${(at ?? '').slice(0, 10)}`,
     weekly: (id: string) => `aviso:${id}:${todayKey}`,
     mealPlan: (id: string) => `plan-fin:${id}`,
-    missing: `feedback-faltan:${weekKey}`,
-    unreplied: `feedback-devolucion:${weekKey}`,
+    devolution: (id: string) => `devolucion:${id}`,
     routineEnd: (id: string) => `rutina-fin:${id}`,
     without: `rutina-sin:${weekKey}`,
     cobro: (r: StudentPaymentRow) => `cobro:${r.studentId}:${period}:${r.reminder}`,
@@ -512,10 +516,13 @@ export function DashboardV2Page() {
         href: '/meal-plans',
       })
     }
-    if (missing.length)
-      out.push({ key: missionKeys.missing, category: 'feedback', title: `${missing.length} sin responder el feedback`, detail: names(missing), href: '/feedback' })
-    if (unreplied)
-      out.push({ key: missionKeys.unreplied, category: 'feedback', title: `${unreplied} respuestas esperan tu devolución`, href: '/feedback' })
+    for (const d of devolutions)
+      out.push({
+        key: missionKeys.devolution(d.id),
+        category: 'feedback',
+        title: `Devolución a ${d.student.full_name}${d.week_number ? `: terminó su semana ${d.week_number}` : ''}`,
+        href: `/students/${d.student_id}`,
+      })
     for (const { student, st } of closing)
       out.push({
         key: missionKeys.closing(student.id, st.submittedAt),
@@ -531,7 +538,7 @@ export function DashboardV2Page() {
     return out
     // missionKeys/names son funciones puras de lo que ya está en las dependencias.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [missionsOn, weekly.map((w) => w.id).join(), mealPlansEnding, missing, unreplied, closing, routines, payItems, handlesMoney, weekKey, todayKey, period])
+  }, [missionsOn, weekly.map((w) => w.id).join(), mealPlansEnding, devolutions, closing, routines, payItems, handlesMoney, weekKey, todayKey, period])
 
   const missions = useDailyMissions(missionsOn ? user?.id : undefined, missionDefs, today)
   const defByKey = useMemo(() => new Map(missionDefs.map((d) => [d.key, d])), [missionDefs])
@@ -588,8 +595,7 @@ export function DashboardV2Page() {
     nutriCounts.seguimiento +
     weekly.length +
     (handlesMoney ? payItems.length : 0) +
-    (missing.length ? 1 : 0) +
-    (unreplied ? 1 : 0) +
+    devolutions.length +
     (trains && routines.without.length ? 1 : 0)
   const loading =
     studentsQ.isPending || (handlesMoney && incomesQ.isPending) || (isNutri && nutriQ.isPending) || (missionsOn && !missions.ready)
@@ -663,23 +669,22 @@ export function DashboardV2Page() {
   const greeting = hour < 13 ? 'Buen día' : hour < 20 ? 'Buenas tardes' : 'Buenas noches'
   const routineTotal = students.length
   const withRoutine = Math.max(0, routineTotal - routines.without.length)
-  const answered = Math.max(0, students.length - missing.length)
 
   const missionCount = (c: TaskCategory) =>
     openDefs.filter((d) => d.category === c).length + orphans.filter((r) => r.category === c).length
   const counts = missionsOn
     ? {
         cobros: missionCount('cobros'),
-        feedback: missionCount('feedback'),
-        rutinas: missionCount('rutinas'),
+        feedback: missionCount('feedback') + missionCount('rutinas'),
+        rutinas: 0,
         semana: missionCount('avisos'),
         turnos: nutriCounts.turnos,
         seguimiento: nutriCounts.seguimiento,
       }
     : {
         cobros: handlesMoney ? payItems.length : 0,
-        feedback: (missing.length ? 1 : 0) + (unreplied ? 1 : 0),
-        rutinas: closing.length + (trains && routines.without.length ? 1 : 0),
+        feedback: devolutions.length + closing.length + (trains && routines.without.length ? 1 : 0),
+        rutinas: 0,
         semana: weekly.length,
         turnos: nutriCounts.turnos,
         seguimiento: nutriCounts.seguimiento,
@@ -705,25 +710,21 @@ export function DashboardV2Page() {
       label: 'Seguimiento',
       visible: isNutri,
     },
+    // Orden que pidió el entrenador (nov3): Progresos, Cobros, Avisos. Las consultas urgentes van en su panel.
     {
       key: 'feedback',
-      label: 'Feedback',
-      visible: trains,
-    },
-    {
-      key: 'rutinas',
-      label: 'Rutinas',
-      visible: trains,
-    },
-    {
-      key: 'semana',
-      label: 'Avisos',
+      label: 'Progresos',
       visible: trains,
     },
     {
       key: 'cobros',
       label: 'Cobros',
       visible: handlesMoney,
+    },
+    {
+      key: 'semana',
+      label: 'Avisos',
+      visible: trains,
     },
   ]
 
@@ -738,10 +739,9 @@ export function DashboardV2Page() {
     if (!missionsOn || loading) return
     setNavCounts({
       ...(pendingCount ? { '/dashboard': { n: pendingCount, tone: 'accent' as const } } : {}),
-      ...(missing.length ? { '/feedback': { n: missing.length } } : {}),
       ...(handlesMoney && overduePayments ? { '/finances': { n: overduePayments, tone: 'alert' as const } } : {}),
     })
-  }, [missionsOn, loading, pendingCount, missing.length, handlesMoney, overduePayments, setNavCounts])
+  }, [missionsOn, loading, pendingCount, handlesMoney, overduePayments, setNavCounts])
 
   let taskIndex = 0
   let lateShown = 0
@@ -769,13 +769,13 @@ export function DashboardV2Page() {
       items={[
         trains
           ? {
-              // «Respondieron» y no «Feedback»: con ese nombre se confundía con la pestaña de pendientes de «Para hoy».
-              label: 'Respondieron',
-              value: missingQ.isPending || loading ? '—' : String(answered),
+              // Feedback nov3: ya no hay formulario semanal; cuenta quién avisó «terminé mi semana» desde su link.
+              label: 'Cerraron la semana',
+              value: devolutionsQ.isPending || loading ? '—' : String(weekClosers),
               suffix: `/${students.length}`,
               tone: 'lavender' as const,
-              progress: students.length ? answered / students.length : undefined,
-              onClick: () => navigate('/feedback'),
+              progress: students.length ? weekClosers / students.length : undefined,
+              onClick: () => navigate('/students'),
             }
           : {
               label: 'Turnos hoy',
@@ -1180,62 +1180,48 @@ export function DashboardV2Page() {
                     })
                   : null}
 
-                {show('feedback') && missing.length && isOpen(missionKeys.missing) ? (
-                  T('feedback-missing', <TaskCardV2
-                    icon={MessageSquare}
-                    {...missionCard(missionKeys.missing)}
-                    title={`${missing.length} ${missing.length === 1 ? 'alumno no respondió' : 'alumnos no respondieron'} el feedback`}
-                    description={names(missing)}
-                    onOpen={() => navigate('/feedback')}
-                    tags={
-                      <>
-                        <TagV2 tone="neutral">Feedback semanal</TagV2>
-                        {overdueTag(missionKeys.missing)}
-                      </>
-                    }
-                    meta={<MetaChipV2 icon={MessageSquare}>{`${answered}/${students.length}`}</MetaChipV2>}
-                    actions={
-                      <PillButtonV2
-                        primary
-                        onClick={() => {
-                          complete(missionKeys.missing)
-                          navigate('/feedback')
-                        }}
-                      >
-                        Enviar
-                      </PillButtonV2>
-                    }
-                  />)
-                ) : null}
+                {show('feedback')
+                  ? devolutions.map((d) => {
+                      const key = missionKeys.devolution(d.id)
+                      if (!isOpen(key)) return null
+                      return T(
+                        key,
+                        <TaskCardV2
+                          {...missionCard(key)}
+                          title={
+                            <>
+                              {d.student.full_name}{' '}
+                              <span className="font-normal text-ink-secondary">
+                                {d.week_number ? `terminó su semana ${d.week_number}` : 'terminó su semana'} · le toca tu devolución
+                              </span>
+                            </>
+                          }
+                          mark={<AvatarV2 name={d.student.full_name} path={photo(d.student.full_name)} />}
+                          description={`Avisó desde su link el ${fmtDay(d.created_at.slice(0, 10))}. Su chequeo de la semana está en la ficha → Progreso.`}
+                          onOpen={() => navigate(`/students/${d.student_id}`)}
+                          tags={
+                            <>
+                              <TagV2 tone="neutral">Progreso</TagV2>
+                              {overdueTag(key)}
+                            </>
+                          }
+                          actions={
+                            <PillButtonV2
+                              primary
+                              onClick={() => {
+                                complete(key)
+                                navigate(`/students/${d.student_id}`)
+                              }}
+                            >
+                              Ver su progreso
+                            </PillButtonV2>
+                          }
+                        />,
+                      )
+                    })
+                  : null}
 
-                {show('feedback') && unreplied && isOpen(missionKeys.unreplied) ? (
-                  T('feedback-unreplied', <TaskCardV2
-                    icon={MessageSquareReply}
-                    {...missionCard(missionKeys.unreplied)}
-                    title={`${unreplied} ${unreplied === 1 ? 'respuesta espera' : 'respuestas esperan'} tu devolución`}
-                    description="Respuestas del último mes que todavía no contestaste."
-                    onOpen={() => navigate('/feedback')}
-                    tags={
-                      <>
-                        <TagV2 tone="neutral">Feedback semanal</TagV2>
-                        {overdueTag(missionKeys.unreplied)}
-                      </>
-                    }
-                    actions={
-                      <PillButtonV2
-                        primary
-                        onClick={() => {
-                          complete(missionKeys.unreplied)
-                          navigate('/feedback')
-                        }}
-                      >
-                        Responder
-                      </PillButtonV2>
-                    }
-                  />)
-                ) : null}
-
-                {show('rutinas')
+                {show('feedback')
                   ? closing.map(({ student, st }) => {
                       const key = missionKeys.closing(student.id, st.submittedAt)
                       if (!isOpen(key)) return null
@@ -1251,7 +1237,7 @@ export function DashboardV2Page() {
                             </>
                           }
                           mark={<AvatarV2 name={student.full_name} path={photo(student.full_name)} />}
-                          description={`Lo contó en su feedback${st.submittedAt ? ` del ${fmtDay(st.submittedAt.slice(0, 10))}` : ''}.`}
+                          description={`Avisó desde su link${st.submittedAt ? ` el ${fmtDay(st.submittedAt.slice(0, 10))}` : ''}.`}
                           onOpen={() => navigate(`/students/${student.id}`)}
                           tags={
                             <>
@@ -1277,7 +1263,7 @@ export function DashboardV2Page() {
                   : null}
 
 
-                {show('rutinas') && trains && routines.without.length && isOpen(missionKeys.without) ? (
+                {show('feedback') && trains && routines.without.length && isOpen(missionKeys.without) ? (
                   T('rutinas-without', <TaskCardV2
                     icon={Users}
                     {...missionCard(missionKeys.without)}
@@ -1580,12 +1566,12 @@ export function DashboardV2Page() {
             <PulseCardV2
               icon={MessageSquare}
               tone="lavender"
-              title="Feedback de la semana"
-              value={missingQ.isPending || loading ? null : answered}
+              title="Cerraron la semana"
+              value={devolutionsQ.isPending || loading ? null : weekClosers}
               suffix={`/ ${students.length}`}
-              caption={missing.length ? `Faltan ${missing.length}` : 'Respondieron todos'}
-              progress={students.length ? answered / students.length : undefined}
-              onClick={() => navigate('/feedback')}
+              caption="Avisaron desde su link en los últimos 8 días"
+              progress={students.length ? weekClosers / students.length : undefined}
+              onClick={() => navigate('/students')}
             />
           ) : (
             <PulseCardV2

@@ -9,6 +9,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
 import toast from 'react-hot-toast'
 import { invalidateFinance, useActiveStudents, useIncomes } from '@/data/finance'
 import { invalidateStudents } from '@/data/students'
+import { useWebPlanPrices } from '@/data/priceIncrease'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -21,6 +22,7 @@ import {
   monthKey,
   paymentWindowLabel,
   reminderMessage,
+  webPlanPriceMap,
   type PaymentState,
   type StudentPaymentRow,
 } from '@/lib/finance/studentPayments'
@@ -89,6 +91,8 @@ export function PaymentsBoard() {
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const studentsQuery = useActiveStudents()
   const incomesQuery = useIncomes()
+  const plansQuery = useWebPlanPrices()
+  const planPrices = useMemo(() => webPlanPriceMap(plansQuery.data), [plansQuery.data])
   const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data])
   /** Cuotas: solo cobros del negocio asociados a un alumno. */
   const incomes = useMemo<Income[]>(
@@ -109,9 +113,9 @@ export function PaymentsBoard() {
   const isPastMonth = month < new Date(today.getFullYear(), today.getMonth(), 1)
 
   const rows = useMemo(
-    () => buildPaymentBoard({ students, incomes, month, today }),
+    () => buildPaymentBoard({ students, incomes, month, today, planPrices }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [students, incomes, month],
+    [students, incomes, month, planPrices],
   )
 
   const totals = useMemo(() => {

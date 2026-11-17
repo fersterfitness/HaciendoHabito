@@ -73,10 +73,10 @@ Fuente: `CORRECIONES EN APP-nov3.docx`. Cada punto dice de dónde sale (número 
 
 ## Tanda 7 — entrenador: Comparar, vista previa, Inicio y Finanzas
 
-- [ ] (Otras cosas) «Comparar» también compara el volumen.
-- [ ] (Otras cosas) Ver la rutina del alumno como entrenador sin tocar sus datos: vista previa sin chequeo obligatorio y sin guardar nada, para grabar el video explicativo.
-- [?] (Notificaciones) Reordenar las pestañas de «Para hoy»: propuesta del entrenador Feedback/Progresos, Cobros, Avisos (¿cumpleaños?), Consultas urgentes.
-- [ ] (Finanzas, Pagos) Simplificar: cada alumno tiene una fecha de pago fija (editable); con eso salen los avisos de vencido, vence hoy y pagó; se registran los pagos; el precio sale de los planes de la web; sacar datos repetidos.
+- [x] (Otras cosas) «Comparar» también compara el volumen. → vista «Volumen» en Comparar: series efectivas por músculo, antes/ahora/diferencia.
+- [ ] (Otras cosas) Ver la rutina del alumno como entrenador sin tocar sus datos: vista previa sin chequeo obligatorio y sin guardar nada, para grabar el video explicativo. → «Ver como alumno» abre `?vista=entrenador` (solo el dueño logueado): nada se guarda y el chequeo/avisos se muestran solo si se piden.
+- [x] (Notificaciones) Reordenar las pestañas de «Para hoy»: propuesta del entrenador Feedback/Progresos, Cobros, Avisos (¿cumpleaños?), Consultas urgentes. → Progresos, Cobros, Avisos; las devoluciones salen de «terminé mi semana»; las consultas urgentes y los cumpleaños siguen en su panel. Confirmar con el entrenador.
+- [x] (Finanzas, Pagos) Simplificar: cada alumno tiene una fecha de pago fija (editable); con eso salen los avisos de vencido, vence hoy y pagó; se registran los pagos; el precio sale de los planes de la web; sacar datos repetidos. → la cuota sale de la ficha o, si no hay, del precio del plan web; se sacó el «¿Abonó?» por rutina de la ficha; la rutina ya no pide monto.
 
 ## Notas
 

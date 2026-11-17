@@ -107,6 +107,19 @@ export function sharedRoutineUrl(token: string): string {
   return `${publicOrigin()}/rutina/${token}`
 }
 
+/** El mismo link en vista previa del entrenador: sin chequeo obligatorio y sin guardar nada. */
+export function sharedRoutinePreviewUrl(token: string): string {
+  return `${sharedRoutineUrl(token)}?vista=entrenador`
+}
+
+/** La vista previa solo se activa si quien abre el link es el dueño (sesión del entrenador en este navegador). */
+export async function canPreviewRoutine(token: string): Promise<boolean> {
+  const { data: auth } = await supabase.auth.getSession()
+  if (!auth.session) return false
+  const { data } = await supabase.from('routine_shares').select('token').eq('token', token).maybeSingle()
+  return !!data
+}
+
 /** Formulario de feedback de la semana, con el correo del alumno ya cargado. */
 export function sharedRoutineFeedbackUrl(fb: NonNullable<SharedRoutine['feedback']>): string {
   const base = `${publicOrigin()}/form/check-in/compartido/${fb.public_token}`

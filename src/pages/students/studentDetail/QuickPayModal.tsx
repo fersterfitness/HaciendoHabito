@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import { controlInputClassName, controlSelectClassName } from '@/lib/formControlClasses'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -17,14 +17,21 @@ import { Modal } from '@/components/ui/Modal'
 export function QuickPayModal({
   studentId,
   studentName,
+  defaultAmount,
   onClose,
 }: {
   studentId: string
   studentName: string
+  /** Cuota del alumno o, si no tiene, precio de su plan web. */
+  defaultAmount?: number
   onClose: () => void
 }) {
   const { user } = useAuthStore()
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState(defaultAmount && defaultAmount > 0 ? String(defaultAmount) : '')
+  // El precio del plan web llega después de abrir: se completa si todavía no escribió nada.
+  useEffect(() => {
+    if (defaultAmount && defaultAmount > 0) setAmount((cur) => cur || String(defaultAmount))
+  }, [defaultAmount])
   const [method, setMethod] = useState('efectivo_ars')
   const [type, setType] = useState(INCOME_TYPES[0] ?? 'Otro')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])

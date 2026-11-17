@@ -1242,6 +1242,7 @@ export function RoutineDetailPage() {
           studentId={routine.student_id}
           currentRoutineId={routine.id}
           currentStartDate={routine.start_date}
+          currentBlocks={blocks}
           onClose={() => toggleCompare(false)}
           className="hidden border-r border-surface-border lg:sticky lg:top-16 lg:flex lg:h-[calc(100dvh-4rem)] lg:w-[42%] lg:max-w-[560px] lg:shrink-0"
         />

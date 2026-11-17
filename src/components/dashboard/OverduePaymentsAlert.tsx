@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, BellRing, Check, ChevronDown, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { markReminderSent, useActiveStudents, useIncomes, useSentReminders, unmarkReminderSent } from '@/data/finance'
+import { useWebPlanPrices } from '@/data/priceIncrease'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { MarkPaidModal, type MarkPaidValues } from '@/components/finances/MarkPaidModal'
-import { buildPaymentBoard, monthKey, reminderMessage, type StudentPaymentRow } from '@/lib/finance/studentPayments'
+import { buildPaymentBoard, monthKey, reminderMessage, webPlanPriceMap, type StudentPaymentRow } from '@/lib/finance/studentPayments'
 import { registerStudentPayment } from '@/lib/finance/routineIncome'
 import { normalizePhoneForWhatsApp, shareToWhatsApp, WHATSAPP_DIRECT_PASTE_HINT } from '@/lib/whatsapp'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -23,6 +24,7 @@ export function OverduePaymentsAlert({ ownerId }: { ownerId: string }) {
   const incomesQuery = useIncomes()
   const period = monthKey(new Date())
   const sentQuery = useSentReminders(period)
+  const plansQuery = useWebPlanPrices()
 
   const rows = useMemo(() => {
     const sent = new Set((sentQuery.data ?? []).map((r) => `${r.student_id}:${r.kind}`))
@@ -33,8 +35,9 @@ export function OverduePaymentsAlert({ ownerId }: { ownerId: string }) {
       incomes,
       month: new Date(today.getFullYear(), today.getMonth(), 1),
       today,
+      planPrices: webPlanPriceMap(plansQuery.data),
     }).filter((r) => r.reminder && !sent.has(`${r.studentId}:${r.reminder}`))
-  }, [studentsQuery.data, incomesQuery.data, sentQuery.data])
+  }, [studentsQuery.data, incomesQuery.data, sentQuery.data, plansQuery.data])
 
   if (!ownerId || rows.length === 0) return null
 
