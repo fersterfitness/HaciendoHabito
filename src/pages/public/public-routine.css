@@ -611,3 +611,53 @@
 .hhr-preview b { color: var(--brand); }
 .hhr-preview-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border: 1px solid rgba(255,255,255,.35); border-radius: 10px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .hhr-preview-toggle input { width: 16px; height: 16px; accent-color: var(--brand); }
+
+/* ───────────── Paleta ordenada (2026-11-17) ─────────────
+   Un color por significado. Naranja de marca = lo que se toca o avanza. Verde flúor (--complete) = completado,
+   con texto oscuro encima. Rojo = no completado / urgente, solo en texto e íconos (sin rellenos rosas).
+   Todo lo demás en neutros. Las escalas del chequeo (rojo → verde) quedan como están: las pidió el entrenador. */
+.hhr { --ok: #4D7C0F; --ring: var(--brand); --complete-soft: #F3FFDB; }
+
+/* Tarjetas: todas blancas, mismo borde y esquinas. */
+.hhr .hhr-overview { background: var(--card); box-shadow: var(--shadow); }
+.hhr .hhr-overview .hhr-hero-big span { color: var(--faint); }
+.hhr .hhr-overview .hhr-hero-foot { border-top-color: var(--line); }
+.hhr .hhr-hero-brand { background: #111; }
+.hhr .hhr-avatar { background: var(--soft-2); color: var(--ink); }
+.hhr-space-label b { color: var(--ink); }
+
+/* Cierre del día: verde flúor para «Terminé», blanco con texto rojo para «No pude». */
+.hhr .hhr-cta-ok { background: var(--complete); color: var(--complete-ink); }
+.hhr .hhr-cta-ok:hover { background: #B4F23A; }
+.hhr .hhr-cta-miss { background: var(--card); color: var(--err); border: 1px solid #E2E2E2; }
+.hhr .hhr-cta-miss:hover { background: #FAFAFA; }
+.hhr .hhr-urgent-btn { background: var(--card); border-color: #E2E2E2; color: var(--ink); }
+.hhr .hhr-urgent-btn svg { color: var(--err); }
+.hhr-close.is-missed .hhr-log-icon { background: var(--soft-2); }
+.hhr-weekbar i.is-missed { background: var(--faint); }
+
+/* Notas y aclaraciones: fondo neutro; el naranja queda solo en la etiqueta. */
+.hhr .hhr-mynote { border: 0; border-left: 3px solid var(--brand); background: var(--soft); }
+.hhr .hhr-mynote-add { border-color: #D6D6D6; color: var(--ink-2); }
+.hhr .hhr-ex-mynote { color: var(--ink-2); }
+.hhr .hhr-circuit-note { background: var(--card); }
+.hhr .hhr-setrpe { color: var(--muted); }
+
+/* Avisos y chequeo: un solo acento (naranja), sin amarillos ni violetas. */
+.hhr .hhr-must { border-color: var(--brand); background: var(--brand-soft); }
+.hhr .hhr-must-title { color: var(--brand-ink); }
+.hhr .hhr-cta-must { background: var(--brand); }
+.hhr .hhr-cta-must:hover { background: var(--brand-ink); }
+.hhr .hhr-steps span.is-cur { background: var(--brand-soft); }
+.hhr .hhr-stars button[aria-pressed="true"] { color: var(--brand); }
+.hhr .hhr-pay.is-late { background: var(--brand-soft); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.hhr .hhr-pay.is-late .hhr-log-icon { background: var(--brand); }
+
+/* Lo completado, siempre con el verde flúor. */
+.hhr .hhr-notice.is-routine_done { border-color: var(--complete); background: var(--complete-soft); }
+.hhr .hhr-notice.is-routine_done .hhr-notice-title { color: var(--complete-ink); }
+.hhr .hhr-notice.is-routine_done .hhr-cta-notice { background: var(--complete); color: var(--complete-ink); }
+.hhr .hhr-prog-stat.is-done { background: var(--complete-soft); color: var(--complete-ink); }
+.hhr .hhr-prog-stat.is-missed { background: var(--soft); }
+.hhr .hhr-minibars i.is-good { background: var(--complete); }
+.hhr .hhr-day .hhr-arc.is-done circle { stroke: var(--complete); }
