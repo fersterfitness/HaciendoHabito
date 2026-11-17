@@ -445,11 +445,7 @@ export function DashboardV2Page() {
       (r) => r.student_id && (r.status === 'activa' || r.status === 'por_vencer'),
     )
     const withRoutine = new Set(active.map((r) => r.student_id))
-    const ending = active
-      .map((r) => ({ r, days: daysFromToday(r.end_date, today) }))
-      .filter((x) => x.days >= 0 && x.days <= 7)
-      .sort((a, b) => a.days - b.days)
-    return { ending, without: students.filter((s) => !withRoutine.has(s.id)) }
+    return { without: students.filter((s) => !withRoutine.has(s.id)) }
   }, [routinesQ.data, students, today, trains])
 
   const birthdays = useMemo(
@@ -527,8 +523,6 @@ export function DashboardV2Page() {
         title: `${student.full_name} ${st.finished ? 'cerró su mes' : 'está en su última semana'}: armá la que sigue`,
         href: `/students/${student.id}`,
       })
-    for (const { r } of routines.ending)
-      out.push({ key: missionKeys.routineEnd(r.id), category: 'rutinas', title: `${r.name} · ${r.student?.full_name ?? 'Alumno'}`, detail: 'Termina pronto: armá la que sigue.', href: `/routines/${r.id}` })
     if (routines.without.length)
       out.push({ key: missionKeys.without, category: 'rutinas', title: `${routines.without.length} sin rutina activa`, detail: names(routines.without), href: '/students' })
     if (handlesMoney)
@@ -596,7 +590,6 @@ export function DashboardV2Page() {
     (handlesMoney ? payItems.length : 0) +
     (missing.length ? 1 : 0) +
     (unreplied ? 1 : 0) +
-    routines.ending.length +
     (trains && routines.without.length ? 1 : 0)
   const loading =
     studentsQ.isPending || (handlesMoney && incomesQ.isPending) || (isNutri && nutriQ.isPending) || (missionsOn && !missions.ready)
@@ -686,7 +679,7 @@ export function DashboardV2Page() {
     : {
         cobros: handlesMoney ? payItems.length : 0,
         feedback: (missing.length ? 1 : 0) + (unreplied ? 1 : 0),
-        rutinas: routines.ending.length + (trains && routines.without.length ? 1 : 0),
+        rutinas: closing.length + (trains && routines.without.length ? 1 : 0),
         semana: weekly.length,
         turnos: nutriCounts.turnos,
         seguimiento: nutriCounts.seguimiento,
@@ -1283,40 +1276,6 @@ export function DashboardV2Page() {
                     })
                   : null}
 
-                {show('rutinas')
-                  ? routines.ending.map(({ r, days }) => {
-                      const who = r.student?.full_name ?? 'Alumno'
-                      const key = missionKeys.routineEnd(r.id)
-                      if (!isOpen(key)) return null
-                      return (
-                        T(`rutina-${r.id}`, <TaskCardV2
-                          {...missionCard(key)}
-                          title={r.name}
-                          mark={<AvatarV2 name={who} path={photo(who)} />}
-                          description={`${who}. ${days === 0 ? 'Termina hoy' : days === 1 ? 'Termina mañana' : `Termina en ${days} días`}: armá la que sigue.`}
-                          onOpen={() => navigate(`/routines/${r.id}`)}
-                          tags={
-                            <>
-                              <TagV2 tone="neutral">Rutina</TagV2>
-                              {days <= 2 ? <TagV2 tone="rose">Por terminar</TagV2> : null}
-                              {overdueTag(key)}
-                            </>
-                          }
-                          meta={<MetaChipV2 icon={CalendarDays}>{fmtDay(r.end_date.slice(0, 10))}</MetaChipV2>}
-                          actions={
-                            <PillButtonV2
-                              onClick={() => {
-                                complete(key)
-                                navigate(`/routines/${r.id}`)
-                              }}
-                            >
-                              Abrir
-                            </PillButtonV2>
-                          }
-                        />)
-                      )
-                    })
-                  : null}
 
                 {show('rutinas') && trains && routines.without.length && isOpen(missionKeys.without) ? (
                   T('rutinas-without', <TaskCardV2

@@ -8,7 +8,7 @@ import { useTrainingMonitor } from '@/components/dashboard/TrainingMonitorCardV2
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { alertKeys, newMonitorAlerts, type MonitorAlert } from '@/lib/routine/monitorAlerts'
 import { browserNotificationsGranted, useMonitorAlertPrefs } from '@/lib/routine/monitorAlertPrefs'
-import { fetchUnreadUrgentMessages } from '@/lib/routine/studentTrainingLog'
+import { fetchUnreadUrgentMessages, urgentTitle } from '@/lib/routine/studentTrainingLog'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 
@@ -163,15 +163,12 @@ function Watcher({ ownerId }: { ownerId: string }) {
       fresh.map((m) => ({
         key: `urgent:${m.id}`,
         kind: 'urgent' as const,
-        title:
-          m.kind === 'pain'
-            ? `${m.student_name.trim().split(/\s+/)[0]} tiene un dolor puntual`
-            : `Consulta urgente de ${m.student_name.trim().split(/\s+/)[0]}`,
+        title: urgentTitle(m),
         detail: m.message,
         studentName: m.student_name,
         avatarPath: null,
-        important: true,
-        to: m.kind === 'pain' && m.routine_id ? `/routines/${m.routine_id}` : '/dashboard',
+        important: m.kind === 'urgent' || m.kind === 'pain',
+        to: m.kind !== 'urgent' && m.routine_id ? `/routines/${m.routine_id}` : '/dashboard',
       })),
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps

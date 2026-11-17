@@ -5,8 +5,16 @@ import { AlertTriangle, Check, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
-import { fetchUnreadUrgentMessages, markUrgentMessageRead } from '@/lib/routine/studentTrainingLog'
+import { fetchUnreadUrgentMessages, markUrgentMessageRead, urgentTitle, type UrgentMessage } from '@/lib/routine/studentTrainingLog'
 import { buildWhatsAppDirectUrl, normalizePhoneForWhatsApp } from '@/lib/whatsapp'
+
+const KIND_LABEL: Record<UrgentMessage['kind'], string> = {
+  urgent: 'Consulta urgente',
+  pain: 'Dolor puntual',
+  last_week: 'Última semana',
+  week_done: 'Semana terminada',
+  routine_done: 'Rutina terminada',
+}
 
 /**
  * v2 · Inicio: consultas urgentes que mandaron los alumnos desde el link de su rutina y dolores no
@@ -41,13 +49,7 @@ export function UrgentMessagesPanelV2({
     <section aria-label="Consultas urgentes" className="rounded-2xl border border-status-expired/40 bg-status-expired/5">
       <h2 className="flex items-center gap-2 px-4 pt-3.5 text-sm font-semibold text-ink-primary">
         <AlertTriangle className="h-4 w-4 text-status-expired" />
-        {list.every((m) => m.kind === 'pain')
-          ? list.length === 1
-            ? 'Dolor puntual'
-            : `${list.length} dolores puntuales`
-          : list.length === 1
-            ? 'Consulta urgente'
-            : `${list.length} avisos urgentes`}
+        {list.length === 1 ? 'Aviso de un alumno' : `${list.length} avisos de alumnos`}
       </h2>
       <ul className="divide-y divide-surface-border px-4 pb-1">
         {list.map((m) => {
@@ -56,7 +58,7 @@ export function UrgentMessagesPanelV2({
             <li key={m.id} className="flex flex-col gap-2.5 py-3 sm:flex-row sm:items-start sm:gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-ink-primary">
-                  {m.kind === 'pain' ? <span className="mr-1.5 text-xs font-semibold uppercase text-status-expired">Dolor puntual</span> : null}
+                  <span className="mr-1.5 text-xs font-semibold uppercase text-status-expired">{KIND_LABEL[m.kind]}</span>
                   <Button variant="ghost" className="h-auto p-0 text-sm font-semibold hover:bg-transparent hover:underline" onClick={() => onOpenStudent(m.student_id)}>
                     {m.student_name}
                   </Button>
@@ -65,8 +67,8 @@ export function UrgentMessagesPanelV2({
                 <p className="mt-0.5 whitespace-pre-line break-words text-sm text-ink-secondary">{m.message}</p>
               </div>
               <div className="flex shrink-0 gap-2">
-                {m.kind === 'pain' && m.routine_id ? (
-                  <Button size="sm" variant="secondary" icon={<Search className="h-3.5 w-3.5" />} onClick={() => onOpenRoutine(m.routine_id!)}>
+                {m.kind !== 'urgent' && m.routine_id ? (
+                  <Button size="sm" variant="secondary" icon={<Search className="h-3.5 w-3.5" />} title={urgentTitle(m)} onClick={() => onOpenRoutine(m.routine_id!)}>
                     Revisar
                   </Button>
                 ) : null}

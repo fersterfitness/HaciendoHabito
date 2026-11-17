@@ -25,6 +25,8 @@ import {
   BORG_LABELS,
   hasCheckin,
   saveSharedDayStatus,
+  sendSharedRoutineNotice,
+  type RoutineNoticeKind,
   saveSharedExerciseFeedback,
   sendSharedUrgentMessage,
   type DayLog,
@@ -553,6 +555,74 @@ export function UrgentCard({ token, proLabel }: { token: string; proLabel: strin
       {open || sent ? null : (
         <p className="hhr-urgent-hint">Usalo si hay algo muy urgente o importante: {proLabel} recibe una notificación para leerlo lo antes posible.</p>
       )}
+    </section>
+  )
+}
+
+const NOTICE_COPY: Record<RoutineNoticeKind, { title: (week: number, pro: string) => string; body: (week: number, pro: string) => string; cta: (week: number, pro: string) => string }> = {
+  last_week: {
+    title: () => '¡Arrancás tu última semana!',
+    body: (_w, pro) => `Antes de tu chequeo de hoy, avisale a ${pro} que es tu última semana: así llega a armarte lo que sigue.`,
+    cta: (_w, pro) => `Avisar a ${pro} que es mi última semana de rutina`,
+  },
+  week_done: {
+    title: (w) => `Hoy cerrás tu semana ${w}`,
+    body: (_w, pro) => `Avisale a ${pro} que terminás la semana: con eso te prepara la devolución (casi siempre el lunes).`,
+    cta: (w) => `Terminé mi semana ${w}`,
+  },
+  routine_done: {
+    title: () => '¡Hoy terminás tu rutina!',
+    body: (_w, pro) => `Antes de tu chequeo de hoy, avisale a ${pro} que terminás la rutina hoy.`,
+    cta: (_w, pro) => `Avisar a ${pro} que terminé hoy mi rutina`,
+  },
+}
+
+/**
+ * Botón obligatorio antes del chequeo (feedback nov3, puntos 7 y 13): «es mi última semana»,
+ * «terminé mi semana X» o «terminé hoy mi rutina». Le llega al entrenador como aviso.
+ */
+export function RoutineNoticeCard({
+  token,
+  blockId,
+  kind,
+  week,
+  proLabel,
+  onSent,
+}: {
+  token: string
+  blockId: string
+  kind: RoutineNoticeKind
+  /** Número de semana (1, 2, …). */
+  week: number
+  proLabel: string
+  onSent: (blockId: string, kind: RoutineNoticeKind) => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const copy = NOTICE_COPY[kind]
+
+  async function send() {
+    setBusy(true)
+    setError('')
+    try {
+      await sendSharedRoutineNotice(token, blockId, kind)
+      onSent(blockId, kind)
+    } catch (e) {
+      setError(errText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className={`hhr-card hhr-notice is-${kind}`} aria-label={copy.title(week, proLabel)}>
+      <b className="hhr-notice-title">{copy.title(week, proLabel)}</b>
+      <p>{copy.body(week, proLabel)}</p>
+      {error ? <p className="hhr-save is-error">{error}</p> : null}
+      <button type="button" className="hhr-cta hhr-cta-notice" disabled={busy} onClick={() => void send()}>
+        {busy ? 'Avisando…' : copy.cta(week, proLabel)}
+      </button>
+      <span className="hhr-scale-hint">Es obligatorio para seguir con tu día.</span>
     </section>
   )
 }

@@ -25,8 +25,8 @@ import { parseExerciseMeta } from '@/lib/routine/exerciseMeta'
 import { formatWarmupDisplayLines } from '@/lib/routine/warmupNotesFormat'
 import { normalizePhoneForWhatsApp } from '@/lib/whatsapp'
 import './public-routine.css'
-import { EMPTY_DAY_LOG, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
-import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, UrgentCard } from './PublicRoutineLog'
+import { EMPTY_DAY_LOG, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type RoutineNoticeKind, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, RoutineNoticeCard, UrgentCard } from './PublicRoutineLog'
 import { weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
 import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/studentAppExtras'
 import { CycleCard, MonthReviewCard, PaymentBanner, ProgressCard } from './PublicRoutineExtras'
@@ -377,6 +377,25 @@ export function PublicRoutinePage() {
   const closesWeek = !!weekState && wi === currentWeek && weekState.total > 0 && weekState.open <= 1 && !dayLog?.status
   const askCheckin =
     !!selectedDay && !!dayLog && selectedDay.exercises.length > 0 && !hasCheckin(dayLog) && !dayLog.status && selectedProgress.done === 0
+  // Avisos obligatorios antes del chequeo (puntos 7 y 13): primer día de la última semana, último día de
+  // cada semana y último día de la rutina. Solo en la semana en curso y con la migración corrida.
+  const notices = extras?.notices
+  const selBlock = blocks[wi]
+  const lastIdx = blocks.length - 1
+  const sentNotice = (kind: RoutineNoticeKind) => !!selBlock && !!notices?.some((n) => n.block_id === selBlock.id && n.kind === kind)
+  const noticeGate: RoutineNoticeKind | null =
+    !notices || !selBlock || !selectedDay || !dayLog || dayLog.status || selectedDay.exercises.length === 0 || wi !== currentWeek
+      ? null
+      : blocks.length > 1 && wi === lastIdx && !sentNotice('last_week')
+        ? 'last_week'
+        : closesWeek && wi === lastIdx && !sentNotice('routine_done')
+          ? 'routine_done'
+          : closesWeek && wi !== lastIdx && !sentNotice('week_done')
+            ? 'week_done'
+            : null
+  // Rutina terminada: la devolución final (testimonio) es obligatoria y queda sola en pantalla.
+  const reviewDue = !!studentExtras && monthDone && !!reviewDayId && !reviewDone
+  const blocked = askCheckin || !!noticeGate
   // La lista prioriza explorar la rutina; cada alumno abre el ejercicio que va a realizar.
   const isOpen = (id: string) => !!openMap[id]
   const toggle = (id: string) => setOpenMap((prev) => ({ ...prev, [id]: !isOpen(id) }))
@@ -494,7 +513,7 @@ export function PublicRoutinePage() {
             <MonthReviewCard token={token} dayId={reviewDayId} proLabel={proLabel} done={reviewDone} onDone={() => setReviewSent(true)} />
           ) : null}
 
-          {!routine || blocks.length === 0 ? (
+          {reviewDue ? null : !routine || blocks.length === 0 ? (
             <div className="hhr-card hhr-empty-card">
               {athlete ? (
                 <Mascot athlete={athlete} mood="coach" className="hhr-mascot hhr-mascot-sm" />
@@ -578,7 +597,20 @@ export function PublicRoutinePage() {
                 </section>
               ) : null}
 
-              {selectedDay && dayLog && askCheckin ? (
+              {selectedDay && selBlock && noticeGate ? (
+                <RoutineNoticeCard
+                  key={`${selBlock.id}:${noticeGate}`}
+                  token={token}
+                  blockId={selBlock.id}
+                  kind={noticeGate}
+                  week={wi + 1}
+                  proLabel={proLabel}
+                  onSent={(blockId, kind) =>
+                    setExtras((prev) => (prev ? { ...prev, notices: [...(prev.notices ?? []), { block_id: blockId, kind }] } : prev))
+                  }
+                />
+              ) : null}
+              {selectedDay && dayLog && askCheckin && !noticeGate ? (
                 <DayCheckinCard
                   key={selectedDay.id}
                   token={token}
@@ -595,9 +627,9 @@ export function PublicRoutinePage() {
                   }
                 />
               ) : null}
-              {selectedDay && dayLog && !askCheckin ? <DayCheckinSummary log={dayLog} /> : null}
+              {selectedDay && dayLog && !blocked ? <DayCheckinSummary log={dayLog} /> : null}
 
-              {selectedDay && warmup.length && !askCheckin ? (
+              {selectedDay && warmup.length && !blocked ? (
                 <details className="hhr-card hhr-warmup">
                   <summary>
                     <span className="hhr-tile hhr-tile-sm" aria-hidden>
@@ -619,7 +651,7 @@ export function PublicRoutinePage() {
                 </details>
               ) : null}
 
-              {askCheckin ? null : selectedDay ? (
+              {blocked ? null : selectedDay ? (
                 <div className="hhr-list">
                   {selectedDay.exercises.length === 0 ? <p className="hhr-muted">No hay ejercicios cargados para este día.</p> : null}
                   {groupExercises(selectedDay.exercises).map((g) =>

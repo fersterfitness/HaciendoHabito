@@ -100,10 +100,48 @@ export async function loadWeeklyCheckInsByOwner(ownerId: string, since?: string)
 }
 
 /** Último check-in semanal por alumno (dueño), dentro de la rutina vigente. */
+export type StudentNotice = { studentId: string; kind: string; weekNumber: number | null; createdAt: string }
+
+/**
+ * Lo que dicen los avisos del alumno desde su link (feedback nov3): «terminé hoy mi rutina» cierra el mes,
+ * «es mi última semana» marca la última, y «terminé mi semana X» deja al alumno en la X+1.
+ * `notices` del más nuevo al más viejo; solo cuenta el más nuevo de cada alumno.
+ */
+export function weekStatusFromNotices(notices: StudentNotice[]): Map<string, LatestWeekStatus> {
+  const out = new Map<string, LatestWeekStatus>()
+  for (const n of notices) {
+    if (out.has(n.studentId)) continue
+    if (n.kind === 'routine_done') out.set(n.studentId, { finished: true, weekNumber: n.weekNumber, lastWeek: true, submittedAt: n.createdAt })
+    else if (n.kind === 'last_week') out.set(n.studentId, { finished: false, weekNumber: n.weekNumber, lastWeek: true, submittedAt: n.createdAt })
+    else if (n.kind === 'week_done')
+      out.set(n.studentId, { finished: false, weekNumber: n.weekNumber != null ? n.weekNumber + 1 : null, lastWeek: false, submittedAt: n.createdAt })
+  }
+  return out
+}
+
+/** Avisos de semana del alumno (20261121120000_student_routine_notices.sql). Sin la migración, vacío. */
+async function loadStudentNotices(ownerId: string): Promise<StudentNotice[]> {
+  const { data, error } = await supabase
+    .from('student_urgent_messages')
+    .select('student_id, kind, week_number, created_at')
+    .eq('owner_id', ownerId)
+    .in('kind', ['last_week', 'week_done', 'routine_done'])
+    .order('created_at', { ascending: false })
+    .limit(500)
+  if (error || !data) return []
+  return (data as { student_id: string; kind: string; week_number: number | null; created_at: string }[]).map((r) => ({
+    studentId: r.student_id,
+    kind: r.kind,
+    weekNumber: r.week_number,
+    createdAt: r.created_at,
+  }))
+}
+
 export async function loadWeekStatusByOwner(ownerId: string): Promise<Map<string, LatestWeekStatus>> {
-  const [checkIns, routineStartByStudent] = await Promise.all([
+  const [checkIns, routineStartByStudent, notices] = await Promise.all([
     loadWeeklyCheckInsByOwner(ownerId),
     loadActiveRoutineStartByStudent(ownerId),
+    loadStudentNotices(ownerId),
   ])
   const out = new Map<string, LatestWeekStatus>()
   for (const c of checkIns) {
@@ -116,6 +154,15 @@ export async function loadWeekStatusByOwner(ownerId: string): Promise<Map<string
       lastWeek: c.lastWeek,
       submittedAt: c.submittedAt,
     })
+  }
+  // Los avisos del link (de la rutina activa) pisan al feedback semanal si son más nuevos.
+  const current = notices.filter((n) => {
+    const start = routineStartByStudent.get(n.studentId)
+    return !!start && new Date(n.createdAt) >= new Date(start)
+  })
+  for (const [sid, st] of weekStatusFromNotices(current)) {
+    const prev = out.get(sid)
+    if (!prev?.submittedAt || new Date(st.submittedAt!) >= new Date(prev.submittedAt)) out.set(sid, st)
   }
   return out
 }

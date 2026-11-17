@@ -58,9 +58,18 @@ export const EMPTY_DAY_LOG: DayLog = {
   effort: null,
 }
 
+/** Avisos que el alumno manda con un botón (20261121120000_student_routine_notices.sql). */
+export type RoutineNoticeKind = 'last_week' | 'week_done' | 'routine_done'
+export interface RoutineNoticeSent {
+  block_id: string
+  kind: RoutineNoticeKind
+}
+
 export interface TrainingExtras {
   exercises: Record<string, ExerciseFeedback>
   days: Record<string, DayLog>
+  /** Solo en el link del alumno. Sin la migración, vacío. */
+  notices?: RoutineNoticeSent[]
 }
 
 /** Escala de Borg modificada (1 a 10), en palabras para el alumno. */
@@ -99,10 +108,11 @@ export function checkinSummary(log: DayLog): string {
 type RawExtras = {
   exercises?: { exercise_id: string; note: string | null; effort: number | null }[]
   days?: ({ day_id: string } & Partial<DayLog>)[]
+  notices?: RoutineNoticeSent[]
 }
 
 function toExtras(raw: RawExtras | null): TrainingExtras {
-  const out: TrainingExtras = { exercises: {}, days: {} }
+  const out: TrainingExtras = { exercises: {}, days: {}, notices: raw?.notices }
   for (const e of raw?.exercises ?? []) out.exercises[e.exercise_id] = { note: e.note ?? '', effort: e.effort ?? null }
   for (const d of raw?.days ?? []) {
     const { day_id, ...rest } = d
@@ -134,6 +144,27 @@ export async function call(fn: string, args: Record<string, unknown>): Promise<R
   const res = (data ?? {}) as { ok?: boolean; error?: string }
   if (!res.ok) throw new Error(res.error === 'too_many' ? 'Ya mandaste varias consultas hoy. Escribile por WhatsApp.' : 'No se pudo guardar. Intentá de nuevo.')
   return res
+}
+
+export async function sendSharedRoutineNotice(token: string, blockId: string, kind: RoutineNoticeKind): Promise<void> {
+  await call('send_shared_routine_notice', { p_token: token, p_block_id: blockId, p_kind: kind })
+}
+
+/** Qué ve el entrenador como título de cada aviso. */
+export function urgentTitle(m: Pick<UrgentMessage, 'kind' | 'student_name'>): string {
+  const first = m.student_name.trim().split(/\s+/)[0] || 'Tu alumno'
+  switch (m.kind) {
+    case 'pain':
+      return `${first} tiene un dolor puntual`
+    case 'last_week':
+      return `${first} está en su última semana`
+    case 'week_done':
+      return `${first} terminó su semana`
+    case 'routine_done':
+      return `${first} terminó su rutina`
+    default:
+      return `Consulta urgente de ${first}`
+  }
 }
 
 export async function saveSharedExerciseFeedback(token: string, exerciseId: string, fb: ExerciseFeedback): Promise<void> {
@@ -206,8 +237,11 @@ export function useDayLog(dayId: string): DayLog | null {
 
 export interface UrgentMessage {
   id: string
-  /** 'urgent' = consulta urgente; 'pain' = dolor no habitual marcado en el chequeo diario. */
-  kind: 'urgent' | 'pain'
+  /**
+   * 'urgent' = consulta urgente; 'pain' = dolor no habitual marcado en el chequeo diario;
+   * 'last_week' / 'week_done' / 'routine_done' = avisos del alumno sobre su rutina.
+   */
+  kind: 'urgent' | 'pain' | RoutineNoticeKind
   routine_id: string | null
   student_id: string
   student_name: string
@@ -232,7 +266,7 @@ export async function fetchUnreadUrgentMessages(ownerId: string): Promise<Urgent
     const s = Array.isArray(r.student) ? r.student[0] : r.student
     return {
       id: r.id,
-      kind: r.kind === 'pain' ? 'pain' : 'urgent',
+      kind: (['pain', 'last_week', 'week_done', 'routine_done'] as const).find((k) => k === r.kind) ?? 'urgent',
       routine_id: r.routine_id ?? null,
       student_id: r.student_id,
       message: r.message,

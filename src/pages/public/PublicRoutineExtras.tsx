@@ -201,7 +201,7 @@ export function MonthReviewCard({ token, dayId, proLabel, done, onDone }: { toke
           <Check size={18} strokeWidth={2.6} />
         </span>
         <div className="hhr-close-text">
-          <b>Devolución del mes enviada</b>
+          <b>Devolución de tu rutina enviada</b>
           <span>Gracias por contarlo. A {proLabel} le sirve mucho.</span>
         </div>
       </section>
@@ -223,8 +223,8 @@ export function MonthReviewCard({ token, dayId, proLabel, done, onDone }: { toke
 
   return (
     <section className="hhr-card hhr-review" aria-label="Devolución del mes">
-      <b>¿Cómo viviste este mes de rutina?</b>
-      <span className="hhr-review-sub">Contalo con tus palabras: qué te gustó, qué te costó, cómo te sentiste.</span>
+      <b>¡Terminaste tu rutina! ¿Cómo te sentiste?</b>
+      <span className="hhr-review-sub">Es obligatorio para cerrar tu rutina. Contalo con tus palabras, en general: qué te gustó, qué te costó, cómo te sentiste.</span>
       <div className="hhr-stars" role="group" aria-label="Puntaje del 1 al 5">
         {[1, 2, 3, 4, 5].map((n) => (
           <button key={n} type="button" aria-pressed={rating != null && n <= rating} aria-label={`${n} de 5`} onClick={() => setRating(rating === n ? null : n)}>

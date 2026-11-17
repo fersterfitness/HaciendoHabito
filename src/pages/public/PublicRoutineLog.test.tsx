@@ -9,6 +9,7 @@ import {
   fetchSharedExtras,
   saveSharedDayStatus,
   saveSharedExerciseFeedback,
+  sendSharedRoutineNotice,
   type TrainingExtras,
 } from '@/lib/routine/studentTrainingLog'
 import { saveSharedDailyCheckin } from '@/lib/routine/dailyCheckin'
@@ -24,6 +25,7 @@ vi.mock('@/lib/routine/studentTrainingLog', async (original) => ({
   saveSharedDayStatus: vi.fn(),
   saveSharedExerciseFeedback: vi.fn(),
   sendSharedUrgentMessage: vi.fn(),
+  sendSharedRoutineNotice: vi.fn(),
 }))
 vi.mock('@/lib/routine/dailyCheckin', async (original) => ({
   ...(await original<typeof import('@/lib/routine/dailyCheckin')>()),
@@ -139,6 +141,23 @@ describe('registro del alumno en la rutina por link', () => {
     expect(host.querySelector('.hhr-checkin')).toBeNull()
     expect(host.querySelector('.hhr-ex-head')).not.toBeNull()
     expect(host.querySelector('.hhr-checkin-line')?.textContent).toContain('Energía 4/5')
+  })
+
+  it('el último día de la rutina pide avisar al entrenador antes del chequeo', async () => {
+    vi.mocked(sendSharedRoutineNotice).mockResolvedValue(undefined)
+    await open({ exercises: {}, days: {}, notices: [] })
+    expect(host.querySelector('.hhr-must')).toBeNull()
+    expect(host.querySelector('.hhr-ex-head')).toBeNull()
+    await click(button('que terminé hoy mi rutina'))
+    expect(sendSharedRoutineNotice).toHaveBeenCalledWith('test-token', 'block', 'routine_done')
+    expect(host.querySelector('.hhr-notice')).toBeNull()
+    expect(host.querySelector('.hhr-must')).not.toBeNull()
+  })
+
+  it('con el aviso ya mandado va directo al chequeo', async () => {
+    await open({ exercises: {}, days: {}, notices: [{ block_id: 'block', kind: 'routine_done' }] })
+    expect(host.querySelector('.hhr-notice')).toBeNull()
+    expect(host.querySelector('.hhr-must')).not.toBeNull()
   })
 
   it('el chequeo es obligatorio: sin responder todo no se desbloquea', async () => {

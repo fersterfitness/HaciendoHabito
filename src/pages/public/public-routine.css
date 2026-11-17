@@ -561,3 +561,13 @@
 .hhr-inline-date input { border: 0; border-radius: 12px; padding: 10px 12px; background: #fff; font: inherit; font-size: 16px; color: var(--ink); }
 .hhr-painmap { display: grid; gap: 10px; }
 .hhr-painmap-figs { display: flex; justify-content: center; gap: 4px; }
+
+/* ── Avisos obligatorios al entrenador (feedback nov3, puntos 7 y 13) ── */
+.hhr-notice { display: grid; gap: 10px; padding: 18px; border: 2px solid var(--brand); background: var(--brand-soft); }
+.hhr-notice p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink); }
+.hhr-notice-title { font-size: 17px; font-weight: 800; color: var(--brand-ink); }
+.hhr .hhr-cta-notice { background: var(--brand); height: auto; min-height: 54px; padding: 12px 20px; line-height: 1.25; }
+.hhr .hhr-cta-notice:hover { background: var(--brand-ink); }
+.hhr-notice.is-routine_done { border-color: var(--ok); background: #E9F7EF; }
+.hhr-notice.is-routine_done .hhr-notice-title { color: var(--ok); }
+.hhr .hhr-notice.is-routine_done .hhr-cta-notice { background: var(--ok); }

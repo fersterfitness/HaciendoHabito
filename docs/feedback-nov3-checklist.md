@@ -51,12 +51,12 @@ Fuente: `CORRECIONES EN APP-nov3.docx`. Cada punto dice de dónde sale (número 
 
 ## Tanda 4 — avisos del alumno al entrenador (necesita SQL)
 
-- [ ] (7) Primer día de la última semana: botón llamativo y obligatorio, antes del chequeo, «Avisar al entrenador que es mi última semana de rutina».
-- [ ] (7) Último día de la última semana: botón obligatorio «Avisar al entrenador que terminé hoy mi rutina».
-- [ ] (13) Último día de cada semana: «Terminé mi semana X», que le avisa al entrenador que tiene que darle la devolución (los lunes).
-- [ ] (12) Al terminar la rutina, feedback general OBLIGATORIO (testimonio para Instagram), y le llega al entrenador.
-- [ ] (Notificaciones) Sacar «Termina en X días, armá la que sigue»: el aviso pasa a ser el del alumno.
-- [ ] (Menú «este menú me gustó») Las tarjetas de Alumnos («Última semana», «Mes cerrado») toman esos avisos en lugar de fechas.
+- [x] (7) Primer día de la última semana: botón llamativo y obligatorio, antes del chequeo, «Avisar al entrenador que es mi última semana de rutina».
+- [x] (7) Último día de la última semana: botón obligatorio «Avisar al entrenador que terminé hoy mi rutina».
+- [x] (13) Último día de cada semana: «Terminé mi semana X», que le avisa al entrenador que tiene que darle la devolución (los lunes).
+- [x] (12) Al terminar la rutina, feedback general OBLIGATORIO (testimonio para Instagram), y le llega al entrenador.
+- [x] (Notificaciones) Sacar «Termina en X días, armá la que sigue»: el aviso pasa a ser el del alumno.
+- [x] (Menú «este menú me gustó») Las tarjetas de Alumnos («Última semana», «Mes cerrado») toman esos avisos en lugar de fechas.
 
 ## Tanda 5 — notas propias del alumno (necesita SQL)
 
