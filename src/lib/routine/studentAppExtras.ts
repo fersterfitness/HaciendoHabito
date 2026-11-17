@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { supabasePublic } from '@/lib/supabasePublic'
 import type { SharedRoutineBlock } from '@/lib/routine/sharedRoutine'
 import { CHECKIN_SCALES, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { DAILY_SCALES, type ScaleKey } from '@/lib/routine/dailyCheckin'
 
 /**
  * App del alumno, tanda 4 (20261116120000_student_app_extras.sql): progreso, ciclo menstrual,
@@ -176,6 +177,38 @@ export function weeklyProgress(blocks: SharedRoutineBlock[], extras: TrainingExt
     const { total, done, missed, averages, effort } = checkinAverages(b.days.map((d) => d.id), extras)
     return { label: b.name?.trim() || `Semana ${i + 1}`, total, done, missed, averages, effort }
   })
+}
+
+export interface ScaleTrend {
+  key: ScaleKey
+  short: string
+  good: 'high' | 'low'
+  /** Promedio de cada semana de la rutina (1 a 5), `null` si esa semana no respondió. */
+  weeks: (number | null)[]
+  /** Última semana con datos contra la primera, leído a favor del alumno (menos estrés = mejor). */
+  trend: 'better' | 'worse' | 'same' | null
+}
+
+/** «Tu progreso» del link (feedback nov3, punto 8): cada escala del chequeo diario, semana a semana. */
+export function scaleTrends(blocks: SharedRoutineBlock[], extras: TrainingExtras): ScaleTrend[] {
+  return DAILY_SCALES.map((s) => {
+    const weeks = blocks.map((b) => {
+      const vals = b.days.map((d) => extras.days[d.id]?.[s.key]).filter((v): v is number => typeof v === 'number')
+      return avg(vals)
+    })
+    const filled = weeks.filter((v): v is number => v != null)
+    let trend: ScaleTrend['trend'] = null
+    if (filled.length >= 2) {
+      const diff = (filled[filled.length - 1]! - filled[0]!) * (s.good === 'high' ? 1 : -1)
+      trend = diff >= 0.3 ? 'better' : diff <= -0.3 ? 'worse' : 'same'
+    }
+    return { key: s.key, short: s.short, good: s.good, weeks, trend }
+  }).filter((t) => t.weeks.some((v) => v != null))
+}
+
+/** Cuánto subió un ejercicio, en % (sin mostrar los kilos). */
+export function liftGainPct(l: Pick<LiftProgress, 'firstKg' | 'lastKg'>): number {
+  return l.firstKg > 0 ? Math.round(((l.lastKg - l.firstKg) / l.firstKg) * 100) : 0
 }
 
 /**

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/lib/supabasePublic', () => ({ supabasePublic: {} }))
 
-import { businessDaysBetween, checkinAverages, cycleDay, cyclePhase, liftProgress, paymentNotice, weeklyProgress } from '@/lib/routine/studentAppExtras'
+import { businessDaysBetween, checkinAverages, cycleDay, cyclePhase, liftGainPct, liftProgress, paymentNotice, scaleTrends, weeklyProgress } from '@/lib/routine/studentAppExtras'
 import { EMPTY_DAY_LOG } from '@/lib/routine/studentTrainingLog'
 import type { SharedRoutineBlock, SharedRoutineExercise } from '@/lib/routine/sharedRoutine'
 
@@ -79,6 +79,23 @@ describe('progreso', () => {
     const kg: Record<string, number[]> = { a1: [80, 85], a2: [90], p1: [60] }
     const lifts = liftProgress(blocks, (id) => kg[id] ?? [])
     expect(lifts).toEqual([{ name: 'Sentadilla', firstKg: 85, lastKg: 90, firstLabel: 'Semana 1', lastLabel: 'Semana 2' }])
+  })
+  it('muestra la mejora en % y no en kilos', () => {
+    expect(liftGainPct({ firstKg: 80, lastKg: 90 })).toBe(13)
+    expect(liftGainPct({ firstKg: 0, lastKg: 10 })).toBe(0)
+  })
+  it('tendencia de cada escala semana a semana, leída a favor del alumno', () => {
+    const t = scaleTrends(blocks, {
+      exercises: {},
+      days: {
+        b1d1: { ...EMPTY_DAY_LOG, energy: 2, stress: 4 },
+        b2d1: { ...EMPTY_DAY_LOG, energy: 4, stress: 2, soreness: 3 },
+      },
+    })
+    expect(t.find((x) => x.key === 'energy')).toMatchObject({ weeks: [2, 4], trend: 'better' })
+    expect(t.find((x) => x.key === 'stress')!.trend).toBe('better')
+    expect(t.find((x) => x.key === 'soreness')!.trend).toBeNull()
+    expect(t.find((x) => x.key === 'sleep')).toBeUndefined()
   })
 })
 

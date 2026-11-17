@@ -23,7 +23,7 @@ export function goKeysFor(role: AppRole | null | undefined): GoKey[] {
     { key: 'i', label: 'Inicio', href: '/dashboard' },
     { key: 't', label: 'Turnos', href: '/appointments' },
     { key: 'a', label: 'Alumnos', href: '/students' },
-    { key: 'c', label: 'Consultas', href: '/feedback' },
+    { key: 'r', label: 'Recursos', href: '/resources' },
     ...COMMON_END,
   ]
 }

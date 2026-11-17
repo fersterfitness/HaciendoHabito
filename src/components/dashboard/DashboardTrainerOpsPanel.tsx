@@ -517,10 +517,10 @@ export function DashboardTrainerOpsPanel({
           </QuickActionRow>
         ) : (
           <QuickActionRow title="Recursos · aviso semanal">
-            <p className="text-3xs text-ink-muted">Agregá una plantilla o recurso en Consulta semanal → Recursos.</p>
+            <p className="text-3xs text-ink-muted">Agregá una plantilla o recurso en Recursos.</p>
             <button
               type="button"
-              onClick={() => navigate('/feedback?tab=recursos')}
+              onClick={() => navigate('/resources')}
               className="text-3xs font-medium text-brand-primary hover:underline"
             >
               Ir a Recursos

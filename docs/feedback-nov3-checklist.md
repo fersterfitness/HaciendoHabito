@@ -64,12 +64,12 @@ Fuente: `CORRECIONES EN APP-nov3.docx`. Cada punto dice de dónde sale (número 
 
 ## Tanda 6 — progreso del alumno y del entrenador
 
-- [ ] (8) «Tu progreso» del alumno: promedios semanales del chequeo (sueño, energía, estrés…), días entrenados vs. no entrenados, si mejoró el rendimiento (sin mostrar los pesos), con gráficos de color simples y motivadores.
-- [ ] (Progreso) En la ficha del alumno, pestaña «Progreso» nueva con todo lo que responde en la app: gráficos y aclaraciones, por día, semana, mes y año.
-- [ ] (Progreso) «Seguimiento» como submenú dentro de Progreso, separado de los gráficos del chequeo.
-- [ ] (Progreso) Sacar la pestaña «Hábitos» de la ficha.
-- [ ] (Progreso) Sacar del menú «Consultas semanales» (Enviar, Respuestas y Formularios dejan de existir).
-- [?] (Progreso) «Recursos»: ¿dónde va exactamente? El texto dice «al lado, donde antes estaba Hábitos».
+- [x] (8) «Tu progreso» del alumno: promedios semanales del chequeo (sueño, energía, estrés…), días entrenados vs. no entrenados, si mejoró el rendimiento (sin mostrar los pesos), con gráficos de color simples y motivadores.
+- [x] (Progreso) En la ficha del alumno, pestaña «Progreso» nueva con todo lo que responde en la app: gráficos y aclaraciones, por día, semana, mes y año.
+- [x] (Progreso) «Seguimiento» como submenú dentro de Progreso, separado de los gráficos del chequeo.
+- [x] (Progreso) Sacar la pestaña «Hábitos» de la ficha.
+- [x] (Progreso) Sacar del menú «Consultas semanales» (Enviar, Respuestas y Formularios dejan de existir).
+- [x] (Progreso) «Recursos»: quedó como menú propio en el lugar de «Consultas semanales» (Hábitos no estaba en el menú v2). Confirmar con el entrenador.
 
 ## Tanda 7 — entrenador: Comparar, vista previa, Inicio y Finanzas
 

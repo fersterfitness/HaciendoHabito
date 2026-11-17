@@ -13,7 +13,6 @@ import { Clock } from '@/components/animate-ui/icons/clock'
 import { LayoutDashboard } from '@/components/animate-ui/icons/layout-dashboard'
 import { List } from '@/components/animate-ui/icons/list'
 import { LogOut } from '@/components/animate-ui/icons/log-out'
-import { MessageSquare } from '@/components/animate-ui/icons/message-square'
 import { SendHorizontal } from '@/components/animate-ui/icons/send-horizontal'
 import { Settings } from '@/components/animate-ui/icons/settings'
 import { Users } from '@/components/animate-ui/icons/users'
@@ -44,7 +43,6 @@ export const SIDEBAR_ANIMATED_ICON_BY_HREF: Record<string, SidebarAnimatedIcon> 
   '/dashboard': LayoutDashboard,
   '/appointments': Clock,
   '/students': Users,
-  '/feedback': MessageSquare,
   '/resources': SendHorizontal,
   '/check-ins': ClipboardCheck,
   '/exercises': List,

@@ -54,6 +54,7 @@ const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage').then((m)
 const WebPlansSettingsPage = lazy(() => import('@/pages/settings/WebPlansSettingsPage').then((m) => ({ default: m.WebPlansSettingsPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 const FeedbackPage = lazy(() => import('@/pages/feedback/FeedbackPage').then((m) => ({ default: m.FeedbackPage })))
+const ResourcesPage = lazy(() => import('@/pages/feedback/FeedbackPage').then((m) => ({ default: m.ResourcesPage })))
 const FeedbackFormPage = lazy(() => import('@/pages/feedback/FeedbackFormPage').then((m) => ({ default: m.FeedbackFormPage })))
 const FeedbackDetailPage = lazy(() => import('@/pages/feedback/FeedbackDetailPage').then((m) => ({ default: m.FeedbackDetailPage })))
 const NutritionPage = lazy(() => import('@/pages/nutrition/NutritionPage').then((m) => ({ default: m.NutritionPage })))
@@ -216,7 +217,7 @@ function renderLoggedInRoutes({
 
       <Route
         path="resources"
-        element={canSeeTraining ? withPageSuspense(<TrainingSectionRedirect tab="recursos" />) : <Navigate to="/dashboard" replace />}
+        element={canSeeTraining ? withPageSuspense(<ResourcesPage />) : <Navigate to="/dashboard" replace />}
       />
       <Route
         path="check-ins"

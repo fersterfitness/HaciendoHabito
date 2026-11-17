@@ -3,7 +3,6 @@ import {
   Home,
   Users,
   FileText,
-  MessageSquare,
   BookOpen,
   Wallet,
   Salad,
@@ -71,7 +70,8 @@ export const NAV_TRAINING_CORE: NavItem[] = [
     icon: Users,
     alsoMatch: ['/routines'],
   },
-  { label: 'Consulta semanal', shortLabel: 'Consultas', href: '/feedback', icon: MessageSquare },
+  // Feedback nov3: las consultas semanales pasaron a la ficha (Progreso); queda Recursos en su lugar.
+  { label: 'Recursos', href: '/resources', icon: Send },
   { label: 'Base de datos', href: '/exercises', icon: BookOpen },
   { label: 'Saliendo de contexto', shortLabel: 'Contexto', href: '/contexto', icon: Sparkles },
 ]
@@ -229,12 +229,12 @@ export type NavV2 = { main: NavItem[]; more: NavItem[] }
 
 /** En la v2 las rutinas se ven desde la ficha del alumno (pestaña Rutina): no hay sección aparte. */
 const V2_STUDENTS: NavItem = { label: 'Alumnos', href: '/students', icon: Users, hint: 'Fichas, rutinas y pagos', alsoMatch: ['/routines'] }
+/** Feedback nov3: «Consultas semanales» se fue a la ficha del alumno (Progreso); en su lugar queda Recursos. */
 const V2_FEEDBACK: NavItem = {
-  label: 'Consultas semanales',
-  shortLabel: 'Consultas',
-  href: '/feedback',
-  icon: MessageSquare,
-  hint: 'Lo que te cuentan tus alumnos',
+  label: 'Recursos',
+  href: '/resources',
+  icon: Send,
+  hint: 'Plantillas y avisos para mandar',
 }
 const V2_MONITOR: NavItem = { label: 'Monitor de entrenamiento', shortLabel: 'Monitor', href: '/monitor', icon: Activity, hint: 'Quién entrena ahora y cómo va el día' }
 const V2_EXERCISES: NavItem = {
@@ -378,7 +378,6 @@ export function getMobileQuickActions(role: AppRole | undefined): QuickAction[] 
     { label: 'Nueva rutina', hint: 'Armar y asignar', href: '/routines?create=1', icon: Dumbbell },
     { label: 'Registrar cobro', hint: 'Pago de un alumno', href: '/finances/income/new', icon: HandCoins },
     { label: 'Registrar gasto', hint: 'Fijo o variable', href: '/finances/expenses/new', icon: Receipt },
-    { label: 'Enviar check-in', hint: 'Consulta semanal', href: '/feedback?tab=checkins', icon: Send },
     { label: 'Turnos', hint: 'Agenda del día', href: '/appointments', icon: CalendarPlus },
   ]
 }

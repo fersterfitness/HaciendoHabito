@@ -7,7 +7,7 @@ import { useEffect, useState, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Pencil, Trash2, Dumbbell, FileText, FileDown, Plus, Mail, Phone, Calendar, X, StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag, Maximize2, UserRound, UtensilsCrossed, TrendingUp, CalendarCheck, Trophy, CalendarRange, ChevronRight, Ruler, CreditCard } from 'lucide-react'
+import { Pencil, Trash2, Dumbbell, FileText, FileDown, Plus, Mail, Phone, Calendar, X, StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag, Maximize2, UserRound, UtensilsCrossed, TrendingUp, CalendarRange, ChevronRight, Ruler, CreditCard } from 'lucide-react'
 import { mealPlanRepo } from '@/data/mealPlans'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
@@ -37,12 +37,10 @@ import { AssignPresetRoutineModal } from '@/components/routines/AssignPresetRout
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
 import { PsychologistStudentIntakePanel } from '@/components/students/PsychologistStudentIntakePanel'
 import { StudentProgressPhotosSection } from '@/components/students/StudentProgressPhotosSection'
-import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
-import { StudentEngagementStatsPanel } from '@/components/students/StudentEngagementStatsPanel'
-import { StudentProgressPanel } from '@/components/students/StudentProgressPanel'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { StudentAppProgressPanel } from '@/components/students/StudentAppProgressPanel'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { StudentVolumeMini } from '@/components/routines/volumeBody/StudentVolumeMini'
-import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
 import { canSeeTraining } from '@/config/navigation'
 import type { Student, Routine, StudentRmRecord, TrainerStudentMealPlan, Income } from '@/types/database'
 import { devLog } from '@/lib/devLog'
@@ -331,9 +329,10 @@ export function StudentDetailView({
     if (!showNutritionTab && sheetTab === 'nutricion') setSheetTab('ficha')
   }, [showNutritionTab, sheetTab])
 
+  // «Hábitos» ya no existe (feedback nov3): lo que pedía esa solapa ahora vive en Progreso.
   useEffect(() => {
-    if (!showHabitsTab && (sheetTab === 'habitos' || sheetTab === 'progreso')) setSheetTab('ficha')
-  }, [showHabitsTab, sheetTab])
+    if (sheetTab === 'habitos') setSheetTab('progreso')
+  }, [sheetTab])
 
   useEffect(() => {
     if (!showRoutineTab && sheetTab === 'rutina') setSheetTab('ficha')
@@ -531,19 +530,12 @@ export function StudentDetailView({
     ...(showNutritionTab
       ? [{ key: 'nutricion' as const, label: 'Nutrición', icon: <UtensilsCrossed className="h-3.5 w-3.5 shrink-0" aria-hidden /> }]
       : []),
-    {
-      key: 'seguimiento',
-      label: 'Seguimiento',
-      short: 'Control',
-      icon: <TrendingUp className="h-3.5 w-3.5 shrink-0" aria-hidden />,
-    },
-    ...(showHabitsTab
-      ? [
-          { key: 'progreso' as const, label: 'Progreso', icon: <Trophy className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
-          { key: 'habitos' as const, label: 'Hábitos', icon: <CalendarCheck className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
-        ]
-      : []),
+    // Progreso (feedback nov3): lo que responde en su link y, como submenú aparte, el Seguimiento.
+    { key: 'progreso', label: 'Progreso', icon: <TrendingUp className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
   ]
+  /** Dentro de Progreso: respuestas de la app (solo entrenadores) o Seguimiento (peso, fuerza, pagos, ciclo). */
+  const inProgreso = sheetTab === 'progreso' || sheetTab === 'seguimiento'
+  const progresoView: 'app' | 'seguimiento' = showHabitsTab && sheetTab === 'progreso' ? 'app' : 'seguimiento'
 
   const selectedPlanLabel =
     student.selected_web_plan_slug === 'plan-entrenamiento'
@@ -930,7 +922,7 @@ export function StudentDetailView({
           <div className={v2Page ? '' : 'pt-3'}>
             <div className={v2Page ? 'flex w-max items-center gap-1.5' : 'flex w-full items-end gap-0.5 sm:gap-2'}>
               {sheetTabDefs.map(({ key, label, short, icon }) => {
-                const active = sheetTab === key
+                const active = sheetTab === key || (key === 'progreso' && inProgreso)
                 return (
                   <button
                     key={key}
@@ -1625,8 +1617,23 @@ export function StudentDetailView({
           </section>
         )}
 
-        {/* ── Seguimiento (peso, fuerza, pagos, ciclo) ── */}
-        {sheetTab === 'seguimiento' && (
+        {inProgreso && showHabitsTab ? (
+          <SegmentedControl
+            ariaLabel="Progreso"
+            size="sm"
+            value={progresoView}
+            onChange={(v) => setSheetTab(v === 'app' ? 'progreso' : 'seguimiento')}
+            items={[
+              { id: 'app', label: 'Respuestas de la app' },
+              { id: 'seguimiento', label: 'Seguimiento' },
+            ]}
+          />
+        ) : null}
+
+        {inProgreso && progresoView === 'app' ? <StudentAppProgressPanel studentId={id!} /> : null}
+
+        {/* ── Seguimiento (peso, fuerza, pagos, ciclo): submenú de Progreso ── */}
+        {inProgreso && progresoView === 'seguimiento' && (
           <div className="space-y-4">
             <div
               className={v2Page ? 'inline-flex gap-1.5' : '-mx-px flex border-b border-surface-border/60 '}
@@ -1716,23 +1723,6 @@ export function StudentDetailView({
           />
         ) : null}
 
-        {sheetTab === 'progreso' && showHabitsTab && (
-          <StudentProgressPanel studentId={id!} studentName={student.full_name} rmRecords={rmRecords} />
-        )}
-
-        {sheetTab === 'habitos' && showHabitsTab && (
-          <div className="space-y-4">
-            <StudentEngagementStatsPanel
-              studentId={id!}
-              studentName={student.full_name}
-              studentPhone={student.phone}
-              routines={routines}
-            />
-            <div className="min-h-0 rounded-xl bg-surface-elevated/80 p-1 ">
-              <StudentHabitsPanel studentId={id!} toolbarLeading={<HabitsViewToolbar studentId={id!} />} />
-            </div>
-          </div>
-        )}
       </div>
 
       <MarkPaidModal

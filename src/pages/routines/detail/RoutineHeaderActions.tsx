@@ -58,8 +58,8 @@ type Props = {
 const SHEET_SHORTCUTS: { tab: 'ficha' | 'nutricion' | 'seguimiento' | 'progreso'; label: string; hint: string }[] = [
   { tab: 'ficha', label: 'Información', hint: 'Datos, lesiones, 1RM' },
   { tab: 'nutricion', label: 'Nutrición', hint: 'Plan de alimentación' },
-  { tab: 'seguimiento', label: 'Seguimiento', hint: 'Peso, fuerza, medidas' },
-  { tab: 'progreso', label: 'Progreso', hint: 'Chequeos y adherencia' },
+  { tab: 'progreso', label: 'Progreso', hint: 'Lo que responde en la app' },
+  { tab: 'seguimiento', label: 'Seguimiento', hint: 'Peso, fuerza, pagos (en Progreso)' },
 ]
 
 /**

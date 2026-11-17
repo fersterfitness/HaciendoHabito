@@ -190,7 +190,7 @@ export function SettingsPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <Button asChild variant="secondary" icon={<Share2 className="h-4 w-4" />}>
-                <Link to="/feedback?tab=recursos">Recursos y WhatsApp</Link>
+                <Link to="/resources">Recursos y WhatsApp</Link>
               </Button>
               <Button asChild variant="secondary" icon={<ClipboardCheck className="h-4 w-4" />}>
                 <Link to="/feedback?tab=checkins">Check-ins</Link>
@@ -213,7 +213,7 @@ export function SettingsPage() {
                   eso, fallan tablas o RPC de check-in.
                 </li>
                 <li>
-                  <strong className="text-ink-secondary">Recursos (Consulta semanal → Recursos):</strong> creá un recurso con URL, marcá alumnos activos con
+                  <strong className="text-ink-secondary">Recursos (menú Recursos):</strong> creá un recurso con URL, marcá alumnos activos con
                   teléfono válido, probá «Copiar mensaje» y «WhatsApp». Con «Registrar al abrir WhatsApp» activado, el historial debe sumar una fila
                   por alumno; si repetís el mismo alumno y recurso dentro de 60 minutos, no duplica (manual muestra aviso informativo).
                 </li>

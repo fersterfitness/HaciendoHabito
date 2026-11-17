@@ -3,15 +3,17 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { CalendarHeart, Check, ChevronDown, Star, TrendingUp, Wallet } from 'lucide-react'
 import type { SharedRoutineBlock } from '@/lib/routine/sharedRoutine'
-import { CHECKIN_SCALES, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import type { TrainingExtras } from '@/lib/routine/studentTrainingLog'
 import {
   cycleDay,
   cyclePhase,
+  liftGainPct,
   liftProgress,
   paymentNotice,
   saveSharedCyclePill,
   saveSharedCycleStart,
   saveSharedMonthReview,
+  scaleTrends,
   weeklyProgress,
   type StudentExtras,
 } from '@/lib/routine/studentAppExtras'
@@ -39,14 +41,27 @@ export function PaymentBanner({ extras }: { extras: StudentExtras }) {
   )
 }
 
-/** Cómo viene: días cerrados por semana, cómo llegó a entrenar y los pesos que subieron. */
+/**
+ * «Tu progreso» (feedback nov3, punto 8): días entrenados, cómo llega a entrenar semana a semana y en qué
+ * ejercicios subió, en gráficos simples y sin mostrar los kilos.
+ */
 export function ProgressCard({ blocks, extras, kgOf }: { blocks: SharedRoutineBlock[]; extras: TrainingExtras; kgOf: (exerciseId: string) => number[] }) {
   const weeks = useMemo(() => weeklyProgress(blocks, extras), [blocks, extras])
-  const lifts = useMemo(() => liftProgress(blocks, kgOf), [blocks, kgOf])
-  const withData = weeks.filter((w) => w.done + w.missed > 0 || CHECKIN_SCALES.some((s) => w.averages[s.key] != null))
-  if (withData.length === 0 && lifts.length === 0) return null
+  const trends = useMemo(() => scaleTrends(blocks, extras), [blocks, extras])
+  const gains = useMemo(() => liftProgress(blocks, kgOf, 6).filter((l) => liftGainPct(l) > 0), [blocks, kgOf])
   const totalDone = weeks.reduce((n, w) => n + w.done, 0)
-  const totalClosed = weeks.reduce((n, w) => n + w.done + w.missed, 0)
+  const totalMissed = weeks.reduce((n, w) => n + w.missed, 0)
+  if (totalDone + totalMissed === 0 && trends.length === 0 && gains.length === 0) return null
+  const closed = totalDone + totalMissed
+  const pct = closed ? Math.round((totalDone / closed) * 100) : 0
+  const cheer = !closed
+    ? 'Cada entrenamiento que cierres suma acá.'
+    : pct >= 80
+      ? '¡Vas muy bien! Seguí así.'
+      : pct >= 50
+        ? 'Buen ritmo: un día más por semana y volás.'
+        : 'Cada entrenamiento cuenta. ¡Vamos que se puede!'
+  const better = trends.filter((t) => t.trend === 'better')
 
   return (
     <details className="hhr-card hhr-progress-card">
@@ -58,59 +73,92 @@ export function ProgressCard({ blocks, extras, kgOf }: { blocks: SharedRoutineBl
           <b>Tu progreso</b>
           <small>
             {totalDone} {totalDone === 1 ? 'entrenamiento terminado' : 'entrenamientos terminados'}
-            {totalClosed > totalDone ? ` · ${totalClosed - totalDone} sin entrenar` : ''}
+            {better.length ? ` · mejoraste en ${better.length === 1 ? better[0]!.short.toLowerCase() : `${better.length} cosas`}` : ''}
           </small>
         </span>
         <ChevronDown className="hhr-chev" size={18} strokeWidth={1.8} aria-hidden />
       </summary>
       <div className="hhr-progress-body">
-        {withData.length ? (
-          <ul className="hhr-weekrows">
-            {weeks.map((w, i) =>
-              w.done + w.missed > 0 || CHECKIN_SCALES.some((s) => w.averages[s.key] != null) ? (
-                <li key={i}>
-                  <div className="hhr-weekrow-top">
-                    <b>{w.label}</b>
-                    <span>
-                      {w.done}/{w.total} días{w.missed ? ` · ${w.missed} sin entrenar` : ''}
-                    </span>
-                  </div>
-                  <span className="hhr-weekbar" aria-hidden>
-                    {Array.from({ length: w.total }, (_, k) => (
-                      <i key={k} className={k < w.done ? 'is-done' : k < w.done + w.missed ? 'is-missed' : ''} />
-                    ))}
+        <div className="hhr-prog-stats">
+          <span className="hhr-prog-stat is-done">
+            <b>{totalDone}</b> entrenados
+          </span>
+          <span className="hhr-prog-stat is-missed">
+            <b>{totalMissed}</b> sin entrenar
+          </span>
+          {closed ? (
+            <span className="hhr-prog-stat">
+              <b>{pct}%</b> cumplido
+            </span>
+          ) : null}
+        </div>
+        <p className="hhr-prog-cheer">{cheer}</p>
+
+        <ul className="hhr-weekrows">
+          {weeks.map((w, i) =>
+            w.done + w.missed > 0 ? (
+              <li key={i}>
+                <div className="hhr-weekrow-top">
+                  <b>{w.label}</b>
+                  <span>
+                    {w.done}/{w.total} días{w.missed ? ` · ${w.missed} sin entrenar` : ''}
                   </span>
-                  <span className="hhr-weekavg">
-                    {CHECKIN_SCALES.filter((s) => w.averages[s.key] != null)
-                      .map((s) => `${s.short} ${kgText(w.averages[s.key]!)}`)
-                      .concat(w.effort != null ? [`Esfuerzo ${kgText(w.effort)}/10`] : [])
-                      .join(' · ')}
-                  </span>
-                </li>
-              ) : null,
-            )}
-          </ul>
-        ) : null}
-        {lifts.length ? (
+                </div>
+                <span className="hhr-weekbar" aria-hidden>
+                  {Array.from({ length: w.total }, (_, k) => (
+                    <i key={k} className={k < w.done ? 'is-done' : k < w.done + w.missed ? 'is-missed' : ''} />
+                  ))}
+                </span>
+              </li>
+            ) : null,
+          )}
+        </ul>
+
+        {trends.length ? (
           <div className="hhr-lifts">
-            <span className="hhr-exfb-title">Tus pesos</span>
+            <span className="hhr-exfb-title">Cómo llegás a entrenar, semana a semana</span>
+            <ul className="hhr-scalerows">
+              {trends.map((t) => (
+                <li key={t.key}>
+                  <span className="hhr-scalerow-name">{t.short}</span>
+                  <span className="hhr-minibars" aria-label={`${t.short} por semana`}>
+                    {t.weeks.map((v, k) => {
+                      const score = v == null ? null : t.good === 'high' ? v : 6 - v
+                      return (
+                        <i
+                          key={k}
+                          title={v == null ? 'Sin datos' : `Semana ${k + 1}: ${kgText(v)}`}
+                          className={score == null ? 'is-empty' : score >= 4 ? 'is-good' : score >= 3 ? 'is-mid' : 'is-low'}
+                          style={{ height: `${v == null ? 12 : 20 + (v / 5) * 80}%` }}
+                        />
+                      )
+                    })}
+                  </span>
+                  <em className={`hhr-trend is-${t.trend ?? 'none'}`}>
+                    {t.trend === 'better' ? '↑ Mejoró' : t.trend === 'worse' ? '↓ Bajó' : t.trend === 'same' ? '= Igual' : ''}
+                  </em>
+                </li>
+              ))}
+            </ul>
+            <span className="hhr-scale-hint">Verde: muy bien · naranja: normal · rojo: a cuidar. En estrés y dolores, más bajo es mejor.</span>
+          </div>
+        ) : null}
+
+        {gains.length ? (
+          <div className="hhr-lifts">
+            <span className="hhr-exfb-title">
+              Subiste la carga en {gains.length} {gains.length === 1 ? 'ejercicio' : 'ejercicios'}
+            </span>
             <ul>
-              {lifts.map((l) => {
-                const diff = l.lastKg - l.firstKg
-                return (
-                  <li key={l.name}>
-                    <span>{l.name}</span>
-                    <b>
-                      {kgText(l.firstKg)} → {kgText(l.lastKg)} kg
-                      {diff !== 0 ? <em className={diff > 0 ? 'is-up' : ''}> {diff > 0 ? '+' : '−'}{kgText(Math.abs(diff))}</em> : null}
-                    </b>
-                  </li>
-                )
-              })}
+              {gains.map((l) => (
+                <li key={l.name}>
+                  <span>{l.name}</span>
+                  <em className="is-up">+{liftGainPct(l)}%</em>
+                </li>
+              ))}
             </ul>
           </div>
         ) : null}
-        <p className="hhr-save">Los promedios van de 1 a 5 y salen de lo que respondés antes de entrenar.</p>
       </div>
     </details>
   )
