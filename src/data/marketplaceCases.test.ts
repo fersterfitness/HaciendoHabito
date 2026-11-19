@@ -4,7 +4,7 @@ vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/lib/supabasePublic', () => ({ supabasePublic: {} }))
 
 import { cleanVideoUrl, videoSiteLabel } from '@/data/marketplaceCases'
-import { withPreferredPayDay } from '@/components/public/IntakePaymentPreferenceFields'
+import { withPreferredPayDay } from '@/lib/intake/payDay'
 
 describe('cleanVideoUrl', () => {
   it('acepta links de los sitios de video conocidos y los deja en https', () => {

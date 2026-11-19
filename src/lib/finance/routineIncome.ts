@@ -11,6 +11,8 @@ function isMissingColumn(err: { code?: string; message?: string } | null): boole
   return !!err && (err.code === '42703' || /routine_id|payment_day/.test(err.message ?? ''))
 }
 
+export const EXEMPT_SQL_HINT = 'Para marcar bonificados falta correr el SQL 20261123120000_finanzas_reinicio_dias_pago.sql.'
+
 export const GIFT_SQL_HINT =
   'Para registrar asesorías bonificadas ($0) falta ejecutar la migración 20261030160000_oct5_calendario_volumen_finanzas.sql.'
 
@@ -19,6 +21,12 @@ function zeroAmountError(err: { code?: string; message?: string } | null, amount
   if (!err) return null
   if (amount === 0 && (err.code === '23514' || /check constraint/i.test(err.message ?? ''))) return GIFT_SQL_HINT
   return err.message ?? 'Error'
+}
+
+/** Primer día del mes siguiente a `YYYY-MM` (el 31 no existe en todos los meses). */
+export function nextMonthStart(month: string): string {
+  const [y, m] = month.split('-').map(Number)
+  return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`
 }
 
 function today(): string {
@@ -146,6 +154,27 @@ async function registerStudentPaymentImpl(opts: {
     return null
   }
   if (!(opts.amount >= 0)) return 'Ingresá un monto válido (0 si es bonificada)'
+  // Feedback nov19: un solo cobro de cuota por mes. Si ya hay uno, se edita en lugar de duplicarlo.
+  const month = opts.date.slice(0, 7)
+  const { data: existing, error: findErr } = await supabase
+    .from('income')
+    .select('id')
+    .eq('student_id', opts.studentId)
+    .eq('income_type', 'Cuota mensual')
+    .eq('status', 'cobrado')
+    .gte('income_date', `${month}-01`)
+    .lt('income_date', nextMonthStart(month))
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (findErr) return findErr.message
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('income')
+      .update({ amount: opts.amount, payment_method: opts.method, income_date: opts.date })
+      .eq('id', existing.id)
+    return zeroAmountError(error, opts.amount)
+  }
   const { error } = await supabase.from('income').insert({
     owner_id: opts.ownerId,
     student_id: opts.studentId,
@@ -162,13 +191,48 @@ async function registerStudentPaymentImpl(opts: {
   return zeroAmountError(error, opts.amount)
 }
 
-/** Ventana de pago del alumno (días del mes). */
-async function saveStudentPaymentWindowImpl(studentId: string, from: number | null, to: number | null): Promise<string | null> {
-  const { error } = await supabase
-    .from('students')
-    .update({ payment_day_from: from, payment_day_to: to })
-    .eq('id', studentId)
+/**
+ * Desmarcar «Pagó» de un mes (`YYYY-MM`): las rutinas cobradas vuelven a pendientes y los cobros de
+ * cuota del mes se borran.
+ */
+async function unregisterStudentPaymentImpl(studentId: string, month: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('income')
+    .select('id, routine_id')
+    .eq('student_id', studentId)
+    .eq('status', 'cobrado')
+    .eq('scope', 'business')
+    .gte('income_date', `${month}-01`)
+    .lt('income_date', nextMonthStart(month))
+  if (error) return error.message
+  const rows = (data ?? []) as Pick<Income, 'id' | 'routine_id'>[]
+  const routineRows = rows.filter((r) => r.routine_id)
+  const plainIds = rows.filter((r) => !r.routine_id).map((r) => r.id)
+  if (routineRows.length) {
+    const { error: uErr } = await supabase.from('income').update({ status: 'pendiente' }).in('id', routineRows.map((r) => r.id))
+    if (uErr) return uErr.message
+    const { error: rErr } = await supabase.from('routines').update({ is_paid: false }).in('id', routineRows.map((r) => r.routine_id!))
+    if (rErr) return rErr.message
+  }
+  if (plainIds.length) {
+    const { error: dErr } = await supabase.from('income').delete().in('id', plainIds)
+    if (dErr) return dErr.message
+  }
+  return null
+}
+
+/** Día de pago del alumno y si está bonificado (no paga). */
+async function saveStudentPaymentWindowImpl(
+  studentId: string,
+  from: number | null,
+  to: number | null,
+  exempt?: boolean,
+): Promise<string | null> {
+  const patch: Record<string, unknown> = { payment_day_from: from, payment_day_to: to }
+  if (exempt !== undefined) patch.payment_exempt = exempt
+  const { error } = await supabase.from('students').update(patch).eq('id', studentId)
   if (!error) return null
+  if (/payment_exempt/.test(error.message ?? '')) return EXEMPT_SQL_HINT
   return isMissingColumn(error) ? FINANCE_SQL_HINT : error.message
 }
 
@@ -185,4 +249,5 @@ export const createRoutinePendingIncome = refreshing(createRoutinePendingIncomeI
 export const markRoutinePaid = refreshing(markRoutinePaidImpl)
 export const unmarkRoutinePaid = refreshing(unmarkRoutinePaidImpl)
 export const registerStudentPayment = refreshing(registerStudentPaymentImpl)
+export const unregisterStudentPayment = refreshing(unregisterStudentPaymentImpl)
 export const saveStudentPaymentWindow = refreshing(saveStudentPaymentWindowImpl)

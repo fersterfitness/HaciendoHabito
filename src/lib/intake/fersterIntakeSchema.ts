@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { paymentNotesSchema } from '@/lib/intake/payDay'
 import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 
 /** Valores del cuestionario Ferster (registro web /form) */
@@ -31,7 +32,7 @@ export const fersterIntakeSchema = z
     payment_preference: z.enum(['cash', 'mercadopago'], {
       required_error: 'Elegí una forma de pago',
     }),
-    payment_notes: z.string().max(500).optional().or(z.literal('')),
+    payment_notes: paymentNotesSchema,
     accept_privacy: z.boolean().refine((v) => v === true, { message: 'Tenés que aceptar para continuar' }),
     website: z.literal(''),
   })

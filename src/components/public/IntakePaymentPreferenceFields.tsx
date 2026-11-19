@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { controlBaseClassName } from '@/lib/formControlClasses'
 import type { UseFormRegister } from 'react-hook-form'
 import { intakeFormFieldLabelClass } from '@/lib/intake/intakeFormUi'
+import { preferredPayDayOf, withPreferredPayDay } from '@/lib/intake/payDay'
 
 type Props = {
   /** Cualquier formulario que incluya `payment_preference`. */
@@ -14,18 +15,16 @@ type Props = {
 /**
  * Paso «Pago»: íconos `/public/mercadopago-mark.png`, `/public/pago-efectivo-mark.png` (RGBA).
  */
-/** Primera línea del «Dato de pago» cuando la persona elige un día: así le llega al profesional sin cambiar el envío. */
-const PAY_DAY_RE = /^Prefiere pagar el día \d{1,2} de cada mes\.\n?/
 
-export function withPreferredPayDay(notes: string, day: string): string {
-  const rest = notes.replace(PAY_DAY_RE, '')
-  return day ? `Prefiere pagar el día ${day} de cada mes.${rest ? `\n${rest}` : ''}` : rest
-}
 
 export function IntakePaymentPreferenceFields({ register, error }: Props) {
   const notes = register('payment_notes')
   const notesEl = useRef<HTMLTextAreaElement | null>(null)
   const [payDay, setPayDay] = useState('')
+  // Al volver a este paso, el día elegido sigue en «Dato de pago».
+  useEffect(() => {
+    setPayDay(preferredPayDayOf(notesEl.current?.value))
+  }, [])
 
   // El día elegido se escribe en el campo «Dato de pago» (que ya viaja con el formulario).
   function choosePayDay(day: string) {
@@ -75,20 +74,23 @@ export function IntakePaymentPreferenceFields({ register, error }: Props) {
       </div>
       <label className="mt-3 block">
         <span className={intakeFormFieldLabelClass()}>
-          ¿Qué día del mes preferís pagar? <span className="text-ink-muted">(opcional)</span>
+          ¿Qué día del mes vas a pagar?<span className="text-zinc-500 dark:text-zinc-400">*</span>
         </span>
-        <p className="mb-1.5 text-2xs text-ink-muted">Sirve para acordar tu fecha de pago y recordártela.</p>
+        <p className="mb-1.5 text-2xs text-ink-muted">Queda como tu fecha de pago: ese día te llega el recordatorio.</p>
         <select
           value={payDay}
           onChange={(e) => choosePayDay(e.target.value)}
           className={cn(controlBaseClassName, 'mt-1 w-full cursor-pointer px-3 py-2 text-sm sm:w-56')}
         >
-          <option value="">Sin preferencia</option>
+          <option value="" disabled>
+            Elegí un día
+          </option>
           {Array.from({ length: 28 }, (_, i) => String(i + 1)).map((d) => (
             <option key={d} value={d}>
               Día {d}
             </option>
           ))}
+          <option value="ultimo">Último día del mes</option>
         </select>
       </label>
       <label className="mt-3 block">

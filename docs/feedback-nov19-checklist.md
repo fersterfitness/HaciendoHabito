@@ -33,11 +33,13 @@ Fuente: `CORRECIONES EN APP.docx` (escritorio). Cada punto dice de dónde sale y
 
 ## Tanda 5 — Finanzas (necesita SQL)
 
-- [ ] Reiniciar los pagos cargados sin tocar los datos de los alumnos.
-- [ ] Cargar el día de pago de los alumnos actuales (lista del documento) y dejar noviembre como pagado; bonificados sin cobro.
-- [ ] Estados: «Pagó» verde · «Paga hoy» amarillo · «Falta pagar» rojo (pasó la fecha) · «Vencido» violeta (5 días o más). Recordatorios por WhatsApp como hasta ahora.
-- [ ] Marcar pagó / no pagó con un check (el monto sale del plan), sin cobros duplicados. Editar sigue disponible.
-- [ ] Formulario nuevo: fecha de pago obligatoria, queda registrada en el alumno.
+SQL: `supabase/migrations/20261123120000_finanzas_reinicio_dias_pago.sql` (lo corre el usuario a mano).
+
+- [x] Reiniciar los pagos cargados sin tocar los datos de los alumnos (copia en `income_backup_20261119`).
+- [x] Cargar el día de pago de los alumnos actuales (lista del documento) y dejar noviembre como pagado; bonificados sin cobro (`students.payment_exempt`, se marca también desde «Día de pago» en el tablero).
+- [x] Estados: «Pagó» verde · «Paga hoy» amarillo · «Falta pagar» rojo (pasó la fecha) · «Vencido» violeta (5 días o más). Recordatorios por WhatsApp como hasta ahora.
+- [x] Marcar pagó / no pagó con un check (el monto sale del plan), sin cobros duplicados. Editar sigue disponible.
+- [x] Formulario nuevo: fecha de pago obligatoria (día 1 a 28 o último día), queda registrada en el alumno (trigger del SQL).
 - [?] (Idea futura) Ingreso por profesional del equipo para saber cuánto pagarle a cada uno.
 
 ## Tanda 6 — Web / marketplace

@@ -15,6 +15,9 @@ export function MarkPaidModal({
   title,
   subtitle,
   defaultAmount,
+  defaultMethod,
+  defaultDate,
+  eyebrow = 'Registrar cobro',
   amountLocked = false,
   onClose,
   onConfirm,
@@ -23,6 +26,10 @@ export function MarkPaidModal({
   title: string
   subtitle?: string
   defaultAmount: number | null
+  defaultMethod?: PaymentMethod
+  /** YYYY-MM-DD; por defecto, hoy. */
+  defaultDate?: string
+  eyebrow?: string
   /** Cobros de rutinas pendientes: el monto ya está definido por la rutina. */
   amountLocked?: boolean
   onClose: () => void
@@ -36,8 +43,9 @@ export function MarkPaidModal({
   useEffect(() => {
     if (!open) return
     setAmount(defaultAmount && defaultAmount > 0 ? String(defaultAmount) : '')
-    setDate(new Date().toISOString().slice(0, 10))
-  }, [open, defaultAmount])
+    setDate(defaultDate ?? new Date().toISOString().slice(0, 10))
+    if (defaultMethod) setMethod(defaultMethod)
+  }, [open, defaultAmount, defaultDate, defaultMethod])
 
   const amountNum = Number(amount.replace(',', '.'))
   /** 0 es válido: asesoría bonificada (queda registrada como pagada). */
@@ -54,7 +62,7 @@ export function MarkPaidModal({
       open={open}
       onClose={onClose}
       size="sm"
-      eyebrow="Registrar cobro"
+      eyebrow={eyebrow}
       title={title}
       description={subtitle}
       footer={

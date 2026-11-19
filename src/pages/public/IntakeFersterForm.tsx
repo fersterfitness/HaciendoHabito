@@ -707,7 +707,7 @@ export function IntakeFersterForm({
 
         {step === 4 && (
           <>
-            <IntakePaymentPreferenceFields register={register} error={errors.payment_preference?.message} />
+            <IntakePaymentPreferenceFields register={register} error={errors.payment_preference?.message ?? errors.payment_notes?.message} />
 
             <label className="flex items-start gap-3 cursor-pointer group">
               <input

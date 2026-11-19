@@ -175,7 +175,7 @@ export function IntakePsychologistForm({
           ) : null}
         </div>
 
-        <IntakePaymentPreferenceFields register={register} error={errors.payment_preference?.message} />
+        <IntakePaymentPreferenceFields register={register} error={errors.payment_preference?.message ?? errors.payment_notes?.message} />
 
         <label className="flex cursor-pointer items-start gap-2.5 text-sm text-zinc-600 dark:text-zinc-400">
           <input

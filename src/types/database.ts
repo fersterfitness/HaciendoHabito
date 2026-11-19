@@ -547,6 +547,8 @@ export interface Student {
   /** Ventana de pago mensual (día del mes); pasado `payment_day_to` sin cobro → vencido. */
   payment_day_from?: number | null
   payment_day_to?: number | null
+  /** Bonificado: no paga cuota (no aparece como deudor ni recibe avisos). */
+  payment_exempt?: boolean | null
   /** Peso objetivo en kg (seguimiento). */
   target_weight_kg: number | null
   /** Último «leído» del aviso TESTEAR RM (reinicia la cuenta de 12 semanas). */

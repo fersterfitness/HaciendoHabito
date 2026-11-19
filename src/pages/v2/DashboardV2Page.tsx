@@ -429,7 +429,7 @@ export function DashboardV2Page() {
     const cobrado = board.reduce((a, r) => a + r.paid, 0)
     const esperado = board.reduce((a, r) => a + Math.max(r.expected, r.paid), 0)
     const owing = board.filter(
-      (r) => r.state === 'vencido' || r.state === 'parcial' || (r.state === 'pendiente' && r.timing !== 'antes'),
+      (r) => r.state === 'vencido' || r.state === 'falta' || r.state === 'parcial' || (r.state === 'pendiente' && r.timing !== 'antes'),
     ).length
     return {
       cobrado,
@@ -1308,13 +1308,15 @@ export function DashboardV2Page() {
                             isToday
                               ? 'Hoy es su día de pago. Mandale el recordatorio armado.'
                               : overdue
-                                ? 'Pasaron 7 días hábiles desde el vencimiento.'
-                                : 'Ya venció y todavía no figura el pago.'
+                                ? 'Pasaron 7 días hábiles desde su fecha de pago.'
+                                : 'Ya pasó su fecha de pago y todavía no figura.'
                           }
                           tags={
                             <>
                               <TagV2 tone="neutral">Cobro</TagV2>
-                              <TagV2 tone={isToday ? 'butter' : 'rose'}>{isToday ? 'Vence hoy' : overdue ? 'Atrasado' : 'Vencido'}</TagV2>
+                              <TagV2 tone={isToday ? 'butter' : r.state === 'vencido' ? 'lavender' : 'rose'}>
+                                {isToday ? 'Paga hoy' : r.state === 'vencido' ? 'Vencido' : 'Falta pagar'}
+                              </TagV2>
                               {overdueTag(key)}
                             </>
                           }

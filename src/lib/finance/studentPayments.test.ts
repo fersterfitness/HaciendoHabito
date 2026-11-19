@@ -25,6 +25,12 @@ describe('computePaymentState', () => {
     expect(state({ expected: 50000, paid: 0, dueDay: 1, month: oct, today: new Date(2026, 9, 12) })).toEqual({ state: 'vencido', reminder: 'overdue', timing: 'despues' })
   })
 
+  it('feedback nov19: pasada la fecha «falta pagar»; a los 5 días corridos, vencido', () => {
+    const nov = new Date(2026, 10, 1)
+    const at = (d: number) => state({ expected: 1, paid: 0, dueDay: 10, month: nov, today: new Date(2026, 10, d) }).state
+    expect([at(9), at(10), at(11), at(14), at(15), at(30)]).toEqual(['pendiente', 'pendiente', 'falta', 'falta', 'vencido', 'vencido'])
+  })
+
   it('si arrancó después de su día de pago, ese mes no debe todavía', () => {
     expect(state({ expected: 50000, paid: 0, dueDay: 10, month: oct, today: new Date(2026, 9, 31), startedAt: '2026-10-20' })).toEqual({
       state: 'pendiente',
@@ -92,7 +98,8 @@ describe('buildPaymentBoard', () => {
       })[0]
     expect(board(2)).toMatchObject({ state: 'pendiente', timing: 'antes', reminder: null, dueDate: '2026-11-10' })
     expect(board(10)).toMatchObject({ timing: 'hoy', reminder: 'due' })
-    expect(board(11)).toMatchObject({ state: 'vencido', timing: 'despues' })
+    expect(board(11)).toMatchObject({ state: 'falta', timing: 'despues' })
+    expect(board(15)).toMatchObject({ state: 'vencido', timing: 'despues' })
   })
 
   it('sin rutina pendiente espera la cuota mensual', () => {
@@ -110,16 +117,16 @@ describe('buildPaymentBoard', () => {
     const rows = buildPaymentBoard({
       students: [
         { id: 's1', full_name: 'Sin cuota', created_at: '2026-01-01T00:00:00Z' },
-        { id: 's2', full_name: 'Bonificado', created_at: '2026-01-01T00:00:00Z' },
+        { id: 's2', full_name: 'Bonificado', payment_exempt: true, created_at: '2026-01-01T00:00:00Z' },
         { id: 's3', full_name: 'Nuevo', created_at: '2026-11-05T00:00:00Z' },
       ],
-      incomes: [{ id: 'i1', student_id: 's2', amount: 0, status: 'cobrado', income_date: '2026-10-03', payment_method: 'otro' }],
+      incomes: [],
       month: oct,
       today: new Date(2026, 9, 8),
     })
     expect(rows.map((r) => [r.fullName, r.state, r.gifted])).toEqual([
       ['Sin cuota', 'pendiente', false],
-      ['Bonificado', 'pagado', true],
+      ['Bonificado', 'sin_cargo', true],
     ])
   })
 })
@@ -163,6 +170,6 @@ describe('cuota desde el plan web (feedback nov3)', () => {
       planPrices: plans,
     })
     expect(row.expected).toBe(35000)
-    expect(row.state).toBe('vencido')
+    expect(row.state).toBe('falta')
   })
 })

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { paymentNotesSchema } from '@/lib/intake/payDay'
 import { cn } from '@/lib/utils'
 import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import toast from 'react-hot-toast'
@@ -75,7 +76,7 @@ const fullIntakeSchema = z
     payment_preference: z.enum(['cash', 'mercadopago'], {
       required_error: 'Elegí una forma de pago',
     }),
-    payment_notes: z.string().max(500).optional().or(z.literal('')),
+    payment_notes: paymentNotesSchema,
     // Privacy
     accept_privacy: z.boolean().refine((v) => v === true, { message: 'Tenés que aceptar para continuar' }),
     website: z.literal(''),
@@ -735,7 +736,7 @@ export function IntakeFullForm({
         {/* ── PASO 5: Pago y envío ── */}
         {step === 5 && (
           <>
-            <IntakePaymentPreferenceFields register={register} error={errors.payment_preference?.message} />
+            <IntakePaymentPreferenceFields register={register} error={errors.payment_preference?.message ?? errors.payment_notes?.message} />
 
             <label className="flex items-start gap-3 cursor-pointer group">
               <input

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addMonths, format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Check, ChevronLeft, ChevronRight, Lock, Settings2 } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Lock, Pencil, Settings2, Undo2 } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import toast from 'react-hot-toast'
 import { invalidateFinance, useActiveStudents, useIncomes } from '@/data/finance'
@@ -26,19 +26,23 @@ import {
   type PaymentState,
   type StudentPaymentRow,
 } from '@/lib/finance/studentPayments'
-import { registerStudentPayment, saveStudentPaymentWindow } from '@/lib/finance/routineIncome'
+import { registerStudentPayment, saveStudentPaymentWindow, unregisterStudentPayment } from '@/lib/finance/routineIncome'
+import { confirmDialog } from '@/components/ui/dialogs'
 import { normalizePhoneForWhatsApp, shareToWhatsApp, WHATSAPP_DIRECT_PASTE_HINT } from '@/lib/whatsapp'
 import { controlMdClassName } from '@/lib/formControlClasses'
 import { PAYMENT_METHODS } from '@/lib/constants'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { Income } from '@/types/database'
 
+const LAVENDER_CHIP = 'bg-pastel-lavender text-pastel-lavender-ink dark:bg-pastel-lavender/15 dark:text-pastel-lavender'
+/** Feedback nov19: pagó verde · paga hoy amarillo · falta pagar rojo · vencido (5 días o más) violeta. */
 const STATE_META: Record<PaymentState, { label: string; chip: string; color: string }> = {
-  pagado: { label: 'Abonó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: 'rgb(var(--chart-ok))' },
-  parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: IS_V2 ? 'rgb(var(--chart-1))' : '#3b82f6' },
-  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? 'rgb(var(--tw-amber-300))' : '#f59e0b' },
-  vencido: { label: 'Vencido', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: 'rgb(var(--chart-bad))' },
-  sin_cargo: { label: 'Sin cargo', chip: 'bg-surface-elevated text-ink-muted', color: '#a1a1aa' },
+  pagado: { label: 'Pagó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: 'rgb(var(--chart-ok))' },
+  parcial: { label: 'Parcial', chip: 'bg-status-pending/15 text-status-pending', color: '#f97316' },
+  pendiente: { label: 'Al día', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? 'rgb(var(--tw-amber-300))' : '#f59e0b' },
+  falta: { label: 'Falta pagar', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: 'rgb(var(--chart-bad))' },
+  vencido: { label: 'Vencido', chip: LAVENDER_CHIP, color: '#8b5cf6' },
+  sin_cargo: { label: 'Bonificado', chip: 'bg-surface-elevated text-ink-muted', color: '#a1a1aa' },
 }
 
 /** Paleta categórica (v2: la paleta de la app en pastel; claro/oscuro legibles sobre la tarjeta). */
@@ -47,11 +51,9 @@ const METHOD_COLORS = IS_V2
   : ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#4a3aa7', '#008300', '#e34948']
 const METHOD_LABEL = Object.fromEntries(PAYMENT_METHODS.map((m) => [m.value, m.label])) as Record<string, string>
 
-/** Etiqueta del estado: «Falta pagar» se afina según la fecha de pago (pedido del entrenador). */
+/** Etiqueta del estado: el día de pago dice «Paga hoy» (pedido del entrenador). */
 function stateLabel(r: StudentPaymentRow): string {
-  if (r.gifted) return 'Bonificado'
-  if (r.state === 'pendiente' && r.timing === 'antes') return 'Al día'
-  if (r.state === 'pendiente' && r.timing === 'hoy') return 'Abonan hoy'
+  if (r.state === 'pendiente' && r.timing === 'hoy') return 'Paga hoy'
   return STATE_META[r.state].label
 }
 
@@ -60,8 +62,8 @@ type Filter = 'all' | 'vencido' | 'pendiente' | 'al_dia' | 'pagado'
 /** Todavía no llegó su día de pago: no debe nada aún. */
 const isAlDia = (r: StudentPaymentRow) => r.state === 'pendiente' && r.timing === 'antes'
 /**
- * v2: colores que se leen de un vistazo (pedido del entrenador): al día y abonó en verde, abonan hoy
- * en amarillo, falta pagar y vencido en rojo, parcial en naranja.
+ * v2: colores que se leen de un vistazo (pedido del entrenador): al día y pagó en verde, paga hoy
+ * en amarillo, falta pagar en rojo, vencido en violeta, parcial en naranja.
  */
 const GREEN_CHIP = 'bg-status-ok/20 text-status-ok-ink'
 const YELLOW_CHIP = 'bg-status-warn/25 text-status-warn-ink dark:bg-status-warn/15'
@@ -71,12 +73,20 @@ function stateChipV2(r: StudentPaymentRow): string {
   if (isAlDia(r)) return 'bg-status-ok/[0.08] text-status-ok-ink ring-1 ring-inset ring-status-ok/30'
   if (r.state === 'pendiente' && r.timing === 'hoy') return YELLOW_CHIP
   if (r.state === 'parcial') return 'bg-status-pending/15 text-status-pending'
-  if (r.state === 'vencido') return 'bg-status-expired/20 text-status-expired'
-  return 'bg-status-expired/10 text-status-expired'
+  if (r.state === 'vencido') return LAVENDER_CHIP
+  return 'bg-status-expired/20 text-status-expired'
 }
 const stateChip = (r: StudentPaymentRow) =>
-  IS_V2 ? stateChipV2(r) : isAlDia(r) && !r.gifted ? 'bg-surface-elevated text-ink-secondary' : STATE_META[r.state].chip
-const owesNow = (r: StudentPaymentRow) => (r.state === 'pendiente' || r.state === 'parcial') && !isAlDia(r)
+  IS_V2
+    ? stateChipV2(r)
+    : isAlDia(r)
+      ? 'bg-surface-elevated text-ink-secondary'
+      : r.state === 'pendiente'
+        ? YELLOW_CHIP
+        : STATE_META[r.state].chip
+const owesNow = (r: StudentPaymentRow) => (r.state === 'pendiente' || r.state === 'parcial' || r.state === 'falta') && !isAlDia(r)
+/** Debe algo (se le puede recordar por WhatsApp). */
+const owes = (r: StudentPaymentRow) => r.state === 'vencido' || r.state === 'falta' || r.state === 'pendiente' || r.state === 'parcial'
 
 /**
  * Cobros del mes por alumno: quién pagó, cuánto y por qué medio; vencidos con WhatsApp directo.
@@ -102,6 +112,7 @@ export function PaymentsBoard() {
   const loading = studentsQuery.isPending || incomesQuery.isPending
   const [filter, setFilter] = useState<Filter>('all')
   const [paying, setPaying] = useState<StudentPaymentRow | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
   const [windowFor, setWindowFor] = useState<StudentPaymentRow | null>(null)
 
   const load = () => Promise.all([invalidateFinance(), invalidateStudents()])
@@ -140,7 +151,7 @@ export function PaymentsBoard() {
   // Datos de gráficos memorizados: recharts reanima (y re-renderiza) si cambia la referencia en cada render.
   const stateChart = useMemo(
     () =>
-      (['pagado', 'parcial', 'pendiente', 'vencido'] as PaymentState[])
+      (['pagado', 'parcial', 'pendiente', 'falta', 'vencido'] as PaymentState[])
         .map((s) => ({ name: STATE_META[s].label, value: rows.filter((r) => r.state === s).length, color: STATE_META[s].color }))
         .filter((d) => d.value > 0),
     [rows],
@@ -169,6 +180,52 @@ export function PaymentsBoard() {
         .slice(0, 10),
     [rows],
   )
+
+  /** Fecha del cobro: hoy en el mes en curso; en un mes cerrado, su fecha de pago (o el último día). */
+  const payDateFor = (r: StudentPaymentRow) => {
+    if (isCurrentMonth) return format(today, 'yyyy-MM-dd')
+    return r.dueDate ?? format(new Date(month.getFullYear(), month.getMonth() + 1, 0), 'yyyy-MM-dd')
+  }
+
+  /** Feedback nov19: «Pagó» con un toque; el monto sale del plan o de la cuota. Se puede editar después. */
+  async function markPaid(r: StudentPaymentRow) {
+    if (!user) return
+    setBusy(r.studentId)
+    const err = await registerStudentPayment({
+      ownerId: user.id,
+      studentId: r.studentId,
+      studentName: r.fullName,
+      amount: Math.max(0, r.expected - r.paid),
+      method: r.methods[0] ?? 'transferencia',
+      date: payDateFor(r),
+      pendingIncomeIds: r.pendingIncomeIds,
+    })
+    setBusy(null)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    toast.success(`${r.fullName.split(' ')[0]}: pagó ${format(month, 'MMMM', { locale: es })}`)
+    await load()
+  }
+
+  async function unmarkPaid(r: StudentPaymentRow) {
+    const ok = await confirmDialog({
+      title: `¿Desmarcar el pago de ${r.fullName.split(' ')[0]}?`,
+      description: `Se borra lo cobrado en ${format(month, 'MMMM', { locale: es })} y vuelve a figurar como pendiente.`,
+      confirmLabel: 'Desmarcar',
+      variant: 'warning',
+    })
+    if (!ok) return
+    setBusy(r.studentId)
+    const err = await unregisterStudentPayment(r.studentId, monthKey(month))
+    setBusy(null)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    await load()
+  }
 
   async function confirmPayment(values: MarkPaidValues) {
     if (!user || !paying) return
@@ -244,15 +301,15 @@ export function PaymentsBoard() {
             <p className={cn('text-2xl font-semibold tabular-nums tracking-tight', totals.pendiente > 0 ? '' : 'text-ink-primary')}>{formatCurrency(totals.pendiente)}</p>
           </div>
           {totals.vencidos > 0 ? (
-            <div className="hh-pastel min-w-[6.5rem] flex-1 rounded-xl bg-pastel-rose px-3.5 py-3 text-pastel-rose-ink sm:flex-none">
+            <div className="hh-pastel min-w-[6.5rem] flex-1 rounded-xl bg-pastel-lavender px-3.5 py-3 text-pastel-lavender-ink sm:flex-none">
               <p className="text-xs opacity-80">Vencidos</p>
               <p className="text-2xl font-semibold tabular-nums tracking-tight">{totals.vencidos}</p>
             </div>
           ) : null}
           <div className="flex min-w-[12rem] flex-1 flex-col justify-center px-2">
             <div className="flex items-baseline justify-between text-[12px] text-ink-muted">
-              <span>{totals.pagados} de {rows.length} abonaron</span>
-              {totals.vencidos > 0 ? <span className="font-medium text-status-expired">{totals.vencidos} vencido{totals.vencidos === 1 ? '' : 's'}</span> : null}
+              <span>{totals.pagados} de {rows.length} pagaron</span>
+              {totals.vencidos > 0 ? <span className="font-medium text-pastel-lavender-accent">{totals.vencidos} vencido{totals.vencidos === 1 ? '' : 's'}</span> : null}
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-elevated">
               <div
@@ -299,11 +356,11 @@ export function PaymentsBoard() {
               { id: 'vencido', label: 'Vencidos', count: totals.vencidos },
               { id: 'pendiente', label: 'Falta pagar', count: totals.faltan },
               { id: 'al_dia', label: 'Al día', count: totals.alDia },
-              { id: 'pagado', label: 'Abonaron', count: totals.pagados },
+              { id: 'pagado', label: 'Pagaron', count: totals.pagados },
             ]}
           />
           <p className={cn('ml-auto text-3xs text-ink-muted', IS_V2 && 'hidden')}>
-            Todos tus {people} activos. Lo esperado sale de la rutina con precio o de la cuota mensual; $0 = bonificada.
+            Todos tus {people} activos. Lo esperado sale de la rutina con precio, la cuota o el plan.
           </p>
         </div>
 
@@ -325,8 +382,9 @@ export function PaymentsBoard() {
           <ul className="divide-y divide-surface-border/70 sm:hidden">
             {visible.map((r) => {
               const debt = Math.max(0, r.expected - r.paid)
-              const wa = r.state === 'vencido' || r.state === 'pendiente' || r.state === 'parcial' ? normalizePhoneForWhatsApp(r.phone) : null
-              const canPay = r.state !== 'pagado' && !isPastMonthRow(r)
+              const wa = owes(r) ? normalizePhoneForWhatsApp(r.phone) : null
+              const canPay = r.state !== 'pagado' && r.state !== 'sin_cargo' && !isPastMonthRow(r)
+              const isPaid = r.state === 'pagado' && r.paidCount > 0
               return (
                 <li key={r.studentId} className="px-4 py-3.5">
                   <div className="flex items-start gap-3">
@@ -358,7 +416,23 @@ export function PaymentsBoard() {
                       <p className="text-3xs text-ink-muted">{debt > 0 ? 'debe' : r.paid > 0 || r.gifted ? 'abonó' : ''}</p>
                     </div>
                   </div>
-                  {wa || canPay ? (
+                  {isPaid ? (
+                    <div className="mt-2.5 grid grid-cols-2 gap-2">
+                      <Button size="sm" variant="outline" className="h-9" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => setPaying(r)}>
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-9"
+                        loading={busy === r.studentId}
+                        icon={<Undo2 className="h-3.5 w-3.5" />}
+                        onClick={() => void unmarkPaid(r)}
+                      >
+                        Desmarcar
+                      </Button>
+                    </div>
+                  ) : wa || canPay ? (
                     <div className="mt-2.5 grid grid-cols-2 gap-2">
                       {wa ? (
                         <Button
@@ -373,8 +447,15 @@ export function PaymentsBoard() {
                         </Button>
                       ) : null}
                       {canPay ? (
-                        <Button size="sm" variant="secondary" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)} className={cn('h-9', !wa && 'col-span-2')}>
-                          Marcar pagado
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          loading={busy === r.studentId}
+                          icon={<Check className="h-3.5 w-3.5" />}
+                          onClick={() => void markPaid(r)}
+                          className={cn('h-9', !wa && 'col-span-2')}
+                        >
+                          Pagó
                         </Button>
                       ) : null}
                     </div>
@@ -403,7 +484,8 @@ export function PaymentsBoard() {
               <tbody className="divide-y divide-surface-border/70">
                 {visible.map((r) => {
                   const debt = Math.max(0, r.expected - r.paid)
-                  const wa = r.state === 'vencido' || r.state === 'pendiente' || r.state === 'parcial' ? normalizePhoneForWhatsApp(r.phone) : null
+                  const wa = owes(r) ? normalizePhoneForWhatsApp(r.phone) : null
+                  const isPaid = r.state === 'pagado' && r.paidCount > 0
                   return (
                     <tr key={r.studentId} className="group">
                       <td className="px-4 py-2.5">
@@ -479,9 +561,28 @@ export function PaymentsBoard() {
                               Recordar
                             </Button>
                           ) : null}
-                          {r.state !== 'pagado' && !isPastMonthRow(r) ? (
-                            <Button size="sm" variant="secondary" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)}>
-                              Marcar pagado
+                          {isPaid ? (
+                            <>
+                              <IconButton
+                                variant="soft"
+                                className="h-8 w-8"
+                                onClick={() => setPaying(r)}
+                                label={`Editar el pago de ${r.fullName}`}
+                                title="Editar monto, medio o fecha"
+                                icon={<Pencil className="h-3.5 w-3.5" />}
+                              />
+                              <IconButton
+                                variant="soft"
+                                className="h-8 w-8"
+                                onClick={() => void unmarkPaid(r)}
+                                label={`Desmarcar el pago de ${r.fullName}`}
+                                title="Desmarcar (no pagó)"
+                                icon={<Undo2 className="h-3.5 w-3.5" />}
+                              />
+                            </>
+                          ) : r.state !== 'sin_cargo' && !isPastMonthRow(r) ? (
+                            <Button size="sm" variant="secondary" loading={busy === r.studentId} icon={<Check className="h-3.5 w-3.5" />} onClick={() => void markPaid(r)}>
+                              Pagó
                             </Button>
                           ) : null}
                         </div>
@@ -536,7 +637,7 @@ export function PaymentsBoard() {
                   />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={12}>
                     {debtChart.map((d) => (
-                      <Cell key={d.full} fill={d.state === 'vencido' ? STATE_META.vencido.color : STATE_META.pendiente.color} />
+                      <Cell key={d.full} fill={STATE_META[d.state].color} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -556,7 +657,10 @@ export function PaymentsBoard() {
             ? 'Se marcan como cobradas sus rutinas pendientes.'
             : `Cuota de ${format(month, 'MMMM', { locale: es })}`
         }
-        defaultAmount={paying ? Math.max(0, paying.expected - paying.paid) : null}
+        eyebrow={paying?.paidCount ? 'Editar pago' : undefined}
+        defaultAmount={paying ? (paying.paidCount ? paying.paid : Math.max(0, paying.expected - paying.paid)) : null}
+        defaultMethod={paying?.methods[0]}
+        defaultDate={paying ? payDateFor(paying) : undefined}
         amountLocked={!!paying?.pendingIncomeIds.length}
         onClose={() => setPaying(null)}
         onConfirm={confirmPayment}
@@ -655,11 +759,13 @@ function PaymentWindowModal({
   onSaved: () => void
 }) {
   const [day, setDay] = useState('')
+  const [exempt, setExempt] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!row) return
     setDay(row.dueDay != null ? String(row.dueDay) : '')
+    setExempt(row.gifted)
   }, [row])
 
   const toDay = (v: string) => {
@@ -671,7 +777,7 @@ function PaymentWindowModal({
     if (!row) return
     setSaving(true)
     const d = toDay(day)
-    const err = await saveStudentPaymentWindow(row.studentId, d, d)
+    const err = await saveStudentPaymentWindow(row.studentId, d, d, exempt !== row.gifted ? exempt : undefined)
     setSaving(false)
     if (err) {
       toast.error(err)
@@ -712,7 +818,14 @@ function PaymentWindowModal({
           className={cn(controlMdClassName, 'mt-1 w-full')}
           autoFocus
         />
-        <span className="mt-1 block text-3xs font-normal text-ink-muted">Si el mes es más corto (ej. 31 en noviembre), se toma el último día.</span>
+        <span className="mt-1 block text-3xs font-normal text-ink-muted">Último día del mes: poné 31 (en meses más cortos se toma el último día).</span>
+      </label>
+      <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-xs text-ink-secondary">
+        <input type="checkbox" checked={exempt} onChange={(e) => setExempt(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>
+          <span className="font-medium text-ink-primary">Bonificado</span>
+          <span className="block text-3xs text-ink-muted">No paga: no figura como deudor ni le salen avisos de pago.</span>
+        </span>
       </label>
     </Modal>
   )

@@ -85,7 +85,7 @@ export function NutritionAttentionPanel({
     if (!students.length) return new Set<string>()
     const today = new Date()
     const month = new Date(today.getFullYear(), today.getMonth(), 1)
-    return new Set(buildPaymentBoard({ students, incomes, month, today }).filter((r) => r.state === 'vencido').map((r) => r.studentId))
+    return new Set(buildPaymentBoard({ students, incomes, month, today }).filter((r) => r.state === 'vencido' || r.state === 'falta').map((r) => r.studentId))
   }, [studentsQuery.data, incomesQuery.data])
 
   const items = useMemo(
