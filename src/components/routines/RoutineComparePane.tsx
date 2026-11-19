@@ -263,7 +263,7 @@ const fmtKg = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', '
 function studentLogText(logs: ExerciseSetLog[]): string | null {
   const perSet = logs
     .filter((l) => l.weight_kg != null || l.reps != null)
-    .map((l) => [l.weight_kg != null ? `${fmtKg(l.weight_kg)} kg` : '', l.reps != null ? `× ${l.reps}` : ''].filter(Boolean).join(' '))
+    .map((l) => [l.weight_kg != null ? `${fmtKg(l.weight_kg)} kg${l.weight_mode === 'lado' ? ' por lado' : ''}` : '', l.reps != null ? `× ${l.reps}` : ''].filter(Boolean).join(' '))
   if (perSet.length) return perSet.join(' · ')
   const done = logs.filter((l) => l.completed).length
   return done ? `${done} ${done === 1 ? 'serie hecha' : 'series hechas'}, sin kilos anotados` : null

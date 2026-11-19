@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { supabasePublic } from '@/lib/supabasePublic'
-import { formatSeriesPlanLine, parseExerciseMeta } from '@/lib/routine/exerciseMeta'
+import { formatSeriesPlanLine, parseExerciseMeta, plannedWeightText } from '@/lib/routine/exerciseMeta'
 
 /** Ejercicio tal como lo devuelve `get_shared_routine` (sin notas privadas del entrenador). */
 export interface SharedRoutineExercise {
@@ -44,9 +44,15 @@ export async function saveSharedSet(
   weightKg: number | null,
   completed: boolean,
   reps: number | null = null,
+  /** Feedback nov19: total o por lado. `undefined` = sin la migración 20261124120000 (se guarda como antes). */
+  weightMode?: 'total' | 'lado',
 ): Promise<void> {
   const args = { p_token: token, p_exercise_id: exerciseId, p_set_number: setNumber, p_weight_kg: weightKg, p_completed: completed }
-  let { data, error } = await supabasePublic.rpc('save_shared_exercise_set', { ...args, p_reps: reps })
+  let { data, error } = weightMode
+    ? await supabasePublic.rpc('save_shared_exercise_set', { ...args, p_reps: reps, p_weight_mode: weightMode })
+    : await supabasePublic.rpc('save_shared_exercise_set', { ...args, p_reps: reps })
+  // Sin la migración del peso por lado se guarda igual, sin el modo.
+  if (error?.code === 'PGRST202' && weightMode) ({ data, error } = await supabasePublic.rpc('save_shared_exercise_set', { ...args, p_reps: reps }))
   // Sin la migración de repeticiones (20261111180000) se guarda igual, mientras no se hayan anotado reps.
   if (error?.code === 'PGRST202' && reps == null) ({ data, error } = await supabasePublic.rpc('save_shared_exercise_set', args))
   if (error?.code === 'PGRST202' && reps != null) throw new Error('Falta activar las repeticiones en la base de datos. Avisale a tu entrenador.')
@@ -269,7 +275,7 @@ export function effortLabel(raw: string | null | undefined): string | null {
 export function exerciseDetails(ex: SharedRoutineExercise): { chips: string[]; seriesPlan: string | null; notes: string } {
   const { userNotes, meta } = parseExerciseMeta(ex.technical_notes)
   const chips: string[] = []
-  if (ex.weight_kg != null && ex.weight_kg > 0) chips.push(`${fmtNum(ex.weight_kg)} kg`)
+  if (ex.weight_kg != null && ex.weight_kg > 0) chips.push(plannedWeightText(ex.weight_kg, meta))
   else if (ex.percent_rm != null && ex.percent_rm > 0) chips.push(`${fmtNum(ex.percent_rm)}% RM`)
   else if (meta.percent1rm?.trim()) chips.push(`${meta.percent1rm.trim().replace(/%$/, '')}% RM`)
   const effort = ex.rpe != null ? `RPE ${fmtNum(ex.rpe)}` : ex.rir != null ? `RIR ${fmtNum(ex.rir)}` : effortLabel(meta.rpeText)

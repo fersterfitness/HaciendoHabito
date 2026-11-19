@@ -21,9 +21,11 @@ Fuente: `CORRECIONES EN APP.docx` (escritorio). Cada punto dice de dónde sale y
 
 ## Tanda 3 — peso por lado o total
 
-- [ ] (App 4) Al planificar: marcar si el peso es «Total», «Por lado» o ambos (con barra de 20 kg: 100 kg total = 40 por lado).
-- [ ] (App 4) En el link: mostrar total y/o por lado según lo marcado.
-- [ ] (App 4) El alumno indica si lo que anotó es total o por lado (necesita SQL para guardarlo por serie).
+SQL: `supabase/migrations/20261124120000_peso_por_lado.sql` (lo corre el usuario a mano; solo hace falta para lo que anota el alumno).
+
+- [x] (App 4) Al planificar: marcar si el peso es «Total», «Por lado» o ambos (con barra de 20 kg: 100 kg total = 40 por lado). El kg cargado es siempre el total; la barra se puede cambiar (0 = sin barra).
+- [x] (App 4) En el link: mostrar total y/o por lado según lo marcado (también en el PDF).
+- [x] (App 4) El alumno indica si lo que anotó es total o por lado (se guarda por serie; el entrenador lo ve en «Anotó el alumno» y la diferencia con lo indicado se calcula en total).
 
 ## Tanda 4 — «Ver como profe» y notas para el alumno (necesita SQL)
 

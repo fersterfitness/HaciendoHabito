@@ -17,6 +17,56 @@ export interface ExerciseMeta {
   seriesPlan?: SeriesPlanEntry[]
   /** Contador de volumen: técnica elegida a mano (dropset, burns…); si falta, se detecta. */
   volumeTechnique?: string
+  /**
+   * Feedback nov19 (tanda 3): cómo ve el alumno el peso. El kg que carga el entrenador es siempre el total;
+   * «lado» muestra lo que va de cada lado ((total − barra) / 2) y «ambos» las dos cosas. Sin dato, total.
+   */
+  weightMode?: WeightMode
+  /** Peso de la barra para calcular el «por lado» (por defecto 20 kg; 0 = sin barra, mancuernas o máquina). */
+  barKg?: number
+}
+
+export type WeightMode = 'total' | 'lado' | 'ambos'
+export const DEFAULT_BAR_KG = 20
+
+export const WEIGHT_MODE_LABEL: Record<WeightMode, string> = {
+  total: 'Total',
+  lado: 'Por lado',
+  ambos: 'Total y por lado',
+}
+
+export function weightModeOf(meta: Pick<ExerciseMeta, 'weightMode'>): WeightMode {
+  return meta.weightMode === 'lado' || meta.weightMode === 'ambos' ? meta.weightMode : 'total'
+}
+
+export function barKgOf(meta: Pick<ExerciseMeta, 'barKg'>): number {
+  const b = meta.barKg
+  return typeof b === 'number' && Number.isFinite(b) && b >= 0 && b <= 50 ? b : DEFAULT_BAR_KG
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10
+
+/** 100 kg total con barra de 20 → 40 por lado. Nunca negativo. */
+export function perSideKg(totalKg: number, barKg: number): number {
+  return round1(Math.max(0, (totalKg - barKg) / 2))
+}
+
+/** 40 por lado con barra de 20 → 100 kg total. */
+export function totalFromSideKg(sideKg: number, barKg: number): number {
+  return round1(sideKg * 2 + barKg)
+}
+
+const kgText = (n: number) => String(round1(n)).replace('.', ',')
+
+/**
+ * Peso indicado tal como lo lee el alumno, según el modo: «100 kg», «40 kg por lado» o «100 kg · 40 por lado».
+ * `totalKg` es lo que cargó el entrenador.
+ */
+export function plannedWeightText(totalKg: number, meta: Pick<ExerciseMeta, 'weightMode' | 'barKg'>): string {
+  const mode = weightModeOf(meta)
+  if (mode === 'total') return `${kgText(totalKg)} kg`
+  const side = kgText(perSideKg(totalKg, barKgOf(meta)))
+  return mode === 'lado' ? `${side} kg por lado` : `${kgText(totalKg)} kg · ${side} por lado`
 }
 
 export function seriesPlanHasData(plan: SeriesPlanEntry[] | undefined): boolean {
@@ -91,7 +141,8 @@ export function parseExerciseMeta(
 export function buildExerciseTechnicalNotes(userNotes: string, meta: ExerciseMeta): string {
   if (meta.seriesPlan && !seriesPlanHasData(meta.seriesPlan)) delete meta.seriesPlan
   const hasMeta = Boolean(
-    meta.restText || meta.rpeText || meta.percent1rm || meta.circuitNote || meta.seriesPlan || meta.volumeTechnique,
+    meta.restText || meta.rpeText || meta.percent1rm || meta.circuitNote || meta.seriesPlan || meta.volumeTechnique ||
+      (meta.weightMode && meta.weightMode !== 'total'),
   )
   const cleanUserNotes = userNotes.trim()
   if (!hasMeta) return cleanUserNotes
@@ -177,7 +228,7 @@ export function pdfExerciseDisplay(
 
   // Con plan por serie, el PDF muestra los kg de cada serie en la columna (ver seriesRows).
   if (exercise.weight_kg != null) {
-    weightCell = `${fmtKg(exercise.weight_kg)} kg`
+    weightCell = weightModeOf(meta) === 'total' ? `${fmtKg(exercise.weight_kg)} kg` : plannedWeightText(exercise.weight_kg, meta)
     if (pct !== null) weightCell += ` (${pct}% 1RM)`
   } else if (computedKg !== null) {
     weightCell = `${fmtKg(computedKg)} kg (${pct}% × 1RM ${fmtKg(rmKg as number)} kg)`

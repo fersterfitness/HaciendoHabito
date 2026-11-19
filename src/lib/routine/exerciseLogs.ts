@@ -7,6 +7,8 @@ export interface ExerciseSetLog {
   weight_kg: number | null
   reps: number | null
   completed?: boolean
+  /** Feedback nov19: «lado» si anotó lo que puso de cada lado (20261124120000_peso_por_lado.sql). */
+  weight_mode?: 'total' | 'lado' | null
   updated_at: string
 }
 
@@ -27,7 +29,7 @@ export async function fetchRoutineExerciseLogs(routineId: string): Promise<Exerc
   if (error || !data) return out
   for (const row of data as (ExerciseSetLog & { routine_exercise_id: string })[]) {
     const list = out.get(row.routine_exercise_id) ?? []
-    list.push({ set_number: row.set_number, weight_kg: row.weight_kg, reps: row.reps, completed: row.completed, updated_at: row.updated_at })
+    list.push({ set_number: row.set_number, weight_kg: row.weight_kg, reps: row.reps, completed: row.completed, weight_mode: row.weight_mode ?? null, updated_at: row.updated_at })
     out.set(row.routine_exercise_id, list)
   }
   return out

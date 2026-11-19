@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Trash2, GripVertical, Link2, Unlink, ArrowUp, ArrowDown, ExternalLink, RefreshCw } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { cn } from '@/lib/utils'
-import { type ExerciseMeta, type SeriesPlanEntry, parseExerciseMeta, buildExerciseTechnicalNotes } from '@/lib/routine/exerciseMeta'
+import { type ExerciseMeta, type SeriesPlanEntry, type WeightMode, parseExerciseMeta, buildExerciseTechnicalNotes, barKgOf, perSideKg, totalFromSideKg, weightModeOf, WEIGHT_MODE_LABEL } from '@/lib/routine/exerciseMeta'
 import { isMultiarticularExercise } from '@/lib/routine/copyDayPrescriptions'
 import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
 import type { RoutineExercise, TrainingMethod } from '@/types/database'
@@ -44,6 +44,9 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
   const [percent1rm, setPercent1rm] = useState(initialMeta.meta.percent1rm ?? '')
   const [seriesPlan, setSeriesPlan] = useState<SeriesPlanEntry[]>(initialMeta.meta.seriesPlan ?? [])
   const [notes, setNotes]         = useState(initialMeta.userNotes)
+  // Feedback nov19 (tanda 3): cómo ve el alumno el peso (el kg cargado es siempre el total).
+  const [weightMode, setWeightMode] = useState<WeightMode>(weightModeOf(initialMeta.meta))
+  const [barKg, setBarKg]         = useState<number>(barKgOf(initialMeta.meta))
   const [videoUrl, setVideoUrl]   = useState(() => (exercise.video_url ?? '').trim())
 
   useEffect(() => {
@@ -149,7 +152,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
         </Button>
       </div>
 
-      {studentLogs.length > 0 ? <StudentLogLine logs={studentLogs} prescribedKg={exercise.weight_kg} /> : null}
+      {studentLogs.length > 0 ? <StudentLogLine logs={studentLogs} prescribedKg={exercise.weight_kg} barKg={barKg} /> : null}
       {studentFeedback && (studentFeedback.note || studentFeedback.effort != null) ? (
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg bg-pastel-butter px-2.5 py-1.5 text-2xs text-pastel-butter-ink hh-pastel">
           <span className="font-semibold">Dijo el alumno</span>
@@ -246,6 +249,51 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           </div>
         </div>
       </div>
+
+      <div className="flex flex-wrap items-end gap-1.5">
+        <div className="min-w-[9rem] flex-1">
+          <label className="block text-3xs text-ink-muted mb-0.5">El alumno ve el peso</label>
+          <select
+            className={cn(controlSmClassName, 'w-full px-2')}
+            value={weightMode}
+            onChange={(e) => {
+              const v = e.target.value as WeightMode
+              setWeightMode(v)
+              saveMeta({ weightMode: v === 'total' ? undefined : v, barKg: v === 'total' ? undefined : barKg })
+            }}
+          >
+            {(Object.keys(WEIGHT_MODE_LABEL) as WeightMode[]).map((m) => (
+              <option key={m} value={m}>{WEIGHT_MODE_LABEL[m]}</option>
+            ))}
+          </select>
+        </div>
+        {weightMode !== 'total' ? (
+          <div className="w-20">
+            <label className="block text-3xs text-ink-muted mb-0.5">Barra kg</label>
+            <input
+              type="number" min={0} max={50} step={0.5}
+              title="0 si no hay barra (mancuernas, máquina): por lado es la mitad del total"
+              className={cn(controlSmClassName, 'w-full px-2 text-center')}
+              value={barKg}
+              onChange={(e) => {
+                const n = Number(e.target.value)
+                const v = e.target.value === '' || !Number.isFinite(n) ? 0 : Math.min(Math.max(n, 0), 50)
+                setBarKg(v)
+                saveMeta({ weightMode, barKg: v })
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
+      {weightMode !== 'total' ? (
+        <p className="text-3xs text-ink-muted -mt-1">
+          El peso que cargás es el total.{' '}
+          {weight != null && weight > 0
+            ? `${weight} kg total = ${perSideKg(weight, barKg)} kg por lado`
+            : `Ej.: 100 kg total = ${perSideKg(100, barKg)} kg por lado`}
+          {barKg > 0 ? ` (barra de ${barKg} kg).` : ' (sin barra).'}
+        </p>
+      ) : null}
 
       {/* Plan serie por serie (%RM → kg desde 1RM, reps, RPE/RIR), para todos los ejercicios. El RPE va acá, no en un campo suelto. */}
       {(sets ?? 0) > 0 ? (
@@ -453,16 +501,19 @@ function kg(n: number): string {
 }
 
 /** Lo que anotó el alumno desde el link, al lado de lo indicado. */
-function StudentLogLine({ logs, prescribedKg }: { logs: { set_number: number; weight_kg: number | null; reps?: number | null; completed?: boolean; updated_at: string }[]; prescribedKg: number | null }) {
+function StudentLogLine({ logs, prescribedKg, barKg }: { logs: { set_number: number; weight_kg: number | null; reps?: number | null; completed?: boolean; weight_mode?: 'total' | 'lado' | null; updated_at: string }[]; prescribedKg: number | null; barKg: number }) {
   const withKg = logs.filter((l) => l.weight_kg != null)
+  // Lo anotado por lado se pasa a total para compararlo con lo indicado.
+  const totalOf = (l: { weight_kg: number | null; weight_mode?: 'total' | 'lado' | null }) =>
+    l.weight_mode === 'lado' ? totalFromSideKg(l.weight_kg!, barKg) : l.weight_kg!
   const completed = logs.filter((l) => l.completed ?? (l.weight_kg != null || l.reps != null))
   // Por serie: «60 kg × 8», «60 kg» o «× 8».
   const perSet = logs
     .filter((l) => l.weight_kg != null || l.reps != null)
-    .map((l) => [l.weight_kg != null ? `${kg(l.weight_kg)} kg` : '', l.reps != null ? `× ${l.reps}` : ''].filter(Boolean).join(' '))
+    .map((l) => [l.weight_kg != null ? `${kg(l.weight_kg)} kg${l.weight_mode === 'lado' ? ' por lado' : ''}` : '', l.reps != null ? `× ${l.reps}` : ''].filter(Boolean).join(' '))
   if (withKg.length === 0 && completed.length === 0) return null
   const last = logs.reduce((a, l) => (l.updated_at > a ? l.updated_at : a), logs[0]!.updated_at)
-  const top = withKg.length ? Math.max(...withKg.map((l) => l.weight_kg!)) : null
+  const top = withKg.length ? Math.max(...withKg.map(totalOf)) : null
   const diff = top != null && prescribedKg != null && prescribedKg > 0 ? top - prescribedKg : null
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-status-ok/10 px-2.5 py-1.5 text-2xs text-ink-secondary">

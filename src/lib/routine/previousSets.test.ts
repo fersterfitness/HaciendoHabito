@@ -32,3 +32,10 @@ describe('etiquetas', () => {
     expect(clockLabel(5)).toBe('0:05')
   })
 })
+
+describe('previousLabel por lado (feedback nov19)', () => {
+  it('aclara cuando lo anotado fue por lado', () => {
+    expect(previousLabel({ kg: 20, reps: 8, completed: true, mode: 'lado' })).toBe('20 kg por lado × 8')
+    expect(previousLabel({ kg: 60, reps: null, completed: true, mode: 'total' })).toBe('60 kg')
+  })
+})

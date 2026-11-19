@@ -75,7 +75,15 @@ export interface TrainingExtras {
    * Indefinido sin la migración 20261122120000_student_exercise_self_notes.sql.
    */
   selfNotes?: Record<string, string>
+  /**
+   * Feedback nov19 (tanda 3): series que el alumno anotó «por lado», por ejercicio y número de serie.
+   * Indefinido sin la migración 20261124120000_peso_por_lado.sql (el selector total / por lado no se muestra).
+   */
+  setModes?: Record<string, Record<number, SetWeightMode>>
 }
+
+/** Cómo anotó el alumno los kilos de una serie. */
+export type SetWeightMode = 'total' | 'lado'
 
 /** Escala de Borg modificada (1 a 10), en palabras para el alumno. */
 export const BORG_LABELS: Record<number, string> = {
@@ -115,10 +123,15 @@ type RawExtras = {
   days?: ({ day_id: string } & Partial<DayLog>)[]
   notices?: RoutineNoticeSent[]
   self_notes?: Record<string, string>
+  set_modes?: { exercise_id: string; set: number; mode: SetWeightMode | null }[]
 }
 
 function toExtras(raw: RawExtras | null): TrainingExtras {
   const out: TrainingExtras = { exercises: {}, days: {}, notices: raw?.notices, selfNotes: raw?.self_notes }
+  if (raw?.set_modes) {
+    out.setModes = {}
+    for (const m of raw.set_modes) if (m.mode) (out.setModes[m.exercise_id] ??= {})[m.set] = m.mode
+  }
   for (const e of raw?.exercises ?? []) out.exercises[e.exercise_id] = { note: e.note ?? '', effort: e.effort ?? null }
   for (const d of raw?.days ?? []) {
     const { day_id, ...rest } = d

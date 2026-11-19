@@ -230,6 +230,46 @@ describe('registro del alumno en la rutina por link', () => {
     expect(button('Volver a la lista')).toBeTruthy()
   })
 
+  describe('peso total o por lado (feedback nov19, tanda 3)', () => {
+    const withWeight = (): SharedRoutine => {
+      const day = routine.routine!.blocks[0]!.days[0]!
+      const base = day.exercises[0]!
+      return {
+        ...routine,
+        routine: {
+          ...routine.routine!,
+          blocks: [{ ...routine.routine!.blocks[0]!, days: [{ ...day, exercises: [{
+            ...base, weight_kg: 100, technical_notes: '[[META]]\n{"weightMode":"lado"}\n[[/META]]',
+            logs: [{ set: 1, weight_kg: 40, reps: 8, completed: true }],
+          }] }] }],
+        },
+      }
+    }
+
+    it('muestra lo indicado por lado y cambia el modo de lo ya anotado', async () => {
+      vi.mocked(fetchSharedRoutine).mockResolvedValue(withWeight())
+      vi.mocked(saveSharedSet).mockResolvedValue(undefined)
+      await open({ exercises: {}, days: checkedDay, setModes: { ex: { 1: 'lado' } } })
+      await click(host.querySelector('.hhr-ex-head'))
+      expect(host.querySelector('.hhr-settarget')?.textContent).toContain('40 kg por lado')
+      expect(host.querySelector('.hhr-sets-head')?.textContent).toContain('Kg por lado')
+      expect(host.querySelector('.hhr-setprev')).toBeNull()
+      const total = host.querySelector('.hhr-kgmode input[value="total"]') as HTMLInputElement
+      expect((host.querySelector('.hhr-kgmode input[value="lado"]') as HTMLInputElement).checked).toBe(true)
+      await click(total)
+      expect(saveSharedSet).toHaveBeenCalledWith('test-token', 'ex', 1, 40, true, 8, 'total')
+      expect(host.querySelector('.hhr-sets-head')?.textContent).not.toContain('por lado')
+    })
+
+    it('sin la migración no ofrece elegir y guarda como antes', async () => {
+      vi.mocked(fetchSharedRoutine).mockResolvedValue(withWeight())
+      await open({ exercises: {}, days: checkedDay })
+      await click(host.querySelector('.hhr-ex-head'))
+      expect(host.querySelector('.hhr-kgmode')).toBeNull()
+      expect(host.querySelector('.hhr-settarget')?.textContent).toContain('40 kg por lado')
+    })
+  })
+
   it('muestra la nota propia del ejercicio en la tarjeta y adentro', async () => {
     await open({ exercises: {}, days: checkedDay, selfNotes: { sentadilla: 'Sacar pecho' } })
     expect(host.querySelector('.hhr-ex-mynote')?.textContent).toContain('Sacar pecho')

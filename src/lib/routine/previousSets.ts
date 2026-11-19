@@ -1,6 +1,6 @@
 import { exerciseNoteKey } from './studentTrainingLog'
 
-export type SetMark = { kg: number | null; reps: number | null; completed: boolean }
+export type SetMark = { kg: number | null; reps: number | null; completed: boolean; mode?: 'total' | 'lado' }
 
 type Block = { days: { exercises: { id: string; name: string | null }[] }[] }
 
@@ -24,10 +24,10 @@ export function previousSetsByExercise(blocks: Block[], logged: Record<string, R
   return out
 }
 
-/** «60 kg × 8», «60 kg», «× 8» o vacío. */
+/** «60 kg × 8», «20 kg por lado × 8», «60 kg», «× 8» o vacío. */
 export function previousLabel(s: SetMark | undefined): string {
   if (!s || (s.kg == null && s.reps == null)) return ''
-  const kg = s.kg != null ? `${String(s.kg).replace('.', ',')} kg` : ''
+  const kg = s.kg != null ? `${String(s.kg).replace('.', ',')} kg${s.mode === 'lado' ? ' por lado' : ''}` : ''
   const reps = s.reps != null ? `× ${s.reps}` : ''
   return [kg, reps].filter(Boolean).join(' ')
 }

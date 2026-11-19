@@ -22,12 +22,12 @@ import {
   type SharedRoutineExercise,
   canPreviewRoutine,
 } from '@/lib/routine/sharedRoutine'
-import { parseExerciseMeta } from '@/lib/routine/exerciseMeta'
+import { barKgOf, parseExerciseMeta, perSideKg, plannedWeightText, weightModeOf } from '@/lib/routine/exerciseMeta'
 import { formatWarmupDisplayLines } from '@/lib/routine/warmupNotesFormat'
 import { normalizePhoneForWhatsApp } from '@/lib/whatsapp'
 import './public-routine.css'
 import { setPublicPreview } from '@/lib/supabasePublic'
-import { EMPTY_DAY_LOG, exerciseNoteKey, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type RoutineNoticeKind, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { EMPTY_DAY_LOG, exerciseNoteKey, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type RoutineNoticeKind, type SetWeightMode, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
 import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, RoutineNoticeCard, SelfNoteBox, UrgentCard } from './PublicRoutineLog'
 import { weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
 import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/studentAppExtras'
@@ -85,8 +85,20 @@ function setCount(ex: SharedRoutineExercise): number {
 }
 
 /** Kilos anotados: id de ejercicio → número de serie → kg. */
-type LoggedSet = { kg: number | null; reps: number | null; completed: boolean }
+type LoggedSet = { kg: number | null; reps: number | null; completed: boolean; mode?: SetWeightMode }
 type LoggedMap = Record<string, Record<number, LoggedSet>>
+
+/** Suma a lo anotado si cada serie fue por lado (viene aparte, en los extras). Lo guardado en esta visita manda. */
+function withSetModes(logged: LoggedMap, modes: TrainingExtras['setModes']): LoggedMap {
+  if (!modes) return logged
+  const out: LoggedMap = {}
+  for (const [exId, sets] of Object.entries(logged)) {
+    const m: Record<number, LoggedSet> = {}
+    for (const [n, l] of Object.entries(sets)) m[Number(n)] = l.mode || l.kg == null ? l : { ...l, mode: modes[exId]?.[Number(n)] ?? 'total' }
+    out[exId] = m
+  }
+  return out
+}
 
 function loggedFrom(data: SharedRoutine | null): LoggedMap {
   const out: LoggedMap = {}
@@ -462,8 +474,10 @@ export function PublicRoutinePage() {
   }
   let number = 0
 
+  // Con el modo de cada serie (total o por lado), si ya está la migración del peso por lado.
+  const loggedView = withSetModes(logged, extras?.setModes)
   // «Anterior» en la tabla de series: lo que anotó la última vez que hizo ese ejercicio.
-  const previous = previousSetsByExercise(blocks, logged)
+  const previous = previousSetsByExercise(blocks, loggedView)
   const groups = selectedDay ? groupExercises(selectedDay.exercises) : []
   const groupOpen = (gi: number) => !!groups[gi]?.items.some((e) => isOpen(e.id))
   const nextOf = (gi: number) => {
@@ -485,7 +499,8 @@ export function PublicRoutinePage() {
         n={n}
         flat={inCircuit}
         token={token}
-        logged={logged[ex.id] ?? {}}
+        logged={loggedView[ex.id] ?? {}}
+        weightModeOn={!!extras?.setModes}
         open={inCircuit ? groupOpen(gi) : isOpen(ex.id)}
         onToggle={() => (inCircuit && groupOpen(gi) ? setOpenMap({}) : toggle(ex.id))}
         onSaved={onSaved}
@@ -936,7 +951,10 @@ function ExerciseCard({
   previous,
   next,
   foot,
+  weightModeOn,
 }: {
+  /** El alumno puede decir si anota el total o por lado (migración 20261124120000). */
+  weightModeOn: boolean
   /** En un circuito, «Siguiente» va solo al pie del último ejercicio. */
   foot: boolean
   /** Lo que anotó la vez anterior en este ejercicio, por serie. */
@@ -1050,6 +1068,7 @@ function ExerciseCard({
             logged={logged}
             onSaved={onSaved}
             previous={previous}
+            weightModeOn={weightModeOn}
             onCompleted={() => {
               buzz(30)
               if (rest) setRestUntil(Date.now() + rest * 1000)
@@ -1098,17 +1117,24 @@ function rowReps(ex: SharedRoutineExercise, plan: PlanRow[], i: number): string 
   return plan[i]?.reps?.trim() || parts[i] || (parts.length ? '' : scheme)
 }
 
-/** Lo indicado para la serie i: «10 reps · 60 kg». */
+/** Kilos indicados (siempre el total) para la serie i: el plan por serie manda; si no, el peso general. */
+function plannedKg(ex: SharedRoutineExercise, plan: PlanRow[], i: number): number | null {
+  const fromPlan = Number(plan[i]?.kg?.trim().replace(',', '.'))
+  if (plan[i]?.kg?.trim() && Number.isFinite(fromPlan) && fromPlan > 0) return fromPlan
+  return ex.weight_kg != null && ex.weight_kg > 0 ? ex.weight_kg : null
+}
+
+/** Lo indicado para la serie i: «10 reps · 60 kg» o «10 reps · 20 kg por lado», según lo que marcó el entrenador. */
 function setTarget(ex: SharedRoutineExercise, plan: PlanRow[], i: number): string {
   const reps = rowReps(ex, plan, i)
-  const kgRaw = plan[i]?.kg?.trim()
-  const kg = kgRaw ? kgRaw.replace('.', ',') : ex.weight_kg != null && ex.weight_kg > 0 ? formatKg(ex.weight_kg) : ''
-  return [withReps(reps), kg ? `${kg} kg` : ''].filter(Boolean).join(' · ')
+  const kg = plannedKg(ex, plan, i)
+  return [withReps(reps), kg != null ? plannedWeightText(kg, parseExerciseMeta(ex.technical_notes).meta) : ''].filter(Boolean).join(' · ')
 }
 
 /** Reps y peso opcionales y check independiente. Solo se confirma el progreso al guardar en el servidor. */
-function KgInputs({ ex, sets, token, logged, onSaved, previous, onCompleted }: {
+function KgInputs({ ex, sets, token, logged, onSaved, previous, onCompleted, weightModeOn }: {
   ex: SharedRoutineExercise
+  weightModeOn: boolean
   sets: number
   token: string
   logged: Record<number, LoggedSet>
@@ -1117,7 +1143,16 @@ function KgInputs({ ex, sets, token, logged, onSaved, previous, onCompleted }: {
   /** Se llama cuando una serie pasa a hecha (para vibrar y arrancar el descanso). */
   onCompleted?: () => void
 }) {
-  const plan = useMemo(() => parseExerciseMeta(ex.technical_notes).meta.seriesPlan ?? [], [ex.technical_notes])
+  const meta = useMemo(() => parseExerciseMeta(ex.technical_notes).meta, [ex.technical_notes])
+  const plan = useMemo(() => meta.seriesPlan ?? [], [meta])
+  const planMode = weightModeOf(meta)
+  const bar = barKgOf(meta)
+  // Cómo anota los kilos: lo último que eligió en este ejercicio; si todavía no anotó, lo que indicó el entrenador.
+  const [mode, setMode] = useState<SetWeightMode>(() => {
+    const withKg = Object.values(logged).filter((l) => l.kg != null)
+    if (withKg.length) return withKg.some((l) => l.mode === 'lado') ? 'lado' : 'total'
+    return planMode === 'lado' ? 'lado' : 'total'
+  })
   const [values, setValues] = useState<string[]>(() => Array.from({ length: sets }, (_, i) => formatKg(logged[i + 1]?.kg)))
   const [repsValues, setRepsValues] = useState<string[]>(() =>
     Array.from({ length: sets }, (_, i) => (logged[i + 1]?.reps != null ? String(logged[i + 1]!.reps) : '')),
@@ -1139,18 +1174,19 @@ function KgInputs({ ex, sets, token, logged, onSaved, previous, onCompleted }: {
   }, [])
 
   function placeholder(i: number): string {
-    const k = plan[i]?.kg?.trim()
-    if (k) return k.replace('.', ',')
-    return ex.weight_kg != null && ex.weight_kg > 0 ? formatKg(ex.weight_kg) : '—'
+    const k = plannedKg(ex, plan, i)
+    if (k == null) return '—'
+    return formatKg(weightModeOn && mode === 'lado' ? perSideKg(k, bar) : k)
   }
 
   function setStatusAt(i: number, s: SaveState) {
     setStatus((prev) => prev.map((v, j) => (j === i ? s : v)))
   }
 
-  async function save(i: number, raw: string, rawReps: string, explicitCompleted?: boolean) {
+  async function save(i: number, raw: string, rawReps: string, explicitCompleted?: boolean, modeOverride?: SetWeightMode) {
     clearTimeout(timers.current[i])
     if (inFlight.current.has(i)) return
+    const useMode = modeOverride ?? mode
     attempts.current[i] = { raw, rawReps, completed: explicitCompleted }
     const kg = parseKg(raw)
     if (kg === undefined) {
@@ -1167,15 +1203,17 @@ function KgInputs({ ex, sets, token, logged, onSaved, previous, onCompleted }: {
     const before = lastSaved.current[i + 1] ?? { kg: null, reps: null, completed: false }
     // Anotar kilos o reps sigue completando la serie; borrarlos no desmarca una serie ya hecha.
     const completed = explicitCompleted ?? (kg != null || reps != null || before.completed)
-    if (kg === before.kg && reps === (before.reps ?? null) && completed === before.completed) {
+    const sameMode = !weightModeOn || kg == null || useMode === (before.mode ?? 'total')
+    if (kg === before.kg && reps === (before.reps ?? null) && completed === before.completed && sameMode) {
       setStatusAt(i, 'idle')
       return
     }
     inFlight.current.add(i)
     setStatusAt(i, 'saving')
     try {
-      await saveSharedSet(token, ex.id, i + 1, kg, completed, reps)
-      const next = { kg, reps, completed }
+      if (weightModeOn) await saveSharedSet(token, ex.id, i + 1, kg, completed, reps, useMode)
+      else await saveSharedSet(token, ex.id, i + 1, kg, completed, reps)
+      const next: LoggedSet = { kg, reps, completed, ...(weightModeOn && kg != null ? { mode: useMode } : {}) }
       lastSaved.current[i + 1] = next
       onSaved(ex.id, i + 1, next)
       setStatusAt(i, 'saved')
@@ -1200,6 +1238,13 @@ function KgInputs({ ex, sets, token, logged, onSaved, previous, onCompleted }: {
     timers.current[i] = setTimeout(() => void save(i, values[i] ?? '', raw), 900)
   }
 
+  /** Cambia cómo anota los kilos; las series que ya tienen kilos se vuelven a guardar con el modo nuevo. */
+  function changeMode(next: SetWeightMode) {
+    if (next === mode) return
+    setMode(next)
+    for (let i = 0; i < sets; i++) if (lastSaved.current[i + 1]?.kg != null) void save(i, values[i] ?? '', repsValues[i] ?? '', undefined, next)
+  }
+
   /** Lo indicado como sugerencia en el casillero: «8-10» → «8», «12» → «12». */
   function repsPlaceholder(i: number): string {
     const m = /\d+/.exec(rowReps(ex, plan, i))
@@ -1209,8 +1254,24 @@ function KgInputs({ ex, sets, token, logged, onSaved, previous, onCompleted }: {
   return (
     <div className="hhr-kg">
       <p className="hhr-kg-hint">Tildá cada serie al terminar. {allTime ? 'Los kilos son opcionales.' : 'Las reps y los kilos son opcionales.'}{anyTime ? ' ´´ son segundos y ´ minutos.' : ''}</p>
+      {weightModeOn ? (
+        <div className="hhr-kgmode">
+          <span>Los kilos que anoto son</span>
+          <div role="radiogroup" aria-label="Cómo anotás los kilos">
+            {(['total', 'lado'] as const).map((m) => (
+              <label key={m} className={mode === m ? 'is-on' : undefined}>
+                <input type="radio" name={`hhr-kgmode-${ex.id}`} value={m} checked={mode === m} onChange={() => changeMode(m)} />
+                {m === 'total' ? 'Total' : 'Por lado'}
+              </label>
+            ))}
+          </div>
+          {mode === 'lado' || planMode !== 'total' ? (
+            <small>{bar > 0 ? `Con barra de ${formatKg(bar)} kg: 100 kg total = ${formatKg(perSideKg(100, bar))} por lado.` : 'Sin barra: por lado es la mitad del total.'}</small>
+          ) : null}
+        </div>
+      ) : null}
       <div className="hhr-sets-head" aria-hidden>
-        <span>Serie</span><span>Indicado</span><span>{allTime ? '' : 'Reps'}</span><span>Kg</span>
+        <span>Serie</span><span>Indicado</span><span>{allTime ? '' : 'Reps'}</span><span>{weightModeOn && mode === 'lado' ? 'Kg por lado' : 'Kg'}</span>
       </div>
       <ol className="hhr-sets">
         {values.map((v, i) => {
@@ -1249,7 +1310,7 @@ function KgInputs({ ex, sets, token, logged, onSaved, previous, onCompleted }: {
                 <input
                   inputMode="decimal" autoComplete="off" enterKeyHint="done" maxLength={6}
                   value={v} disabled={saving} placeholder={placeholder(i)}
-                  aria-label={`${niceCase(ex.name) || 'Ejercicio'}, kilos opcionales de la serie ${i + 1}`}
+                  aria-label={`${niceCase(ex.name) || 'Ejercicio'}, kilos${weightModeOn && mode === 'lado' ? ' por lado' : ''} opcionales de la serie ${i + 1}`}
                   aria-invalid={status[i] === 'error'} aria-describedby={status[i] === 'error' ? errorId : undefined}
                   onChange={(e) => onChange(i, e.target.value)}
                   onBlur={(e) => void save(i, e.target.value, repsValues[i] ?? '')}
