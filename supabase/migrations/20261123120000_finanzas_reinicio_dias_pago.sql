@@ -67,23 +67,6 @@ UPDATE public.students
    AND COALESCE(intake_ferster->>'payment_notes', intake_nutrition->>'payment_notes', intake_psychologist->>'payment_notes') ~* '^Prefiere pagar el';
 
 -- ─── 3. Reinicio de los cobros de Tomi ──────────────────────────────────────
-CREATE TEMP TABLE _hh_owner ON COMMIT DROP AS
-SELECT p.id
-  FROM public.profiles p
- WHERE p.role::text IN ('admin', 'trainer')
-   AND translate(lower(p.full_name), 'áéíóúüñ', 'aeiouun') LIKE 'tom%ferster%';
-
-DO $$
-DECLARE
-  n integer;
-BEGIN
-  SELECT count(*) INTO n FROM _hh_owner;
-  IF n <> 1 THEN
-    RAISE EXCEPTION 'Se esperaba un solo perfil de Tomas Ferster (entrenador) y hay %. No se cambió nada.', n;
-  END IF;
-END;
-$$;
-
 -- Días de pago del documento del entrenador (31 = último día del mes). Bonificados sin día.
 CREATE TEMP TABLE _hh_dias (nombre text, apellido text, dia integer, bonificado boolean, pago_noviembre boolean) ON COMMIT DROP;
 INSERT INTO _hh_dias VALUES
@@ -103,6 +86,34 @@ INSERT INTO _hh_dias VALUES
   ('matias', 'sambran', 15, false, true),
   ('santiago', 'scheifler', 10, false, true),
   ('yony', 'arganaraz', 5, false, true);
+
+-- El dueño es el profesional que tiene como alumnos activos a la mayoría de la lista (no se busca por
+-- nombre de perfil: así no depende de cómo esté escrito).
+CREATE TEMP TABLE _hh_owner_cand ON COMMIT DROP AS
+SELECT s.owner_id AS id, count(DISTINCT d.nombre || ' ' || d.apellido) AS n
+  FROM _hh_dias d
+  JOIN public.students s
+    ON s.status = 'activo'
+   AND translate(lower(s.full_name), 'áéíóúüñ', 'aeiouun') LIKE d.nombre || '%'
+   AND translate(lower(s.full_name), 'áéíóúüñ', 'aeiouun') LIKE '%' || d.apellido || '%'
+ GROUP BY s.owner_id;
+
+DO $$
+DECLARE
+  v_max integer;
+  v_tops integer;
+BEGIN
+  SELECT max(n) INTO v_max FROM _hh_owner_cand;
+  SELECT count(*) INTO v_tops FROM _hh_owner_cand WHERE n = v_max;
+  IF v_max IS NULL OR v_max < 8 OR v_tops <> 1 THEN
+    RAISE EXCEPTION 'No se pudo saber de qué profesional son los alumnos de la lista (máximo % de 15, empatados %). No se cambió nada.',
+      coalesce(v_max, 0), v_tops;
+  END IF;
+END;
+$$;
+
+CREATE TEMP TABLE _hh_owner ON COMMIT DROP AS
+SELECT id FROM _hh_owner_cand ORDER BY n DESC LIMIT 1;
 
 CREATE TEMP TABLE _hh_match ON COMMIT DROP AS
 SELECT d.*, s.id AS student_id
