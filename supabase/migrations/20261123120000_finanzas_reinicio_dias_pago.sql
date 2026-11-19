@@ -67,8 +67,11 @@ UPDATE public.students
    AND COALESCE(intake_ferster->>'payment_notes', intake_nutrition->>'payment_notes', intake_psychologist->>'payment_notes') ~* '^Prefiere pagar el';
 
 -- ─── 3. Reinicio de los cobros de Tomi ──────────────────────────────────────
+-- Tablas de trabajo comunes (no ON COMMIT DROP: el editor de Supabase no siempre corre todo en una sola
+-- transacción). Se borran al principio por si quedaron de un intento anterior; las temporales desaparecen solas al cerrar la sesión.
+DROP TABLE IF EXISTS _hh_match, _hh_owner, _hh_owner_cand, _hh_dias;
 -- Días de pago del documento del entrenador (31 = último día del mes). Bonificados sin día.
-CREATE TEMP TABLE _hh_dias (nombre text, apellido text, dia integer, bonificado boolean, pago_noviembre boolean) ON COMMIT DROP;
+CREATE TEMP TABLE _hh_dias (nombre text, apellido text, dia integer, bonificado boolean, pago_noviembre boolean);
 INSERT INTO _hh_dias VALUES
   ('franco', 'chevalley', 5, false, true),
   ('yael', 'dominguez', 5, false, true),
@@ -89,7 +92,7 @@ INSERT INTO _hh_dias VALUES
 
 -- El dueño es el profesional que tiene como alumnos activos a la mayoría de la lista (no se busca por
 -- nombre de perfil: así no depende de cómo esté escrito).
-CREATE TEMP TABLE _hh_owner_cand ON COMMIT DROP AS
+CREATE TEMP TABLE _hh_owner_cand AS
 SELECT s.owner_id AS id, count(DISTINCT d.nombre || ' ' || d.apellido) AS n
   FROM _hh_dias d
   JOIN public.students s
@@ -112,10 +115,10 @@ BEGIN
 END;
 $$;
 
-CREATE TEMP TABLE _hh_owner ON COMMIT DROP AS
+CREATE TEMP TABLE _hh_owner AS
 SELECT id FROM _hh_owner_cand ORDER BY n DESC LIMIT 1;
 
-CREATE TEMP TABLE _hh_match ON COMMIT DROP AS
+CREATE TEMP TABLE _hh_match AS
 SELECT d.*, s.id AS student_id
   FROM _hh_dias d
   LEFT JOIN public.students s
