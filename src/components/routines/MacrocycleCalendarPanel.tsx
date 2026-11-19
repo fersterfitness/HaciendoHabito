@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { confirmDialog } from '@/components/ui/dialogs'
 import { loadPainEvents, type PainEvent } from '@/lib/checkIn/painEvents'
+import { loadTrainingDays, type TrainingDayMark } from '@/lib/routine/trainingDays'
 import { IS_V2 } from '@/lib/uiVersion'
 import { painMuscles } from '@/lib/volume/painMuscles'
 import { controlSmClassName } from '@/lib/formControlClasses'
@@ -107,6 +108,17 @@ type Props = {
   studentName: string
   /** Se llama tras mover/copiar/editar rutinas para refrescar la pantalla de origen. */
   onChanged?: () => void
+}
+
+const TRAINED_DOT: Record<TrainingDayMark, string> = {
+  done: 'bg-status-ok',
+  sets: 'bg-status-ok/45',
+  missed: 'bg-ink-muted/60',
+}
+const TRAINED_LABEL: Record<TrainingDayMark, string> = {
+  done: 'Entrenó y cerró el día',
+  sets: 'Anotó series sin cerrar el día',
+  missed: 'Avisó que no pudo entrenar',
 }
 
 function hexAlpha(hex: string, alpha: number): string {
@@ -294,6 +306,8 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
   const [plansReady, setPlansReady] = useState(true)
   const [deleted, setDeleted] = useState<DeletedRoutine[]>([])
   const [pains, setPains] = useState<PainEvent[]>([])
+  /** Feedback nov19: los días que el alumno entrenó (o avisó que no) se van anotando en el calendario. */
+  const [trained, setTrained] = useState<Map<string, TrainingDayMark>>(new Map())
   /** Bloques propios marcados con Ctrl/Shift + clic para borrarlos juntos. */
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [alerts, setAlerts] = useState<Map<string, WeekAlert[]>>(new Map())
@@ -313,15 +327,17 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
 
   const reload = useCallback(async () => {
     try {
-      const [list, volume, planRes, deletedList, painList] = await Promise.all([
+      const [list, volume, planRes, deletedList, painList, trainedDays] = await Promise.all([
         loadMacrocycle(studentId),
         loadVolumeData(studentId),
         loadPlanBlocks(studentId),
         user ? loadDeletedRoutines(user.id, studentId) : Promise.resolve([]),
         loadPainEvents(studentId).catch(() => [] as PainEvent[]),
+        loadTrainingDays(studentId).catch(() => new Map<string, TrainingDayMark>()),
       ])
       setRoutines(list)
       setPains(painList)
+      setTrained(trainedDays)
       setChecked((prev) => new Set([...prev].filter((id) => planRes.blocks.some((b) => b.id === id))))
       setPlans(planRes.blocks)
       setPlansReady(planRes.ready)
@@ -1118,6 +1134,13 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                           >
                             {Number(d.slice(8))}
                             {alertDays.has(d) && cov ? <span className="absolute right-0.5 top-0.5 h-1 w-1 rounded-full bg-rose-500" /> : null}
+                            {trained.has(d) ? (
+                              <span
+                                className={cn('absolute bottom-0.5 left-1/2 h-1 w-2.5 -translate-x-1/2 rounded-full', TRAINED_DOT[trained.get(d)!])}
+                                title={TRAINED_LABEL[trained.get(d)!]}
+                                aria-label={TRAINED_LABEL[trained.get(d)!]}
+                              />
+                            ) : null}
                             {painByDay.has(d) ? (
                               <span
                                 className={cn(
@@ -1324,6 +1347,23 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                   <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => void hideDeleted(selected.id)}>
                     <Trash2 className="h-3.5 w-3.5" /> Quitar del calendario
                   </Button>
+                </section>
+              ) : null}
+
+              {trained.size ? (
+                <section className="rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
+                  <h3 className="text-sm font-semibold text-ink-primary">Días que entrenó</h3>
+                  <p className="mb-2 text-2xs text-ink-muted">
+                    Se anotan solos con lo que registra el alumno desde su link. Los bloques y las fases los marcás vos.
+                  </p>
+                  <ul className="flex flex-wrap gap-x-4 gap-y-1 text-2xs text-ink-secondary">
+                    {(['done', 'sets', 'missed'] as TrainingDayMark[]).map((k) => (
+                      <li key={k} className="flex items-center gap-1.5">
+                        <span className={cn('h-1 w-2.5 rounded-full', TRAINED_DOT[k])} aria-hidden />
+                        {TRAINED_LABEL[k]} · {[...trained.values()].filter((v) => v === k).length}
+                      </li>
+                    ))}
+                  </ul>
                 </section>
               ) : null}
 

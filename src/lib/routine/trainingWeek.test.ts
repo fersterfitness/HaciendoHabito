@@ -77,6 +77,22 @@ describe('buildWeekAlerts', () => {
     const a = run(routine(4), { b3d1: 'done', b3d2: 'done' }, '2026-12-04')
     expect(a[0]!.kind).toBe('month_done')
   })
+  it('feedback nov19: la semana sale del avance, no de las fechas (va por la semana 3 aunque el calendario diga la 4)', () => {
+    const st: Record<string, DayStatus> = { b0d1: 'done', b0d2: 'done', b1d1: 'done', b1d2: 'done', b2d1: 'done', b2d2: 'done' }
+    // 2026-12-04 cae en la semana 4 por fecha, pero recién cerró la 3: entra en su última semana.
+    expect(run(routine(4), st, '2026-12-04').map((x) => x.kind)).toEqual(['last_week'])
+    // Con la semana 3 a medias no hay aviso de cierre, aunque por fechas ya «terminó».
+    expect(run(routine(4), { ...st, b2d2: undefined as unknown as DayStatus }, '2026-12-20')).toEqual([])
+  })
+  it('feedback nov19: 7 días sin registrar nada, aviso de inactivo', () => {
+    const r = { ...routine(4), createdAt: '2026-11-01T10:00:00Z', lastActivityAt: '2026-11-05T20:00:00Z' }
+    const a = run(r, { b0d1: 'done' }, '2026-11-12')
+    expect(a.map((x) => x.kind)).toEqual(['inactive'])
+    expect(a[0]!.title).toBe('Briana Cardozo no completa datos hace 7 días')
+    expect(run(r, { b0d1: 'done' }, '2026-11-11')).toEqual([])
+    // Sin ningún registro, cuenta desde que tiene la rutina.
+    expect(run({ ...routine(4), createdAt: '2026-11-01T10:00:00Z' }, {}, '2026-11-10').map((x) => x.kind)).toEqual(['inactive'])
+  })
   it('sábado sin nada registrado: aviso con recordatorio', () => {
     const a = run(routine(4), {}, '2026-11-14', true)
     expect(a[0]!.kind).toBe('no_record')

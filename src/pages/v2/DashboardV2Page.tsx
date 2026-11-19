@@ -994,7 +994,7 @@ export function DashboardV2Page() {
                         tags={
                           <>
                             <TagV2 tone="neutral">{CATEGORY_LABEL[row.category]}</TagV2>
-                            <TagV2 tone="rose">Vencida</TagV2>
+                            <TagV2 tone="rose">Atrasada</TagV2>
                           </>
                         }
                         meta={<MetaChipV2 icon={CalendarDays}>{`Del ${fmtDay(row.first_seen_on)}`}</MetaChipV2>}

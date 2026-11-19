@@ -22,14 +22,20 @@ const closed = (d: Day, x: ProgressInput) => !!x.statusOf(d.id)
  */
 export function progressWeekIndex(blocks: Block[], x: ProgressInput): number {
   if (blocks.length === 0) return 0
-  let last = -1
-  blocks.forEach((b, i) => {
-    if (trainable(b).some((d) => closed(d, x) || x.hasSets(d))) last = i
-  })
+  const last = lastActiveWeekIndex(blocks, x)
   if (last < 0) return 0
   const days = trainable(blocks[last]!)
   const allClosed = days.length > 0 && days.every((d) => closed(d, x))
   return allClosed ? Math.min(last + 1, blocks.length - 1) : last
+}
+
+/** Última semana con actividad (días cerrados o series tildadas); -1 si todavía no hizo nada. */
+export function lastActiveWeekIndex(blocks: Block[], x: ProgressInput): number {
+  let last = -1
+  blocks.forEach((b, i) => {
+    if (trainable(b).some((d) => closed(d, x) || x.hasSets(d))) last = i
+  })
+  return last
 }
 
 /**

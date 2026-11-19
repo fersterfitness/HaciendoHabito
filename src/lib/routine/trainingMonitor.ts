@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { currentBlockIndex } from '@/lib/routine/sharedRoutine'
+import { progressWeekIndex } from '@/lib/routine/routineProgress'
 
 /**
  * Monitor de entrenamiento del entrenador: cómo viene HOY cada alumno con rutina activa, según lo
@@ -201,16 +201,21 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
   const rows = opts.routines.map((r): MonitorRow => {
     const base = { routineId: r.id, studentId: r.student_id, studentName: r.student_name, avatarPath: r.avatar_path }
     const blocks = [...r.blocks].sort((a, b) => a.sort_order - b.sort_order)
-    const blockIndex = currentBlockIndex(blocks, today)
+    // Feedback nov19: la semana en curso sale del avance del alumno, no de las fechas.
+    const blockIndex = progressWeekIndex(blocks, {
+      statusOf: (id) => dayLogById.get(id)?.status ?? null,
+      hasSets: (d) => d.exercises.some((ex) => doneSets(ex as MonitorExercise).length > 0),
+    })
     const block = blocks[blockIndex]
     const days = block ? [...block.days].sort((a, b) => a.sort_order - b.sort_order) : []
+    const allDays = blocks.flatMap((b) => [...b.days].sort((a, b2) => a.sort_order - b2.sort_order))
 
-    // El día de hoy: el que tiene la serie anotada más reciente de hoy; si no, el que cerró hoy.
+    // El día de hoy: el que tiene la serie anotada más reciente de hoy (en cualquier semana); si no, el que cerró hoy.
     let active: MonitorDay | null = null
     let lastAt: string | null = null
     let lastEx: MonitorExercise | null = null
     let lastLog: MonitorSetLog | null = null
-    for (const d of days) {
+    for (const d of allDays) {
       for (const ex of d.exercises) {
         for (const l of logsByExercise.get(ex.id) ?? []) {
           if (ymdLocal(new Date(l.updated_at)) !== today) continue
@@ -223,7 +228,7 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
         }
       }
     }
-    const closedToday = days.find((d) => dayLogById.get(d.id)?.status_date === today && dayLogById.get(d.id)?.status)
+    const closedToday = allDays.find((d) => dayLogById.get(d.id)?.status_date === today && dayLogById.get(d.id)?.status)
     if (!active && closedToday) active = closedToday
 
     if (!active) {
@@ -576,7 +581,11 @@ export function weekMatrix(opts: { routines: MonitorRoutine[]; setLogs: MonitorS
         }
       // Días asignados de la semana en curso (según el día de la semana que cargó el entrenador).
       const blocks = [...r.blocks].sort((a, b) => a.sort_order - b.sort_order)
-      const assigned = new Set((blocks[currentBlockIndex(blocks, today)]?.days ?? []).filter((d) => d.day_of_week != null).map((d) => mondayIndex(d.day_of_week!)))
+      const current = progressWeekIndex(blocks, {
+        statusOf: (id) => dayLogById.get(id)?.status ?? null,
+        hasSets: (d) => d.exercises.some((ex) => (logDatesByExercise.get(ex.id)?.size ?? 0) > 0),
+      })
+      const assigned = new Set((blocks[current]?.days ?? []).filter((d) => d.day_of_week != null).map((d) => mondayIndex(d.day_of_week!)))
       const cells = week.map((ymd, i): WeekCell => {
         if (trained.has(ymd)) return 'trained'
         if (missed.has(ymd)) return 'missed'

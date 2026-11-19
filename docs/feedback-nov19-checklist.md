@@ -15,9 +15,9 @@ Fuente: `CORRECIONES EN APP.docx` (escritorio). Cada punto dice de dónde sale y
 
 ## Tanda 2 — vencimientos y calendario (entrenador)
 
-- [ ] (App 3) Las rutinas no se marcan «Vencida» por fecha: el aviso de «última semana / terminé la rutina» lo da el alumno desde el link.
-- [ ] (App 3) Aviso nuevo: «X no completa datos hace N días / está inactivo».
-- [ ] (App 3) El calendario se completa con las fechas en que el alumno entrena; bloques, intensificación y descarga los sigue indicando el entrenador.
+- [x] (App 3) Las rutinas no se marcan «Vencida» por fecha: el aviso de «última semana / terminé la rutina» lo da el alumno desde el link. Los «Vencida» del Inicio eran tareas viejas de «Termina pronto» (sacadas en nov3) que quedaron colgadas: ya no vuelven, y la etiqueta de las tareas atrasadas dice «Atrasada». Los avisos de semana y el monitor siguen el avance del alumno, no las fechas.
+- [x] (App 3) Aviso nuevo: «X no completa datos hace N días» (7 días o más sin series ni días cerrados), con WhatsApp para escribirle.
+- [x] (App 3) El calendario se completa con las fechas en que el alumno entrena (punto en cada día: cerró, anotó series o no pudo); bloques, intensificación y descarga los sigue indicando el entrenador.
 
 ## Tanda 3 — peso por lado o total
 

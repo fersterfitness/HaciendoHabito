@@ -12,14 +12,15 @@ import { buildWeekAlerts, dismissAlert, loadWeekAlertData, readDismissedAlerts, 
 import { buildWhatsAppUrl, normalizePhoneForWhatsApp } from '@/lib/whatsapp'
 import { cn } from '@/lib/utils'
 
-const ICON: Record<WeekAlertKind, typeof Trophy> = { month_done: Trophy, last_week: Flag, week_done: CalendarCheck2, no_record: UserX }
+const ICON: Record<WeekAlertKind, typeof Trophy> = { month_done: Trophy, last_week: Flag, week_done: CalendarCheck2, no_record: UserX, inactive: UserX }
 const TONE: Record<WeekAlertKind, string> = {
   month_done: 'bg-pastel-butter text-pastel-butter-ink',
   last_week: 'bg-pastel-lavender text-pastel-lavender-ink',
   week_done: 'bg-status-ok/20 text-status-ok-ink',
   no_record: 'bg-pastel-rose text-pastel-rose-ink',
+  inactive: 'bg-pastel-rose text-pastel-rose-ink',
 }
-const ORDER: WeekAlertKind[] = ['month_done', 'last_week', 'week_done', 'no_record']
+const ORDER: WeekAlertKind[] = ['month_done', 'last_week', 'week_done', 'inactive', 'no_record']
 
 /** Título del grupo: «3 alumnos terminaron la semana». */
 function groupTitle(kind: WeekAlertKind, n: number): string {
@@ -28,6 +29,7 @@ function groupTitle(kind: WeekAlertKind, n: number): string {
   if (kind === 'month_done') return `${who} ${one ? 'terminó' : 'terminaron'} su mes de rutina`
   if (kind === 'last_week') return `${who} ${one ? 'entra' : 'entran'} en su última semana`
   if (kind === 'week_done') return `${who} ${one ? 'terminó' : 'terminaron'} la semana`
+  if (kind === 'inactive') return `${who} no ${one ? 'completa' : 'completan'} datos hace una semana o más`
   return `${who} no ${one ? 'registró' : 'registraron'} nada esta semana`
 }
 
@@ -126,7 +128,7 @@ export function TrainingAlertsPanelV2({ ownerId, onOpenRoutine }: { ownerId: str
                           <IconButton label={`Ver la rutina de ${a.studentName}`} icon={<FileText className="h-4 w-4" />} onClick={() => onOpenRoutine(a.routineId)} />
                           {digits ? (
                             <IconButton
-                              label={`${kind === 'no_record' ? 'Recordarle' : 'Felicitar'} por WhatsApp a ${a.studentName}`}
+                              label={`${kind === 'no_record' ? 'Recordarle' : kind === 'inactive' ? 'Escribirle' : 'Felicitar'} por WhatsApp a ${a.studentName}`}
                               icon={<WhatsAppIcon className="h-4 w-4" />}
                               onClick={() => window.open(buildWhatsAppUrl(digits, a.whatsapp), '_blank', 'noopener')}
                             />

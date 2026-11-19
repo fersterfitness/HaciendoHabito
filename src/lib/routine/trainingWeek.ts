@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { currentBlockIndex } from '@/lib/routine/sharedRoutine'
+import { lastActiveWeekIndex, progressWeekIndex } from '@/lib/routine/routineProgress'
 import { fetchAllPages } from '@/lib/routine/trainingMonitor'
 import type { DayStatus } from '@/lib/routine/studentTrainingLog'
 
@@ -71,7 +71,10 @@ export function weekCloseMessage(week: WeekClose, opts: { feedbackDone?: boolean
 
 // ───────────── Lado del entrenador ─────────────
 
-export type WeekAlertKind = 'month_done' | 'last_week' | 'week_done' | 'no_record'
+export type WeekAlertKind = 'month_done' | 'last_week' | 'week_done' | 'no_record' | 'inactive'
+
+/** Días sin registrar nada (ni series ni días cerrados) para avisar que el alumno está inactivo. */
+export const INACTIVE_DAYS = 7
 
 export interface WeekAlert {
   /** Estable por rutina y semana: sirve para marcarlo como visto. */
@@ -96,6 +99,12 @@ export interface AlertRoutine {
   studentPhone: string | null
   studentAvatar?: string | null
   blocks: { id: string; name: string | null; start_date: string | null; end_date: string | null; dayIds: string[]; loggedSets: number }[]
+  /** Series anotadas por día de la rutina (para saber en qué semana va). */
+  setsByDay?: Record<string, number>
+  /** Último registro del alumno en esta rutina (serie o día cerrado), ISO. */
+  lastActivityAt?: string | null
+  /** Alta de la rutina, ISO: sin registros, la inactividad se cuenta desde acá. */
+  createdAt?: string | null
 }
 
 const firstName = (full: string) => full.trim().split(/\s+/)[0] ?? ''
@@ -105,6 +114,8 @@ const firstName = (full: string) => full.trim().split(/\s+/)[0] ?? ''
  * - Semana terminada (todos los días cerrados + formulario): según cuál sea, «terminó la semana»,
  *   «entra en su última semana» (cerró la anteúltima) o «terminó su mes».
  * - Sábado o domingo sin ningún día cerrado, sin kilos anotados y sin formulario: «no registró nada».
+ * - 7 días o más sin registrar nada: «no completa datos hace N días» (feedback nov19).
+ * La semana sale del avance del alumno (feedback nov19), no de las fechas de los bloques.
  */
 export function buildWeekAlerts(input: {
   routines: AlertRoutine[]
@@ -118,13 +129,36 @@ export function buildWeekAlerts(input: {
   const weekday = input.today.getDay()
   for (const r of input.routines) {
     if (r.blocks.length === 0) continue
-    const i = currentBlockIndex(r.blocks, input.todayYmd)
+    const base = { routineId: r.id, studentId: r.studentId, studentName: r.studentName, studentPhone: r.studentPhone, studentAvatar: r.studentAvatar ?? null }
+    const hi = firstName(r.studentName) ? `Hola ${firstName(r.studentName)}!` : 'Hola!'
+
+    // Inactivo: hace una semana o más que no registra nada (ni desde que se le dio la rutina).
+    const since = r.lastActivityAt ?? r.createdAt ?? null
+    const idleDays = since ? Math.floor((startOfDay(input.today) - startOfDay(new Date(since))) / 86_400_000) : 0
+    if (idleDays >= INACTIVE_DAYS) {
+      out.push({
+        ...base,
+        key: `inactive:${r.id}:${since!.slice(0, 10)}`,
+        kind: 'inactive',
+        title: `${r.studentName} no completa datos hace ${idleDays} días`,
+        detail: r.lastActivityAt
+          ? `${idleDays} días sin registrar nada (último registro: ${shortDay(r.lastActivityAt)}).`
+          : `${idleDays} días sin registrar nada desde que tiene la rutina (${shortDay(since!)}).`,
+        whatsapp: `${hi} Hace unos días que no veo registros de tus entrenamientos. ¿Cómo venís? Si pasó algo, contame y lo acomodamos.`,
+      })
+      continue
+    }
+
+    const shape = r.blocks.map((b) => ({ days: b.dayIds.map((id) => ({ id, exercises: [{ id }] })) }))
+    const x = { statusOf: input.statusOf, hasSets: (d: { id: string }) => (r.setsByDay?.[d.id] ?? 0) > 0 }
+    // La última semana con actividad: si quedó toda cerrada, corresponde el aviso de cierre.
+    const active = lastActiveWeekIndex(shape, x)
+    const closedWeek = active >= 0 && weekClose(r.blocks[active]!.dayIds, input.statusOf).open === 0 ? active : -1
+    const i = closedWeek >= 0 ? closedWeek : progressWeekIndex(shape, x)
     const block = r.blocks[i]!
     if (block.dayIds.length === 0) continue
     const week = weekClose(block.dayIds, input.statusOf)
     const formDone = !input.missingForm.has(r.studentId)
-    const base = { routineId: r.id, studentId: r.studentId, studentName: r.studentName, studentPhone: r.studentPhone, studentAvatar: r.studentAvatar ?? null }
-    const hi = firstName(r.studentName) ? `Hola ${firstName(r.studentName)}!` : 'Hola!'
     const weekLabel = block.name?.trim() || `semana ${i + 1}`
     const missedText = week.missed ? ` ${week.missed === 1 ? 'Faltó 1 día' : `Faltó ${week.missed} días`}.` : ''
 
@@ -163,13 +197,20 @@ export function buildWeekAlerts(input: {
       })
     }
   }
-  const order: Record<WeekAlertKind, number> = { month_done: 0, last_week: 1, week_done: 2, no_record: 3 }
+  const order: Record<WeekAlertKind, number> = { month_done: 0, last_week: 1, week_done: 2, inactive: 3, no_record: 4 }
   return out.sort((a, b) => order[a.kind] - order[b.kind] || a.studentName.localeCompare(b.studentName, 'es'))
+}
+
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+const shortDay = (iso: string) => {
+  const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 type RawStudent = { full_name?: string | null; phone?: string | null; avatar_path?: string | null }
 type RawRoutine = {
   id: string
+  created_at?: string | null
   student_id: string
   student: RawStudent | RawStudent[] | null
   blocks: { id: string; name: string | null; sort_order: number; start_date: string | null; end_date: string | null; days: { id: string; exercises: { id: string }[] | null }[] | null }[] | null
@@ -183,7 +224,7 @@ export async function loadWeekAlertData(ownerId: string): Promise<{ routines: Al
   const { data, error } = await supabase
     .from('routines')
     .select(
-      'id, student_id, student:students(full_name, phone, avatar_path), blocks:routine_blocks(id, name, sort_order, start_date, end_date, days:routine_days(id, exercises:routine_exercises(id)))',
+      'id, created_at, student_id, student:students(full_name, phone, avatar_path), blocks:routine_blocks(id, name, sort_order, start_date, end_date, days:routine_days(id, exercises:routine_exercises(id)))',
     )
     .eq('owner_id', ownerId)
     .in('status', ['activa', 'por_vencer'])
@@ -195,18 +236,33 @@ export async function loadWeekAlertData(ownerId: string): Promise<{ routines: Al
 
   // De a páginas: la API corta cada respuesta en 1000 filas, y con varias rutinas se pasa de ese tope.
   const [dayLogs, setRows] = await Promise.all([
-    supabase.from('routine_day_logs').select('routine_day_id, status').in('routine_id', ids).range(0, 4999),
-    fetchAllPages<{ routine_exercise_id: string }>((from, to) =>
-      supabase.from('routine_exercise_logs').select('routine_exercise_id').in('routine_id', ids).order('routine_exercise_id').range(from, to),
+    supabase.from('routine_day_logs').select('routine_id, routine_day_id, status, updated_at').in('routine_id', ids).range(0, 4999),
+    fetchAllPages<{ routine_id: string; routine_exercise_id: string; updated_at: string }>((from, to) =>
+      supabase
+        .from('routine_exercise_logs')
+        .select('routine_id, routine_exercise_id, updated_at')
+        .in('routine_id', ids)
+        .order('routine_exercise_id')
+        .range(from, to),
     ),
   ])
   if (dayLogs.error) return null
   const setLogs = { data: setRows }
 
   const status = new Map<string, DayStatus | null>()
-  for (const l of (dayLogs.data ?? []) as { routine_day_id: string; status: DayStatus | null }[]) status.set(l.routine_day_id, l.status)
+  const lastByRoutine = new Map<string, string>()
+  const touch = (routineId: string, at: string | null | undefined) => {
+    if (at && at > (lastByRoutine.get(routineId) ?? '')) lastByRoutine.set(routineId, at)
+  }
+  for (const l of (dayLogs.data ?? []) as { routine_id: string; routine_day_id: string; status: DayStatus | null; updated_at?: string | null }[]) {
+    status.set(l.routine_day_id, l.status)
+    if (l.status) touch(l.routine_id, l.updated_at)
+  }
   const setsByExercise = new Map<string, number>()
-  for (const l of (setLogs.data ?? []) as { routine_exercise_id: string }[]) setsByExercise.set(l.routine_exercise_id, (setsByExercise.get(l.routine_exercise_id) ?? 0) + 1)
+  for (const l of setLogs.data ?? []) {
+    setsByExercise.set(l.routine_exercise_id, (setsByExercise.get(l.routine_exercise_id) ?? 0) + 1)
+    touch(l.routine_id, l.updated_at)
+  }
 
   const routines: AlertRoutine[] = raw.map((r) => {
     const s = Array.isArray(r.student) ? r.student[0] : r.student
@@ -216,6 +272,11 @@ export async function loadWeekAlertData(ownerId: string): Promise<{ routines: Al
       studentName: s?.full_name ?? 'Alumno',
       studentPhone: s?.phone ?? null,
       studentAvatar: s?.avatar_path ?? null,
+      createdAt: r.created_at ?? null,
+      lastActivityAt: lastByRoutine.get(r.id) ?? null,
+      setsByDay: Object.fromEntries(
+        (r.blocks ?? []).flatMap((b) => (b.days ?? []).map((d) => [d.id, (d.exercises ?? []).reduce((m, e) => m + (setsByExercise.get(e.id) ?? 0), 0)])),
+      ),
       blocks: [...(r.blocks ?? [])]
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((b) => ({

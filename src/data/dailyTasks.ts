@@ -31,6 +31,12 @@ export type DailyTaskRow = {
 
 /** Las pendientes que dejaron de calcularse siguen saliendo como vencidas esta cantidad de días. */
 export const ORPHAN_DAYS = 7
+
+/**
+ * Tareas que la app ya no genera: no vuelven como atrasadas. «rutina-fin» era «Termina pronto: armá la que
+ * sigue» por la fecha de la rutina; ahora el fin lo avisa el alumno desde su link (feedback nov19).
+ */
+export const RETIRED_TASK_PREFIXES = ['rutina-fin:']
 const LOOKBACK_DAYS = 90
 
 export const ymdLocal = (d: Date) =>
@@ -160,11 +166,18 @@ export function useDailyMissions(ownerId: string | undefined, defs: MissionDef[]
   )
 
   const defKeys = useMemo(() => new Set(defs.map((d) => d.key)), [defs])
-  /** Pendientes de días anteriores que ya no se calculan (ej. el aviso del viernes): siguen como vencidas. */
+  /** Pendientes de días anteriores que ya no se calculan (ej. el aviso del viernes): siguen como atrasadas. */
   const orphans = useMemo(() => {
     const from = ymdLocal(addDays(today, -ORPHAN_DAYS))
     return rows
-      .filter((r) => !r.completed_at && !defKeys.has(r.task_key) && r.first_seen_on < todayYmd && r.first_seen_on >= from)
+      .filter(
+        (r) =>
+          !r.completed_at &&
+          !defKeys.has(r.task_key) &&
+          !RETIRED_TASK_PREFIXES.some((p) => r.task_key.startsWith(p)) &&
+          r.first_seen_on < todayYmd &&
+          r.first_seen_on >= from,
+      )
       .sort((a, b) => a.first_seen_on.localeCompare(b.first_seen_on))
   }, [rows, defKeys, today, todayYmd])
   const completedToday = useMemo(
