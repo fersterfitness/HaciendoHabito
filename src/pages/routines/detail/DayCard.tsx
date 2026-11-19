@@ -265,7 +265,7 @@ export function DayCard({
                 </button>
               ))}
             </div>
-            <Textarea placeholder="Entrada en calor..." value={warmup} onChange={(e) => { setWarmup(e.target.value); saveDay({ warmup_notes: e.target.value || null }) }} rows={3} className="text-xs" />
+            <Textarea placeholder="Entrada en calor... (podés pegar links de YouTube, Vimeo o fotos: el alumno los ve en el link)" value={warmup} onChange={(e) => { setWarmup(e.target.value); saveDay({ warmup_notes: e.target.value || null }) }} rows={3} className="text-xs" />
           </div>
 
           {siblingDays.length > 0 && day.exercises.length > 0 && (

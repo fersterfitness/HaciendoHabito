@@ -80,6 +80,11 @@ export interface TrainingExtras {
    * Indefinido sin la migración 20261124120000_peso_por_lado.sql (el selector total / por lado no se muestra).
    */
   setModes?: Record<string, Record<number, SetWeightMode>>
+  /**
+   * Feedback nov19 (tanda 4): notas del entrenador que el alumno todavía no ocultó, por `exerciseNoteKey(nombre)`.
+   * Indefinido sin la migración 20261125120000_notas_para_el_alumno.sql.
+   */
+  coachNotes?: Record<string, { note: string; updated_at: string }>
 }
 
 /** Cómo anotó el alumno los kilos de una serie. */
@@ -124,10 +129,11 @@ type RawExtras = {
   notices?: RoutineNoticeSent[]
   self_notes?: Record<string, string>
   set_modes?: { exercise_id: string; set: number; mode: SetWeightMode | null }[]
+  coach_notes?: Record<string, { note: string; updated_at: string }>
 }
 
 function toExtras(raw: RawExtras | null): TrainingExtras {
-  const out: TrainingExtras = { exercises: {}, days: {}, notices: raw?.notices, selfNotes: raw?.self_notes }
+  const out: TrainingExtras = { exercises: {}, days: {}, notices: raw?.notices, selfNotes: raw?.self_notes, coachNotes: raw?.coach_notes }
   if (raw?.set_modes) {
     out.setModes = {}
     for (const m of raw.set_modes) if (m.mode) (out.setModes[m.exercise_id] ??= {})[m.set] = m.mode

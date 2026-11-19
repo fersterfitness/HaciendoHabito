@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, useCallback, useRef } from 'react'
+import { lazy, Suspense, useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import type { SheetTab } from '@/pages/students/studentDetail/studentDetailShared'
 
 // La ficha del alumno se abre encima de la rutina (accesos directos de la cabecera); se carga solo si se usa.
@@ -37,6 +37,7 @@ import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
 import { RoutineComparePane } from '@/components/routines/RoutineComparePane'
 import { ExerciseLogsContext, fetchRoutineExerciseLogs, type ExerciseLogsByExercise } from '@/lib/routine/exerciseLogs'
 import { TrainingExtrasContext, fetchRoutineTrainingExtras, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { CoachNotesContext, fetchCoachNotes, type CoachNote, type CoachNotesState } from '@/lib/routine/coachNotes'
 import { CheckinAverages } from '@/components/routines/CheckinAverages'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { setWeekPhase } from '@/lib/macrocycle/macrocycleData'
@@ -108,6 +109,33 @@ export function RoutineDetailPage() {
     document.addEventListener('visibilitychange', onVisible)
     return () => { alive = false; document.removeEventListener('visibilitychange', onVisible) }
   }, [id])
+  // Feedback nov19 (tanda 4): notas del entrenador para el alumno, por ejercicio. `null` sin la migración.
+  const [coachNotes, setCoachNotes] = useState<Record<string, CoachNote> | null>(null)
+  const coachStudentId = routine?.student_id ?? null
+  useEffect(() => {
+    if (!coachStudentId) return
+    let alive = true
+    void fetchCoachNotes(coachStudentId).then((n) => { if (alive) setCoachNotes(n) })
+    return () => { alive = false }
+  }, [coachStudentId])
+  const coachNotesState = useMemo<CoachNotesState | null>(
+    () =>
+      user && coachStudentId && coachNotes
+        ? {
+            ownerId: user.id,
+            studentId: coachStudentId,
+            notes: coachNotes,
+            onSaved: (key, note) =>
+              setCoachNotes((prev) => {
+                const next = { ...(prev ?? {}) }
+                if (note) next[key] = note
+                else delete next[key]
+                return next
+              }),
+          }
+        : null,
+    [user, coachStudentId, coachNotes],
+  )
   // v2 · Pantalla dividida con otra rutina del alumno; queda abierta para la próxima rutina que se arme.
   const [comparing, setComparing] = useState(() => {
     if (!IS_V2) return false
@@ -1441,6 +1469,7 @@ export function RoutineDetailPage() {
 
         <ExerciseLogsContext.Provider value={exerciseLogs}>
         <TrainingExtrasContext.Provider value={trainingExtras}>
+        <CoachNotesContext.Provider value={coachNotesState}>
         <CheckinAverages
           dayIds={blocks.flatMap((b) => b.days.map((d) => d.id))}
           label="Promedio de toda la rutina"
@@ -1508,6 +1537,7 @@ export function RoutineDetailPage() {
             rmLookup={rmLookup}
           />
         ))}
+        </CoachNotesContext.Provider>
         </TrainingExtrasContext.Provider>
         </ExerciseLogsContext.Provider>
 

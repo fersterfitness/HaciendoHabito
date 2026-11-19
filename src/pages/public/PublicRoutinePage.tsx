@@ -24,6 +24,8 @@ import {
 } from '@/lib/routine/sharedRoutine'
 import { barKgOf, parseExerciseMeta, perSideKg, plannedWeightText, weightModeOf } from '@/lib/routine/exerciseMeta'
 import { formatWarmupDisplayLines } from '@/lib/routine/warmupNotesFormat'
+import { splitWarmupLine, type WarmupMedia } from '@/lib/routine/warmupMedia'
+import { COACH_NOTE_MAX, coachNoteKey, dismissSharedCoachNote, fetchCoachNotes, fetchShareOwner, saveCoachNote, type CoachNote } from '@/lib/routine/coachNotes'
 import { normalizePhoneForWhatsApp } from '@/lib/whatsapp'
 import './public-routine.css'
 import { setPublicPreview } from '@/lib/supabasePublic'
@@ -206,7 +208,10 @@ export function PublicRoutinePage() {
   // Vista previa del entrenador (?vista=entrenador, solo si es el dueño del link): no guarda nada y,
   // salvo que la pida, no muestra el chequeo ni los avisos obligatorios.
   const [search] = useSearchParams()
-  const wantsPreview = search.get('vista') === 'entrenador'
+  // Feedback nov19 (tanda 4): «Ver como profe» (?vista=profe) muestra todo lo que cargó el alumno sin dejar
+  // tocar nada; solo se puede escribir la nota para el alumno de cada ejercicio.
+  const wantsCoach = search.get('vista') === 'profe'
+  const wantsPreview = search.get('vista') === 'entrenador' || wantsCoach
   const [preview, setPreview] = useState<'checking' | 'on' | 'off'>(wantsPreview ? 'checking' : 'off')
   const [previewGates, setPreviewGates] = useState(false)
   useEffect(() => {
@@ -224,7 +229,23 @@ export function PublicRoutinePage() {
       setPublicPreview(false)
     }
   }, [wantsPreview, token])
-  const gatesOff = preview === 'on' && !previewGates
+  const coachView = wantsCoach && preview === 'on'
+  const gatesOff = preview === 'on' && (coachView || !previewGates)
+  // Notas para el alumno: en «Ver como profe» se leen y escriben con la sesión del entrenador.
+  const [coachEdit, setCoachEdit] = useState<{ ownerId: string; studentId: string; notes: Record<string, CoachNote> } | null>(null)
+  useEffect(() => {
+    if (!coachView) return
+    let alive = true
+    void (async () => {
+      const owner = await fetchShareOwner(token).catch(() => null)
+      if (!owner) return
+      const notes = await fetchCoachNotes(owner.student_id).catch(() => null)
+      if (alive && notes) setCoachEdit({ ownerId: owner.owner_id, studentId: owner.student_id, notes })
+    })()
+    return () => {
+      alive = false
+    }
+  }, [coachView, token])
 
   // Celular (estilo app): una pestaña por sección, con la barra abajo. En la compu se ve todo junto.
   const [tab, setTab] = useState<AppTab>('entrenar')
@@ -487,6 +508,29 @@ export function PublicRoutinePage() {
     return { label, go: () => openNext(g.items[0]!.id) }
   }
 
+  /** El alumno oculta la nota del entrenador; si falla, vuelve a aparecer al recargar los extras. */
+  function hideCoachNote(key: string) {
+    setExtras((prev) => {
+      if (!prev?.coachNotes) return prev
+      const rest = { ...prev.coachNotes }
+      delete rest[key]
+      return { ...prev, coachNotes: rest }
+    })
+    void dismissSharedCoachNote(token, key).catch(() => void fetchSharedExtras(token).then((x) => setExtras(x)))
+  }
+
+  async function saveCoachEditorNote(key: string, note: string) {
+    if (!coachEdit) return
+    const saved = await saveCoachNote(coachEdit.ownerId, coachEdit.studentId, key, note)
+    setCoachEdit((prev) => {
+      if (!prev) return prev
+      const notes = { ...prev.notes }
+      if (saved) notes[key] = saved
+      else delete notes[key]
+      return { ...prev, notes }
+    })
+  }
+
   function card(ex: SharedRoutineExercise, gi: number, inCircuit = false) {
     const n = ++number
     const g = groups[gi]
@@ -501,6 +545,15 @@ export function PublicRoutinePage() {
         token={token}
         logged={loggedView[ex.id] ?? {}}
         weightModeOn={!!extras?.setModes}
+        readOnly={coachView}
+        coachNote={coachView ? null : (extras?.coachNotes?.[coachNoteKey(ex.name)]?.note ?? null)}
+        onHideCoachNote={() => hideCoachNote(coachNoteKey(ex.name))}
+        coachEditor={coachView && coachEdit && coachNoteKey(ex.name) ? {
+          value: coachEdit.notes[coachNoteKey(ex.name)]?.note ?? '',
+          hidden: !!coachEdit.notes[coachNoteKey(ex.name)]?.dismissed_at,
+          studentLabel: firstName || 'el alumno',
+          onSave: (note) => saveCoachEditorNote(coachNoteKey(ex.name), note),
+        } : null}
         open={inCircuit ? groupOpen(gi) : isOpen(ex.id)}
         onToggle={() => (inCircuit && groupOpen(gi) ? setOpenMap({}) : toggle(ex.id))}
         onSaved={onSaved}
@@ -521,7 +574,7 @@ export function PublicRoutinePage() {
     { id: 'entrenar', label: 'Entrenar', icon: Dumbbell },
     { id: 'progreso', label: 'Progreso', icon: TrendingUp },
     ...(showCycle ? [{ id: 'ciclo' as const, label: 'Ciclo', icon: CalendarHeart }] : []),
-    ...(extras ? [{ id: 'consulta' as const, label: 'Consulta', icon: LifeBuoy }] : []),
+    ...(extras && !coachView ? [{ id: 'consulta' as const, label: 'Consulta', icon: LifeBuoy }] : []),
   ]
   const heroLine =
     weekProgress.total === 0
@@ -534,7 +587,14 @@ export function PublicRoutinePage() {
 
   return (
     <Shell>
-      {preview === 'on' ? (
+      {coachView ? (
+        <div className="hhr-preview" role="status">
+          <span>
+            <b>Vista del entrenador.</b> Ves lo que cargó {firstName || 'el alumno'}: series, kilos, chequeos y notas. No se puede modificar nada
+            {coachEdit ? '; solo podés dejarle una nota en cada ejercicio.' : '.'}
+          </span>
+        </div>
+      ) : preview === 'on' ? (
         <div className="hhr-preview" role="status">
           <span>
             <b>Vista previa del entrenador.</b> Nada de lo que toques se guarda ni lo ve {firstName || 'el alumno'}.
@@ -608,15 +668,17 @@ export function PublicRoutinePage() {
           ) : null}
           {showCycle && studentExtras ? (
             <div className="hhr-pane hhr-pane-ciclo hhr-pane-wrap">
-              <CycleCard
-                token={token}
-                extras={studentExtras}
-                open
-                onChange={(patch) => setStudentExtras((prev) => (prev ? { ...prev, ...patch } : prev))}
-              />
+              <fieldset className="hhr-ro" disabled={coachView}>
+                <CycleCard
+                  token={token}
+                  extras={studentExtras}
+                  open
+                  onChange={(patch) => setStudentExtras((prev) => (prev ? { ...prev, ...patch } : prev))}
+                />
+              </fieldset>
             </div>
           ) : null}
-          {extras ? (
+          {extras && !coachView ? (
             <div className="hhr-pane hhr-pane-consulta hhr-pane-wrap">
               <UrgentCard token={token} proLabel={proLabel} />
             </div>
@@ -635,7 +697,7 @@ export function PublicRoutinePage() {
               <span>{closeMessage.body}</span>
             </section>
           ) : null}
-          {studentExtras && monthDone && reviewDayId ? (
+          {studentExtras && monthDone && reviewDayId && !coachView ? (
             <MonthReviewCard token={token} dayId={reviewDayId} proLabel={proLabel} done={reviewDone} onDone={() => setReviewSent(true)} />
           ) : null}
 
@@ -773,9 +835,21 @@ export function PublicRoutinePage() {
                     <ChevronDown className="hhr-chev" size={18} strokeWidth={1.8} aria-hidden />
                   </summary>
                   <ol>
-                    {warmup.map((l, i) => (
-                      <li key={i}>{l}</li>
-                    ))}
+                    {warmup.map((l, i) => {
+                      const { text, media } = splitWarmupLine(l)
+                      return (
+                        <li key={i}>
+                          {text || null}
+                          {media.length ? (
+                            <span className="hhr-warmup-media">
+                              {media.map((m) => (
+                                <WarmupMediaItem key={m.url} media={m} />
+                              ))}
+                            </span>
+                          ) : null}
+                        </li>
+                      )
+                    })}
                   </ol>
                 </details>
               ) : null}
@@ -822,6 +896,7 @@ export function PublicRoutinePage() {
                     ),
                   )}
                   {dayLog && selectedDay.exercises.length > 0 ? (
+                    <fieldset className="hhr-ro" disabled={coachView}>
                     <DayCloseCard
                       key={`close-${selectedDay.id}`}
                       token={token}
@@ -831,6 +906,7 @@ export function PublicRoutinePage() {
                       allSetsDone={selectedProgress.total > 0 && selectedProgress.done >= selectedProgress.total}
                       onSaved={onDayLog}
                     />
+                    </fieldset>
                   ) : null}
                 </div>
               ) : (
@@ -952,7 +1028,18 @@ function ExerciseCard({
   next,
   foot,
   weightModeOn,
+  readOnly,
+  coachNote,
+  onHideCoachNote,
+  coachEditor,
 }: {
+  /** «Ver como profe»: se ve todo lo anotado pero no se puede tocar. */
+  readOnly: boolean
+  /** Nota del entrenador para el alumno (si no la ocultó). */
+  coachNote: string | null
+  onHideCoachNote: () => void
+  /** Solo en «Ver como profe»: escribir la nota para el alumno. */
+  coachEditor: CoachEditorProps | null
   /** El alumno puede decir si anota el total o por lado (migración 20261124120000). */
   weightModeOn: boolean
   /** En un circuito, «Siguiente» va solo al pie del último ejercicio. */
@@ -1020,6 +1107,11 @@ function ExerciseCard({
               <Pin size={11} strokeWidth={2.4} aria-hidden /> {selfNote}
             </span>
           ) : null}
+          {coachNote || coachEditor?.value ? (
+            <span className="hhr-ex-coachnote">
+              <MessageCircle size={11} strokeWidth={2.4} aria-hidden /> {coachEditor ? `Tu nota: ${coachEditor.value}` : `Nota de ${proLabel}`}
+            </span>
+          ) : null}
           <span className="hhr-progress">
             <span className="hhr-progress-track" aria-hidden>
               <span className="hhr-progress-fill" style={{ width: `${(done / sets) * 100}%` }} />
@@ -1060,6 +1152,9 @@ function ExerciseCard({
               ) : null}
             </div>
           ) : null}
+          {coachNote ? <CoachNoteCard note={coachNote} proLabel={proLabel} onHide={onHideCoachNote} /> : null}
+          {coachEditor ? <CoachNoteEditor key={ex.id} {...coachEditor} /> : null}
+          <fieldset className="hhr-ro" disabled={readOnly}>
           {selfNote != null ? <SelfNoteBox token={token} noteKey={exerciseNoteKey(ex.name)} value={selfNote} onSaved={onSelfNoteSaved} /> : null}
           <KgInputs
             ex={ex}
@@ -1075,6 +1170,7 @@ function ExerciseCard({
             }}
           />
           {feedback ? <ExerciseFeedbackBox token={token} exerciseId={ex.id} value={feedback} proLabel={proLabel} onSaved={onFeedbackSaved} /> : null}
+          </fieldset>
           {foot ? (
           <div className="hhr-ex-foot">
             {restUntil ? <RestTimer until={restUntil} total={rest} onDone={endRest} /> : null}
@@ -1100,6 +1196,93 @@ function ExerciseCard({
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+
+/** Nota del entrenador en el ejercicio; el alumno la oculta cuando ya la leyó (vuelve si el entrenador la cambia). */
+function CoachNoteCard({ note, proLabel, onHide }: { note: string; proLabel: string; onHide: () => void }) {
+  return (
+    <div className="hhr-coachnote" role="note">
+      <span className="hhr-coachnote-title">
+        <MessageCircle size={13} strokeWidth={2.2} aria-hidden /> Nota de {proLabel}
+      </span>
+      <p>{note}</p>
+      <label className="hhr-coachnote-hide">
+        <input type="checkbox" onChange={onHide} /> Ya la leí, ocultarla
+      </label>
+    </div>
+  )
+}
+
+type CoachEditorProps = { value: string; hidden: boolean; studentLabel: string; onSave: (note: string) => Promise<void> }
+
+/** «Ver como profe»: la nota para el alumno se guarda al salir del cuadro. */
+function CoachNoteEditor({ value, hidden, studentLabel, onSave }: CoachEditorProps) {
+  const [draft, setDraft] = useState(value)
+  const [state, setState] = useState<SaveState>('idle')
+  const [error, setError] = useState('')
+  async function save() {
+    if (draft.trim() === value.trim()) return
+    setState('saving')
+    try {
+      await onSave(draft)
+      setState('saved')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar')
+      setState('error')
+    }
+  }
+  return (
+    <label className="hhr-coachnote is-edit">
+      <span className="hhr-coachnote-title">
+        <MessageCircle size={13} strokeWidth={2.2} aria-hidden /> Nota para {studentLabel}
+      </span>
+      <textarea
+        rows={2}
+        maxLength={COACH_NOTE_MAX}
+        value={draft}
+        placeholder="Ej.: la próxima subí 2,5 kg y cuidá bajar lento"
+        onChange={(e) => {
+          setDraft(e.target.value)
+          setState('idle')
+        }}
+        onBlur={() => void save()}
+      />
+      <small>
+        {state === 'saving'
+          ? 'Guardando…'
+          : state === 'saved'
+            ? draft.trim() ? 'Guardada. Le aparece en este ejercicio hasta que la oculte.' : 'Nota borrada.'
+            : state === 'error'
+              ? error
+              : hidden
+                ? 'La ocultó: si la cambiás, le vuelve a aparecer.'
+                : 'Le aparece en este ejercicio (también en las semanas que siguen) hasta que la oculte. Se guarda al salir del cuadro.'}
+      </small>
+    </label>
+  )
+}
+
+/** Foto, video o link pegado en la entrada en calor. */
+function WarmupMediaItem({ media }: { media: WarmupMedia }) {
+  if (media.kind === 'embed')
+    return (
+      <iframe
+        className="hhr-warmup-frame"
+        src={media.src}
+        title="Video de la entrada en calor"
+        loading="lazy"
+        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    )
+  if (media.kind === 'image') return <img className="hhr-warmup-img" src={media.url} alt="Foto de la entrada en calor" loading="lazy" />
+  if (media.kind === 'video') return <video className="hhr-warmup-img" src={media.url} controls playsInline preload="metadata" />
+  return (
+    <a className="hhr-video" href={media.url} target="_blank" rel="noopener noreferrer">
+      <Play size={13} strokeWidth={2.4} fill="currentColor" aria-hidden /> {media.label}
+    </a>
+  )
+}
 
 /** «10» o «8-10» llevan «reps»; «12´´», «1´», «30 s» o «6+6» quedan tal cual los escribió el entrenador. */
 function withReps(reps: string): string {

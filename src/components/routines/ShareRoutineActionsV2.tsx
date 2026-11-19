@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, ExternalLink, RefreshCw } from 'lucide-react'
+import { ClipboardCheck, Copy, ExternalLink, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -10,6 +10,7 @@ import { copyWhatsAppMessage, normalizePhoneForWhatsApp, shareToWhatsApp } from 
 import {
   ensureRoutineShareToken,
   regenerateRoutineShareToken,
+  sharedRoutineCoachUrl,
   sharedRoutineMessage,
   sharedRoutinePreviewUrl,
   sharedRoutineUrl,
@@ -31,18 +32,19 @@ export function ShareRoutineActionsV2({
   className?: string
 }) {
   const user = useAuthStore((s) => s.user)
-  const [busy, setBusy] = useState<null | 'copy' | 'wa' | 'open' | 'new'>(null)
+  const [busy, setBusy] = useState<null | 'copy' | 'wa' | 'open' | 'coach' | 'new'>(null)
   const [confirmNew, setConfirmNew] = useState(false)
   const firstName = studentName.trim().split(/\s+/)[0] ?? ''
   const phoneDigits = normalizePhoneForWhatsApp(studentPhone)
 
-  async function withLink(kind: 'copy' | 'wa' | 'open', run: (url: string) => Promise<void> | void) {
+  async function withLink(kind: 'copy' | 'wa' | 'open' | 'coach', run: (url: string) => Promise<void> | void) {
     if (!user) return
     setBusy(kind)
     try {
       const token = await ensureRoutineShareToken(user.id, studentId)
       // «Ver como alumno» abre la vista previa: no pide el chequeo ni guarda nada en sus datos.
-      await run(kind === 'open' ? sharedRoutinePreviewUrl(token) : sharedRoutineUrl(token))
+      // «Ver como profe» muestra lo que cargó el alumno sin dejar tocarlo.
+      await run(kind === 'open' ? sharedRoutinePreviewUrl(token) : kind === 'coach' ? sharedRoutineCoachUrl(token) : sharedRoutineUrl(token))
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo armar el link')
     }
@@ -95,6 +97,12 @@ export function ShareRoutineActionsV2({
       <ActionMenuV2
         label="Más opciones del link de la rutina"
         items={[
+          {
+            label: 'Ver como profe',
+            hint: 'Lo que cargó el alumno, sin poder tocarlo',
+            icon: <ClipboardCheck />,
+            onClick: () => void withLink('coach', (url) => void window.open(url, '_blank', 'noopener,noreferrer')),
+          },
           {
             label: 'Copiar link',
             icon: <Copy />,

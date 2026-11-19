@@ -14,6 +14,7 @@ import {
   type TrainingExtras,
 } from '@/lib/routine/studentTrainingLog'
 import { saveSharedDailyCheckin } from '@/lib/routine/dailyCheckin'
+import { dismissSharedCoachNote, fetchCoachNotes, fetchShareOwner, saveCoachNote } from '@/lib/routine/coachNotes'
 
 vi.mock('@/lib/routine/sharedRoutine', async (original) => ({
   ...(await original<typeof import('@/lib/routine/sharedRoutine')>()),
@@ -29,6 +30,13 @@ vi.mock('@/lib/routine/studentTrainingLog', async (original) => ({
   saveSharedExerciseSelfNote: vi.fn(),
   sendSharedUrgentMessage: vi.fn(),
   sendSharedRoutineNotice: vi.fn(),
+}))
+vi.mock('@/lib/routine/coachNotes', async (original) => ({
+  ...(await original<typeof import('@/lib/routine/coachNotes')>()),
+  fetchShareOwner: vi.fn(),
+  fetchCoachNotes: vi.fn(),
+  saveCoachNote: vi.fn(),
+  dismissSharedCoachNote: vi.fn(),
 }))
 vi.mock('@/lib/routine/dailyCheckin', async (original) => ({
   ...(await original<typeof import('@/lib/routine/dailyCheckin')>()),
@@ -294,6 +302,69 @@ describe('registro del alumno en la rutina por link', () => {
     await open({ exercises: {}, days: checkedDay })
     await click(host.querySelector('.hhr-ex-head'))
     expect(button('Agregar una nota para mí')).toBeUndefined()
+  })
+
+  describe('«Ver como profe» y notas para el alumno (feedback nov19, tanda 4)', () => {
+    const withLog = (warmup: string | null = null): SharedRoutine => {
+      const day = routine.routine!.blocks[0]!.days[0]!
+      const base = day.exercises[0]!
+      return {
+        ...routine,
+        routine: {
+          ...routine.routine!,
+          blocks: [{ ...routine.routine!.blocks[0]!, days: [{ ...day, warmup_notes: warmup, exercises: [{ ...base, logs: [{ set: 1, weight_kg: 60, reps: 8, completed: true }] }] }] }],
+        },
+      }
+    }
+
+    it('el entrenador ve lo anotado sin poder tocarlo, sin chequeo ni consulta, y deja una nota', async () => {
+      vi.mocked(canPreviewRoutine).mockResolvedValue(true)
+      vi.mocked(fetchSharedRoutine).mockResolvedValue(withLog())
+      vi.mocked(fetchShareOwner).mockResolvedValue({ owner_id: 'owner', student_id: 'student' })
+      vi.mocked(fetchCoachNotes).mockResolvedValue({})
+      vi.mocked(saveCoachNote).mockResolvedValue({ note: 'Subí 2,5 kg', updated_at: '2026-11-19T10:00:00Z', dismissed_at: null })
+      await open({ exercises: { ex: { note: 'Me costó', effort: 7 } }, days: {} }, '/rutina/test-token?vista=profe')
+      expect(host.querySelector('.hhr-preview')?.textContent).toContain('Vista del entrenador')
+      expect(host.querySelector('.hhr-must')).toBeNull()
+      expect(host.querySelector('.hhr-checkin')).toBeNull()
+      expect(button('Consulta urgente')).toBeUndefined()
+      await click(host.querySelector('.hhr-ex-head'))
+      const kg = host.querySelector('.hhr-kgfield:not(.hhr-repsfield) input') as HTMLInputElement
+      expect(kg.value).toBe('60')
+      // Lo del alumno queda dentro de un fieldset deshabilitado (el navegador deshabilita todo lo de adentro).
+      const locked = (el: Element | null) => (el?.closest('fieldset') as HTMLFieldSetElement | null)?.disabled === true
+      expect(locked(kg)).toBe(true)
+      expect(locked(host.querySelector('.hhr-setcheck'))).toBe(true)
+      expect((host.querySelector('.hhr-exfb textarea') as HTMLTextAreaElement).value).toBe('Me costó')
+      expect(locked(host.querySelector('.hhr-exfb textarea'))).toBe(true)
+      const note = host.querySelector('.hhr-coachnote.is-edit textarea') as HTMLTextAreaElement
+      expect(locked(note)).toBe(false)
+      await type(note, 'Subí 2,5 kg')
+      await act(async () => note.dispatchEvent(new FocusEvent('focusout', { bubbles: true })))
+      expect(saveCoachNote).toHaveBeenCalledWith('owner', 'student', 'sentadilla', 'Subí 2,5 kg')
+      expect(host.querySelector('.hhr-ex-coachnote')?.textContent).toContain('Tu nota: Subí 2,5 kg')
+    })
+
+    it('el alumno ve la nota del entrenador y la puede ocultar', async () => {
+      vi.mocked(dismissSharedCoachNote).mockResolvedValue(undefined)
+      await open({ exercises: {}, days: checkedDay, coachNotes: { sentadilla: { note: 'Bajá lento', updated_at: '2026-11-19T10:00:00Z' } } })
+      expect(host.querySelector('.hhr-ex-coachnote')?.textContent).toContain('Nota de Tomás')
+      await click(host.querySelector('.hhr-ex-head'))
+      expect(host.querySelector('.hhr-coachnote p')?.textContent).toBe('Bajá lento')
+      await click(host.querySelector('.hhr-coachnote-hide input'))
+      expect(dismissSharedCoachNote).toHaveBeenCalledWith('test-token', 'sentadilla')
+      expect(host.querySelector('.hhr-coachnote')).toBeNull()
+      expect(host.querySelector('.hhr-ex-coachnote')).toBeNull()
+    })
+
+    it('la entrada en calor muestra los videos pegados en el texto', async () => {
+      vi.mocked(fetchSharedRoutine).mockResolvedValue(withLog('1) Movilidad de cadera https://youtu.be/dQw4w9WgXcQ\n2) 5 min de bici'))
+      await open({ exercises: {}, days: checkedDay })
+      const items = [...host.querySelectorAll('.hhr-warmup li')]
+      expect(items[0]?.textContent).toBe('1) Movilidad de cadera')
+      expect(items[0]?.querySelector('iframe')?.getAttribute('src')).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')
+      expect(items[1]?.querySelector('iframe')).toBeNull()
+    })
   })
 
   it('vista previa del entrenador: sin chequeo obligatorio y con el aviso arriba', async () => {

@@ -118,6 +118,11 @@ export function sharedRoutinePreviewUrl(token: string): string {
   return `${sharedRoutineUrl(token)}?vista=entrenador`
 }
 
+/** «Ver como profe» (feedback nov19): lo que cargó el alumno, sin poder tocarlo; solo notas para el alumno. */
+export function sharedRoutineCoachUrl(token: string): string {
+  return `${sharedRoutineUrl(token)}?vista=profe`
+}
+
 /** La vista previa solo se activa si quien abre el link es el dueño (sesión del entrenador en este navegador). */
 export async function canPreviewRoutine(token: string): Promise<boolean> {
   const { data: auth } = await supabase.auth.getSession()

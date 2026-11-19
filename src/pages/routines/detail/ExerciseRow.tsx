@@ -12,6 +12,8 @@ import { type ExWithExercise, parseRestToSeconds } from './routineDetailShared'
 import { useExerciseLogs } from '@/lib/routine/exerciseLogs'
 import { BORG_LABELS, useExerciseFeedback } from '@/lib/routine/studentTrainingLog'
 import { formatDate } from '@/lib/utils'
+import { COACH_NOTE_MAX, coachNoteKey, saveCoachNote, useCoachNotes } from '@/lib/routine/coachNotes'
+import toast from 'react-hot-toast'
 
 export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodWeekPlanAllDays, onDelete, onMoveUp, onMoveDown, onReplace, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
   exercise: ExWithExercise
@@ -164,6 +166,8 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           {studentFeedback.note ? <span className="whitespace-pre-line">«{studentFeedback.note}»</span> : null}
         </div>
       ) : null}
+
+      <CoachNoteField exerciseName={exercise.exercise?.name ?? null} />
 
       <div className="grid grid-cols-2 gap-1.5">
         <div>
@@ -491,6 +495,71 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
             <ExternalLink className="h-3 w-3" />
           </a>
         ) : null}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Feedback nov19 (tanda 4): nota para el alumno en este ejercicio. Al alumno le aparece en el link (en esta y en
+ * las semanas que repiten el ejercicio) hasta que la oculta. Solo con la migración 20261125120000.
+ */
+function CoachNoteField({ exerciseName }: { exerciseName: string | null }) {
+  const ctx = useCoachNotes()
+  const key = coachNoteKey(exerciseName)
+  const saved = ctx && key ? ctx.notes[key] : undefined
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(saved?.note ?? '')
+  const [busy, setBusy] = useState(false)
+  if (!ctx || !key) return null
+
+  async function save() {
+    if (!ctx) return
+    setBusy(true)
+    try {
+      const note = await saveCoachNote(ctx.ownerId, ctx.studentId, key, draft)
+      ctx.onSaved(key, note)
+      toast.success(note ? 'Nota guardada: el alumno la ve en su link' : 'Nota borrada')
+      setOpen(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo guardar la nota')
+    }
+    setBusy(false)
+  }
+
+  if (!open)
+    return saved ? (
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg bg-surface-elevated px-2.5 py-1.5 text-2xs text-ink-secondary">
+        <span className="font-semibold text-ink-primary">Nota para el alumno</span>
+        <span className="whitespace-pre-line">«{saved.note}»</span>
+        <span className="text-ink-muted">{saved.dismissed_at ? `· la ocultó el ${formatDate(saved.dismissed_at, 'd MMM')}` : '· la está viendo'}</span>
+        <Button variant="ghost" size="sm" className="ml-auto" onClick={() => { setDraft(saved.note); setOpen(true) }}>
+          Editar
+        </Button>
+      </div>
+    ) : (
+      <Button variant="ghost" size="sm" className="self-start text-ink-muted" onClick={() => { setDraft(''); setOpen(true) }}>
+        + Nota para el alumno
+      </Button>
+    )
+
+  return (
+    <div className="space-y-1 rounded-lg border border-surface-border p-2">
+      <label className="block text-3xs text-ink-muted">
+        Nota para el alumno · le aparece en este ejercicio hasta que la oculte (vacía = borrarla)
+      </label>
+      <textarea
+        rows={2}
+        maxLength={COACH_NOTE_MAX}
+        autoFocus
+        className={cn(controlSmClassName, 'w-full px-2 py-1.5')}
+        placeholder="Ej.: la próxima subí 2,5 kg y cuidá bajar lento"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+      />
+      <div className="flex justify-end gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
+        <Button size="sm" onClick={() => void save()} loading={busy}>Guardar nota</Button>
       </div>
     </div>
   )

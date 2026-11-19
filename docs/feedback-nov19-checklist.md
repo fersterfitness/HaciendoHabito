@@ -29,9 +29,11 @@ SQL: `supabase/migrations/20261124120000_peso_por_lado.sql` (lo corre el usuario
 
 ## Tanda 4 — «Ver como profe» y notas para el alumno (necesita SQL)
 
-- [ ] (App 5) Vista del entrenador en el link: ver todo lo que cargó el alumno sin poder pisar sus datos ni completar cuestionarios.
-- [ ] (App 5) «Nota para el alumno» por ejercicio: la deja el entrenador al revisar una semana y le aparece al alumno la próxima vez que hace ese día. El alumno la puede ocultar.
-- [ ] (App 8) Entrada en calor con imágenes o videos (links en el texto se muestran como video/foto).
+SQL: `supabase/migrations/20261125120000_notas_para_el_alumno.sql` (lo corre el usuario a mano; solo para las notas).
+
+- [x] (App 5) Vista del entrenador en el link: «Ver como profe» (menú del link en la ficha del alumno, `?vista=profe`). Muestra todo lo cargado, sin chequeo ni avisos, con todo bloqueado; no guarda nada en los datos del alumno.
+- [x] (App 5) «Nota para el alumno» por ejercicio: se escribe desde la rutina (cada ejercicio) o desde «Ver como profe». Le aparece al alumno en ese ejercicio (también en las semanas siguientes) hasta que la oculta; si se cambia, vuelve a aparecer.
+- [x] (App 8) Entrada en calor con imágenes o videos: YouTube y Vimeo se ven incrustados, fotos y .mp4 directo, el resto como botón.
 
 ## Tanda 5 — Finanzas (necesita SQL)
 
