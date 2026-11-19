@@ -776,3 +776,34 @@
   .hhr .hhr-ex.is-open .hhr-kgfield input { background: var(--soft-2); }
   .hhr .hhr-ex.is-open .hhr-setrow.is-logged .hhr-kgfield input { background: rgba(195, 255, 77, .08); }
 }
+
+/* Feedback nov19: rueda del ciclo. */
+.hhr-cycle { display: grid; justify-items: center; gap: 12px; padding: 4px 0 6px; }
+.hhr-cycle svg { display: block; max-width: 100%; height: auto; }
+.hhr-cycle-big { fill: var(--ink); font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.hhr-cycle-small { fill: var(--ink-2); font-size: 11.5px; font-weight: 600; }
+.hhr-cycle-legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; width: 100%; font-size: 12px; font-weight: 600; color: var(--ink); }
+.hhr-cycle-legend li { display: flex; align-items: center; gap: 6px; }
+.hhr-cycle-legend i { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.hhr-cycle-legend small { font-weight: 500; color: var(--muted); }
+
+/* Feedback nov19: «Volver» con texto, circuitos juntos en una pantalla y semanas bloqueadas. */
+.hhr-ex-back { display: none; }
+.hhr .hhr-week:disabled { opacity: .42; cursor: not-allowed; }
+.hhr .hhr-week svg { margin-right: 5px; vertical-align: -1px; }
+@media (max-width: 1023px) {
+  .hhr .hhr-ex.is-open .hhr-ex-head .hhr-chev { display: none; }
+  .hhr .hhr-ex.is-open .hhr-ex-back { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; height: 34px; padding: 0 12px 0 8px; border-radius: 999px; background: var(--soft-2); color: var(--ink); font-size: 13px; font-weight: 700; }
+
+  /* Circuito abierto: todos sus ejercicios en la misma pantalla. */
+  .hhr .hhr-circuit.is-open { position: fixed; inset: 0; z-index: 60; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding: env(safe-area-inset-top) 12px 0; border: 0; border-radius: 0; background: var(--canvas); animation: hhr-sheet .24s cubic-bezier(.2, .8, .2, 1); }
+  .hhr .hhr-circuit.is-open .hhr-circuit-label { position: sticky; top: 0; z-index: 3; margin: 0 -12px 8px; padding: 14px 16px 10px; background: rgba(11, 11, 12, .94); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); font-size: 12px; }
+  .hhr .hhr-circuit.is-open .hhr-circuit-label span { font-size: 12px; }
+  .hhr .hhr-circuit.is-open .hhr-ex.is-open { position: relative; inset: auto; z-index: auto; overflow: visible; padding-top: 0; border: 1px solid var(--line); border-radius: 18px; background: var(--card); animation: none; }
+  .hhr .hhr-circuit.is-open .hhr-ex.is-open .hhr-ex-head { position: relative; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .hhr .hhr-circuit.is-open .hhr-ex.is-open .hhr-ex-foot { margin: 6px -16px 0; border-radius: 0 0 18px 18px; }
+  .hhr .hhr-circuit.is-open .hhr-circuit-foot { padding-bottom: 16px; }
+}
+@media (max-width: 1023px) {
+  .hhr .hhr-circuit.is-open .hhr-circuit-plus ~ .hhr-ex .hhr-ex-back { display: none; }
+}

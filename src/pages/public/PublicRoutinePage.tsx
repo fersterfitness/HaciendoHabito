@@ -2,7 +2,7 @@ import { Fragment, type ReactNode, useCallback, useEffect, useId, useMemo, useRe
 import { useParams, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CalendarHeart, Check, ChevronDown, Dumbbell, Flame, LifeBuoy, Link2, MessageCircle, Pin, Play, TrendingUp } from 'lucide-react'
+import { CalendarHeart, Check, ChevronDown, ChevronLeft, Lock, Dumbbell, Flame, LifeBuoy, Link2, MessageCircle, Pin, Play, TrendingUp } from 'lucide-react'
 import {
   currentBlockIndex,
   exerciseDetails,
@@ -34,6 +34,7 @@ import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/stud
 import { CycleCard, MonthReviewCard, PaymentBanner, ProgressCard } from './PublicRoutineExtras'
 import { movementArtwork, routineAthlete, type Athlete } from '@/lib/routine/exerciseArtwork'
 import { clockLabel, previousLabel, previousSetsByExercise } from '@/lib/routine/previousSets'
+import { progressWeekIndex, startDayIndex } from '@/lib/routine/routineProgress'
 
 /**
  * Rutina que abre el alumno desde el link (sin cuenta). Dos cosas separadas:
@@ -283,6 +284,16 @@ export function PublicRoutinePage() {
     document.title = firstName ? `Rutina de ${firstName}` : 'Tu rutina'
   }, [firstName])
 
+  const startedRef = useRef(false)
+  useEffect(() => {
+    if (startedRef.current || !routine || !extras) return
+    startedRef.current = true
+    const x = progressInput(extras, logged)
+    const w = progressWeekIndex(routine.blocks, x)
+    setWeek(w)
+    setDay(startDayIndex(routine.blocks, w, x))
+  }, [routine, extras, logged])
+
   const kgOf = useCallback(
     (exId: string) =>
       Object.values(logged[exId] ?? {})
@@ -381,7 +392,10 @@ export function PublicRoutinePage() {
 
   const blocks = routine?.blocks ?? []
   const today = todayYmd()
-  const currentWeek = currentBlockIndex(blocks, today)
+  // Feedback nov19: la semana en curso sale del avance del alumno, no de las fechas del bloque.
+  const currentWeek = extras ? progressWeekIndex(blocks, progressInput(extras, logged)) : currentBlockIndex(blocks, today)
+  // Semanas como niveles: las de adelante se desbloquean al cerrar la anterior (en la vista previa, todas abiertas).
+  const lockedWeek = (i: number) => !!extras && preview !== 'on' && i > currentWeek
   const wi = Math.min(week ?? currentWeek, Math.max(0, blocks.length - 1))
   const block = blocks[wi]
   const days = block?.days ?? []
@@ -450,11 +464,19 @@ export function PublicRoutinePage() {
 
   // «Anterior» en la tabla de series: lo que anotó la última vez que hizo ese ejercicio.
   const previous = previousSetsByExercise(blocks, logged)
-  const dayOrder = selectedDay?.exercises ?? []
+  const groups = selectedDay ? groupExercises(selectedDay.exercises) : []
+  const groupOpen = (gi: number) => !!groups[gi]?.items.some((e) => isOpen(e.id))
+  const nextOf = (gi: number) => {
+    const g = groups[gi + 1]
+    if (!g) return null
+    const label = g.circuit ? `Circuito: ${g.items.map((e) => niceCase(e.name) || 'Ejercicio').join(' + ')}` : niceCase(g.items[0]!.name) || 'Siguiente'
+    return { label, go: () => openNext(g.items[0]!.id) }
+  }
 
-  function card(ex: SharedRoutineExercise, inCircuit = false) {
+  function card(ex: SharedRoutineExercise, gi: number, inCircuit = false) {
     const n = ++number
-    const nx = dayOrder[dayOrder.findIndex((e) => e.id === ex.id) + 1]
+    const g = groups[gi]
+    const lastInGroup = !g || g.items[g.items.length - 1]?.id === ex.id
     return (
       <ExerciseCard
         key={ex.id}
@@ -464,8 +486,8 @@ export function PublicRoutinePage() {
         flat={inCircuit}
         token={token}
         logged={logged[ex.id] ?? {}}
-        open={isOpen(ex.id)}
-        onToggle={() => toggle(ex.id)}
+        open={inCircuit ? groupOpen(gi) : isOpen(ex.id)}
+        onToggle={() => (inCircuit && groupOpen(gi) ? setOpenMap({}) : toggle(ex.id))}
         onSaved={onSaved}
         proLabel={proLabel}
         feedback={extras ? (extras.exercises[ex.id] ?? { note: '', effort: null }) : null}
@@ -473,7 +495,8 @@ export function PublicRoutinePage() {
         selfNote={extras?.selfNotes && exerciseNoteKey(ex.name) ? (extras.selfNotes[exerciseNoteKey(ex.name)] ?? '') : null}
         onSelfNoteSaved={onSelfNote}
         previous={previous[ex.id]}
-        next={nx ? { label: niceCase(nx.name) || 'Siguiente', go: () => openNext(nx.id) } : null}
+        next={nextOf(gi)}
+        foot={lastInGroup}
       />
     )
   }
@@ -565,7 +588,7 @@ export function PublicRoutinePage() {
 
           {extras ? (
             <div className="hhr-pane hhr-pane-progreso hhr-pane-wrap">
-              <ProgressCard blocks={blocks} extras={extras} kgOf={kgOf} open={tab === 'progreso'} />
+              <ProgressCard blocks={blocks} extras={extras} kgOf={kgOf} open />
             </div>
           ) : null}
           {showCycle && studentExtras ? (
@@ -573,7 +596,7 @@ export function PublicRoutinePage() {
               <CycleCard
                 token={token}
                 extras={studentExtras}
-                open={tab === 'ciclo'}
+                open
                 onChange={(patch) => setStudentExtras((prev) => (prev ? { ...prev, ...patch } : prev))}
               />
             </div>
@@ -623,11 +646,14 @@ export function PublicRoutinePage() {
                       type="button"
                       className="hhr-week"
                       aria-pressed={i === wi}
+                      disabled={lockedWeek(i)}
+                      title={lockedWeek(i) ? 'Se desbloquea cuando cerrás todos los días de la semana anterior' : undefined}
                       onClick={() => {
                         setWeek(i)
-                        setDay(0)
+                        setDay(extras ? startDayIndex(blocks, i, progressInput(extras, logged)) : 0)
                       }}
                     >
+                      {lockedWeek(i) ? <Lock size={11} strokeWidth={2.4} aria-label="(bloqueada)" /> : null}
                       {niceCase(b.name) || `Semana ${i + 1}`}
                       {i === currentWeek ? <span className="hhr-now" aria-label="(semana actual)" /> : null}
                     </button>
@@ -742,9 +768,9 @@ export function PublicRoutinePage() {
               {blocked ? null : selectedDay ? (
                 <div className="hhr-list">
                   {selectedDay.exercises.length === 0 ? <p className="hhr-muted">No hay ejercicios cargados para este día.</p> : null}
-                  {groupExercises(selectedDay.exercises).map((g) =>
+                  {groups.map((g, gi) =>
                     g.circuit ? (
-                      <div key={g.items[0]!.id} className="hhr-card hhr-circuit">
+                      <div key={g.items[0]!.id} className={`hhr-card hhr-circuit${groupOpen(gi) ? ' is-open' : ''}`}>
                         <p className="hhr-circuit-label">
                           <b className="hhr-circuit-tag">
                             <Link2 size={14} strokeWidth={2.2} aria-hidden />
@@ -770,14 +796,14 @@ export function PublicRoutinePage() {
                                   +
                                 </span>
                               ) : null}
-                              {card(ex, true)}
+                              {card(ex, gi, true)}
                             </Fragment>
                           ))}
                         </div>
                         {circuitNoteOf(g.items) ? null : <p className="hhr-circuit-foot">Descansá recién cuando termines los {g.items.length}.</p>}
                       </div>
                     ) : (
-                      card(g.items[0]!)
+                      card(g.items[0]!, gi)
                     ),
                   )}
                   {dayLog && selectedDay.exercises.length > 0 ? (
@@ -909,7 +935,10 @@ function ExerciseCard({
   onSelfNoteSaved,
   previous,
   next,
+  foot,
 }: {
+  /** En un circuito, «Siguiente» va solo al pie del último ejercicio. */
+  foot: boolean
   /** Lo que anotó la vez anterior en este ejercicio, por serie. */
   previous?: Record<number, LoggedSet>
   /** Ejercicio que sigue en el día; `null` en el último. */
@@ -986,6 +1015,11 @@ function ExerciseCard({
           </span>
         </span>
         <ChevronDown className="hhr-chev" size={20} strokeWidth={1.8} aria-hidden />
+        {open ? (
+          <span className="hhr-ex-back" aria-hidden>
+            <ChevronLeft size={16} strokeWidth={2.4} /> Volver
+          </span>
+        ) : null}
       </button>
 
       {open ? (
@@ -1022,6 +1056,7 @@ function ExerciseCard({
             }}
           />
           {feedback ? <ExerciseFeedbackBox token={token} exerciseId={ex.id} value={feedback} proLabel={proLabel} onSaved={onFeedbackSaved} /> : null}
+          {foot ? (
           <div className="hhr-ex-foot">
             {restUntil ? <RestTimer until={restUntil} total={rest} onDone={endRest} /> : null}
             <button type="button" className="hhr-next" onClick={next ? next.go : onToggle}>
@@ -1036,6 +1071,9 @@ function ExerciseCard({
               <ChevronDown size={18} strokeWidth={2} aria-hidden />
             </button>
           </div>
+          ) : restUntil ? (
+            <RestTimer until={restUntil} total={rest} onDone={endRest} />
+          ) : null}
         </div>
       ) : null}
     </article>
@@ -1353,4 +1391,12 @@ function RestTimer({ until, total, onDone }: { until: number; total: number; onD
       <i style={{ width: `${total ? (left / total) * 100 : 0}%` }} aria-hidden />
     </div>
   )
+}
+
+/** Cierres del día y series tildadas, para saber en qué semana y día va el alumno. */
+function progressInput(extras: TrainingExtras, logged: LoggedMap) {
+  return {
+    statusOf: (dayId: string) => extras.days[dayId]?.status ?? null,
+    hasSets: (d: { exercises: { id: string }[] }) => d.exercises.some((e) => Object.values(logged[e.id] ?? {}).some((l) => l.completed)),
+  }
 }

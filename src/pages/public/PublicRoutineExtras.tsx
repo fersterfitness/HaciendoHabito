@@ -224,6 +224,8 @@ export function CycleCard({
         <ChevronDown className="hhr-chev" size={18} strokeWidth={1.8} aria-hidden />
       </summary>
       <div className="hhr-progress-body">
+        {/* Feedback nov19: una rueda de guía con las fases y el día en que está. */}
+        {!extras.on_pill ? <CycleWheel day={day} /> : null}
         <label className="hhr-check">
           <input
             type="checkbox"
@@ -315,3 +317,66 @@ export function MonthReviewCard({ token, dayId, proLabel, done, onDone }: { toke
     </section>
   )
 }
+
+const CYCLE_PARTS = [
+  { label: 'Menstruación', from: 1, to: 5, color: '#FF5D6C' },
+  { label: 'Fase folicular', from: 6, to: 13, color: '#4FC3D9' },
+  { label: 'Ovulación', from: 14, to: 16, color: '#C3FF4D' },
+  { label: 'Fase lútea', from: 17, to: 28, color: '#B794F6' },
+] as const
+
+/** Rueda orientativa de 28 días: un segmento por día, coloreado por fase, y el día de hoy marcado. */
+function CycleWheel({ day }: { day: number | null }) {
+  const size = 200
+  const c = size / 2
+  const r = 80
+  const seg = (2 * Math.PI) / 28
+  const today = day && day <= 28 ? day : null
+  const point = (i: number, rad: number) => {
+    const a = -Math.PI / 2 + seg * i
+    return [c + rad * Math.cos(a), c + rad * Math.sin(a)] as const
+  }
+  return (
+    <div className="hhr-cycle">
+      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={today ? `Día ${today} de tu ciclo: ${cyclePhase(today)}` : 'Fases del ciclo de 28 días'}>
+        {Array.from({ length: 28 }, (_, i) => {
+          const d = i + 1
+          const part = CYCLE_PARTS.find((p) => d >= p.from && d <= p.to)!
+          const [x1, y1] = point(i + 0.06, r)
+          const [x2, y2] = point(i + 0.94, r)
+          return (
+            <path
+              key={d}
+              d={`M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`}
+              fill="none"
+              stroke={part.color}
+              strokeWidth={d === today ? 22 : 14}
+              strokeOpacity={today && d !== today ? 0.55 : 1}
+            />
+          )
+        })}
+        {today ? (
+          (() => {
+            const [x, y] = point(today - 0.5, r)
+            return <circle cx={x} cy={y} r={5} fill="#0B0B0C" />
+          })()
+        ) : null}
+        <text x={c} y={c - 6} textAnchor="middle" className="hhr-cycle-big">
+          {today ? `Día ${today}` : '28 días'}
+        </text>
+        <text x={c} y={c + 16} textAnchor="middle" className="hhr-cycle-small">
+          {today ? cyclePhase(today) : 'Registrá tu inicio'}
+        </text>
+      </svg>
+      <ul className="hhr-cycle-legend">
+        {CYCLE_PARTS.map((p) => (
+          <li key={p.label}>
+            <i style={{ background: p.color }} aria-hidden />
+            {p.label} <small>días {p.from}–{p.to}</small>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
