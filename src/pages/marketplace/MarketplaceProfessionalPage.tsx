@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, MapPin, Plus, Video } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, MapPin, Plus, Trophy, Video } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { PublicShell, ProfessionalPhoto, RoleIcon, RoleTile, TeamBar, VerifiedMark } from '@/components/marketplace/PublicShell'
@@ -9,18 +9,18 @@ import { usePublicCases } from '@/data/marketplaceCases'
 import { PublicCases } from '@/components/marketplace/PublicCases'
 import {
   MARKETPLACE_ROLES,
-  ROLE_TONE,
   durationLabel,
   durationPer,
   formatPrice,
   modalityLabel,
+  roleBadgeClass,
   roleLabel,
   sportLabel,
-  whatsappLink,
   type MarketplacePlan,
   type MarketplaceProfessional,
 } from '@/lib/marketplace'
 import { cn } from '@/lib/utils'
+import { buildTrainerContactWhatsAppUrl } from '@/lib/trainerContact'
 import { teamTotal, useMarketplaceTeam } from '@/stores/marketplaceTeam'
 
 const chipClass = 'rounded-md bg-surface-elevated px-2 py-1 text-xs font-medium text-ink-secondary'
@@ -174,8 +174,9 @@ export function MarketplaceProfessionalPage() {
   }, [professional])
 
   const firstName = professional?.nombre.split(' ')[0] ?? ''
+  // Feedback nov19 (tanda 6): la única consulta por WhatsApp es la de Tomás, para todos los profesionales.
   const wa = professional
-    ? whatsappLink(professional.whatsapp, `Hola ${firstName}, vi tu perfil en Haciéndolo Hábito y quería consultarte.`)
+    ? buildTrainerContactWhatsAppUrl(`Hola Tomi, vi el perfil de ${professional.nombre} en Haciéndolo Hábito y quería consultar.`)
     : null
   const mode = professional ? modalityLabel(professional.modalidad) : ''
   const cheapest = plans.length ? Math.min(...plans.map((p) => p.precio)) : null
@@ -216,7 +217,7 @@ export function MarketplaceProfessionalPage() {
               />
               <div className="flex min-w-0 flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={cn('hh-pastel inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold', ROLE_TONE[professional.rol])}>
+                  <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold', roleBadgeClass(professional.rol))}>
                     <RoleIcon rol={professional.rol} className="h-3.5 w-3.5" />
                     {roleLabel(professional.rol)}
                   </span>
@@ -257,6 +258,11 @@ export function MarketplaceProfessionalPage() {
                       <a href={wa} target="_blank" rel="noopener noreferrer">
                         Consultar por WhatsApp
                       </a>
+                    </Button>
+                  ) : null}
+                  {cases.length > 0 ? (
+                    <Button asChild variant="secondary" size="lg" icon={<Trophy className="h-4 w-4" />}>
+                      <a href="#casos">Ver casos de éxito</a>
                     </Button>
                   ) : null}
                   {cheapest != null ? (

@@ -59,6 +59,26 @@ export function usePublicCases(professionalId: string | undefined) {
   })
 }
 
+/**
+ * Cuántos casos tiene cada profesional del listado (para el botón «Ver casos de éxito» de la tarjeta).
+ * Cualquier error se toma como «ninguno».
+ */
+export function usePublicCaseCounts(professionalIds: string[]) {
+  const ids = [...professionalIds].sort()
+  return useQuery({
+    queryKey: ['marketplace', 'public-case-counts', ids.join(',')],
+    enabled: ids.length > 0,
+    staleTime: 60_000,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabasePublic.from('marketplace_cases').select('professional_id').in('professional_id', ids).limit(1000)
+      if (error) return {}
+      const out: Record<string, number> = {}
+      for (const r of (data ?? []) as { professional_id: string }[]) out[r.professional_id] = (out[r.professional_id] ?? 0) + 1
+      return out
+    },
+  })
+}
+
 export type CaseInput = Pick<MarketplaceCase, 'tipo' | 'titulo' | 'texto' | 'media_url'>
 
 export function useSaveCase() {
@@ -100,6 +120,47 @@ export function cleanVideoUrl(raw: string): string | null {
   const host = u.hostname.replace(/^www\.|^m\./, '')
   const ok = ['youtube.com', 'youtu.be', 'instagram.com', 'tiktok.com', 'vm.tiktok.com', 'vimeo.com', 'drive.google.com']
   return ok.some((h) => host === h || host.endsWith(`.${h}`)) ? u.toString().slice(0, 500) : null
+}
+
+/**
+ * Feedback nov19 (tanda 6): el video del caso se reproduce en la misma página. Devuelve la dirección para
+ * incrustarlo y la forma del cuadro (vertical para reels y TikTok), o `null` si ese link no se puede incrustar
+ * (ahí se muestra el botón «Tocá acá para ver el video del caso»).
+ */
+export function caseVideoEmbed(url: string): { src: string; vertical: boolean } | null {
+  let u: URL
+  try {
+    u = new URL(url)
+  } catch {
+    return null
+  }
+  const host = u.hostname.replace(/^www\.|^m\./, '')
+  const parts = u.pathname.split('/').filter(Boolean)
+  if (host === 'youtu.be' || host.endsWith('youtube.com')) {
+    const id =
+      host === 'youtu.be' ? parts[0] : parts[0] === 'watch' ? u.searchParams.get('v') : ['shorts', 'embed', 'live'].includes(parts[0] ?? '') ? parts[1] : null
+    return id && /^[\w-]{6,20}$/.test(id) ? { src: `https://www.youtube-nocookie.com/embed/${id}`, vertical: parts[0] === 'shorts' } : null
+  }
+  if (host.endsWith('vimeo.com')) {
+    const id = parts.find((x) => /^\d{5,}$/.test(x))
+    return id ? { src: `https://player.vimeo.com/video/${id}`, vertical: false } : null
+  }
+  if (host.endsWith('instagram.com')) {
+    const i = parts.findIndex((x) => x === 'p' || x === 'reel' || x === 'reels' || x === 'tv')
+    const code = i >= 0 ? parts[i + 1] : undefined
+    return code && /^[\w-]{5,40}$/.test(code) ? { src: `https://www.instagram.com/${parts[i] === 'reels' ? 'reel' : parts[i]}/${code}/embed`, vertical: true } : null
+  }
+  if (host.endsWith('tiktok.com')) {
+    const i = parts.indexOf('video')
+    const id = i >= 0 ? parts[i + 1] : undefined
+    return id && /^\d{8,25}$/.test(id) ? { src: `https://www.tiktok.com/embed/v2/${id}`, vertical: true } : null
+  }
+  if (host === 'drive.google.com') {
+    const i = parts.indexOf('d')
+    const id = i >= 0 ? parts[i + 1] : u.searchParams.get('id')
+    return id && /^[\w-]{10,80}$/.test(id) ? { src: `https://drive.google.com/file/d/${id}/preview`, vertical: false } : null
+  }
+  return null
 }
 
 /** «YouTube», «Instagram»… para el botón del video. */

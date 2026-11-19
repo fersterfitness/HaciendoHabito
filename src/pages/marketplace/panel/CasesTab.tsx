@@ -19,7 +19,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 const TYPE_HINT: Record<MarketplaceCaseType, string> = {
   foto: 'Un antes y después, una foto con el alumno, una captura de un mensaje.',
-  video: 'Pegá el link de YouTube, Instagram, TikTok, Vimeo o Drive. Se abre en ese sitio.',
+  video: 'Pegá el link de YouTube, Instagram, TikTok, Vimeo o Drive: se reproduce en tu página. Si no se puede, aparece un botón para abrirlo.',
   mensaje: 'Lo que te dijo un alumno, con sus palabras.',
 }
 

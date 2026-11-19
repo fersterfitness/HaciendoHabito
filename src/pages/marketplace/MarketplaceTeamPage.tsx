@@ -14,9 +14,9 @@ const SPORT_OPTIONS = [...MARKETPLACE_SPORTS.map((s) => ({ value: s.label, label
 type Errors = Partial<Record<'nombre' | 'whatsapp' | 'email', string>>
 
 const NEXT_STEPS = [
-  'Cada profesional recibe tu solicitud con tus datos.',
-  'Te escriben por WhatsApp para coordinar el inicio y el pago.',
-  'Acá no se cobra nada: el pago lo arreglás con cada uno.',
+  'Tomás y cada profesional que elegiste reciben tu solicitud.',
+  'Tomás te escribe por WhatsApp para coordinar el pago y te manda el formulario para completar tus datos.',
+  'Acá no se cobra nada: el pago se coordina por WhatsApp.',
 ]
 
 /** Dónde está el cliente en el recorrido: elegir, dejar sus datos, esperar el contacto. */
@@ -127,8 +127,8 @@ export function MarketplaceTeamPage() {
             <h1 className="text-3xl font-semibold tracking-tight">Solicitud enviada</h1>
             <p className="text-base text-ink-secondary">
               {sent.length === 1
-                ? `${sent[0]!.nombre} ya recibió tu pedido y te va a escribir por WhatsApp para coordinar el inicio y el pago.`
-                : `Tus ${sent.length} profesionales ya recibieron tu pedido. Cada uno te va a escribir por WhatsApp para coordinar el inicio y el pago.`}
+                ? `${sent[0]!.nombre} ya recibió tu pedido. Tomás te va a escribir por WhatsApp para coordinar el pago y mandarte el formulario.`
+                : `Tus ${sent.length} profesionales ya recibieron tu pedido. Tomás te va a escribir por WhatsApp para coordinar el pago y mandarte el formulario.`}
             </p>
             <ul className="flex w-full flex-col gap-2">
               {sent.map((i) => (

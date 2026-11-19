@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { keepsLegacyIntake } from '@/pages/public/legacyIntakeGate'
 import { Toaster } from 'react-hot-toast'
 import { DialogHost } from '@/components/ui/dialogs'
 import { useAuthInit } from '@/hooks/useAuth'
@@ -89,6 +90,7 @@ const MarketplaceDirectoryPage = lazy(() => import('@/pages/marketplace/Marketpl
 const MarketplaceProfessionalPage = lazy(() => import('@/pages/marketplace/MarketplaceProfessionalPage').then((m) => ({ default: m.MarketplaceProfessionalPage })))
 const MarketplaceTeamPage = lazy(() => import('@/pages/marketplace/MarketplaceTeamPage').then((m) => ({ default: m.MarketplaceTeamPage })))
 const MarketplaceApplyPage = lazy(() => import('@/pages/marketplace/MarketplaceApplyPage').then((m) => ({ default: m.MarketplaceApplyPage })))
+const MarketplaceRequestFormPage = lazy(() => import('@/pages/marketplace/MarketplaceRequestFormPage').then((m) => ({ default: m.MarketplaceRequestFormPage })))
 const WelcomePage = lazy(() => import('@/pages/auth/WelcomePage').then((m) => ({ default: m.WelcomePage })))
 const MyMarketplacePage = lazy(() => import('@/pages/marketplace/MyMarketplacePage').then((m) => ({ default: m.MyMarketplacePage })))
 const MarketplaceAdminPage = lazy(() => import('@/pages/marketplace/MarketplaceAdminPage').then((m) => ({ default: m.MarketplaceAdminPage })))
@@ -345,7 +347,7 @@ function AppRoutes() {
 
       <Route path="/form/check-in/compartido/:token" element={withPageSuspense(<PublicCheckInPage shared />)} />
       <Route path="/form/check-in/:token" element={withPageSuspense(<PublicCheckInPage />)} />
-      <Route path="/form" element={withPageSuspense(<PublicIntakeFormPage />)} />
+      <Route path="/form" element={<LegacyIntakeRoute />} />
       <Route path="/plan/:token" element={withPageSuspense(<PublicMealPlanPage />)} />
       <Route path="/rutina/:token" element={withPageSuspense(<PublicRoutinePage />)} />
       {/* Marketplace público: directorio, página de cada profesional y «Tu equipo». */}
@@ -353,6 +355,8 @@ function AppRoutes() {
       <Route path="/p/:slug" element={withPageSuspense(<MarketplaceProfessionalPage />)} />
       <Route path="/equipo" element={withPageSuspense(<MarketplaceTeamPage />)} />
       <Route path="/sumate" element={withPageSuspense(<MarketplaceApplyPage />)} />
+      {/* Formulario del profesional que el cliente completa desde el link de su solicitud. */}
+      <Route path="/f/:token" element={withPageSuspense(<MarketplaceRequestFormPage />)} />
 
       <Route element={<AuthGuard />}>
         <Route element={IS_V2 ? <AppLayoutV2 /> : <AppLayout />}>
@@ -364,6 +368,12 @@ function AppRoutes() {
       <Route path="*" element={withPageSuspense(<NotFoundPage />)} />
     </Routes>
   )
+}
+
+/** `/form` viejo: solo para quien ya estaba inscribiéndose; el resto va a «Armá tu equipo». */
+function LegacyIntakeRoute() {
+  const { search } = useLocation()
+  return keepsLegacyIntake(search) ? withPageSuspense(<PublicIntakeFormPage />) : <Navigate to="/profesionales" replace />
 }
 
 /** Verde éxito (toasts success). */

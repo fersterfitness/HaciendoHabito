@@ -5,7 +5,7 @@
 
 export type MarketplaceRole = 'entrenador' | 'nutricionista' | 'psicologo' | 'kinesiologo'
 export type MarketplaceModality = 'online' | 'presencial'
-export type MarketplaceDuration = 'mensual' | 'x3' | 'x6' | 'anual'
+export type MarketplaceDuration = 'mensual' | 'x3' | 'x6' | 'anual' | 'sesion'
 export type MarketplaceProfessionalStatus = 'borrador' | 'pendiente' | 'aprobado' | 'oculto'
 export type MarketplaceRequestStatus = 'nueva' | 'contactada' | 'aceptada' | 'descartada'
 
@@ -96,6 +96,11 @@ export interface MarketplaceRequest {
   equipo_resumen: string
   estado: MarketplaceRequestStatus
   created_at: string
+  /** Link del formulario del profesional (20261126120000). Sin la migración no viene. */
+  form_token?: string | null
+  form_respuestas?: { pregunta: string; respuesta: string }[] | null
+  form_dia_pago?: string | null
+  form_enviado_at?: string | null
 }
 
 export interface MarketplaceApplication {
@@ -141,6 +146,14 @@ export function silhouetteOf(fotoUrl: string | null | undefined): MarketplaceSil
 export const silhouetteValue = (kind: MarketplaceSilhouette): string | null => (kind === 'neutra' ? null : `${SILHOUETTE_PREFIX}${kind}`)
 
 /** Color plano de cada área en la web pública (fondo pastel + su tinta). */
+/**
+ * Etiqueta del rol sobre una foto o en la cabecera (feedback nov19, tanda 6): color pleno y letra oscura,
+ * también en modo oscuro, para que se lea.
+ */
+export function roleBadgeClass(rol: MarketplaceRole): string {
+  return `hh-pastel hh-pastel-solid ${ROLE_TONE[rol].split(' ')[0]} text-ink-primary shadow-sm`
+}
+
 export const ROLE_TONE: Record<MarketplaceRole, string> = {
   entrenador: 'bg-pastel-butter text-pastel-butter-ink',
   nutricionista: 'bg-pastel-mint text-pastel-mint-ink',
@@ -176,6 +189,8 @@ export const MARKETPLACE_DURATIONS: { value: MarketplaceDuration; label: string;
   { value: 'x3', label: '3 meses', per: 'por 3 meses' },
   { value: 'x6', label: '6 meses', per: 'por 6 meses' },
   { value: 'anual', label: 'Anual', per: 'por año' },
+  // Feedback nov19 (tanda 6). Necesita 20261126120000_marketplace_formularios.sql.
+  { value: 'sesion', label: 'Por sesión', per: 'por sesión' },
 ]
 
 const DURATION_BY_VALUE = new Map(MARKETPLACE_DURATIONS.map((d) => [d.value, d]))

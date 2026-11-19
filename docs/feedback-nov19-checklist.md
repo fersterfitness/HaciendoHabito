@@ -48,15 +48,17 @@ SQL: `supabase/migrations/20261123120000_finanzas_reinicio_dias_pago.sql` (lo co
 
 ## Tanda 6 — Web / marketplace
 
-- [ ] (Web 1) Formulario propio de cada entrenador (preguntas configurables) y botón «Formulario» en la solicitud que manda el link por WhatsApp.
-- [ ] (Web 2) Casos de éxito: el video se reproduce ahí (YouTube/Instagram) o, si no se puede, foto de portada con «Tocá acá para ver el video del caso».
-- [ ] (Web 3) En la primera pantalla, junto a «Ver planes», un botón «Ver casos de éxito».
-- [ ] (Web 4) Etiqueta «Entrenador» de la tarjeta: más contraste.
-- [ ] (Web 5) Solo el WhatsApp de Tomas Ferster como contacto; el resto de los profesionales sin número por ahora.
+- [x] (Web 1) Formulario propio de cada entrenador (preguntas configurables) y botón «Formulario» en la solicitud que manda el link por WhatsApp.
+- [x] (Web 2) Casos de éxito: el video se reproduce ahí (YouTube/Instagram) o, si no se puede, foto de portada con «Tocá acá para ver el video del caso».
+- [x] (Web 3) En la primera pantalla, junto a «Ver planes», un botón «Ver casos de éxito».
+- [x] (Web 4) Etiqueta «Entrenador» de la tarjeta: más contraste.
+- [x] (Web 5) Solo el WhatsApp de Tomas Ferster como contacto; el resto de los profesionales sin número por ahora.
 - [?] (Web 5) Flujo con otro profesional: Tomas confirma el pago y habilita; al otro profesional le llega «nuevo alumno confirmado». Los usuarios de otros profesionales todavía no existen.
-- [ ] (Web 5) Sacar la página web vieja; la nueva es la de «Armá tu equipo».
-- [ ] (Web 5) Falta la opción de precio «Por sesión».
-- [ ] (Web 5) El menú de datos y precios del perfil, para cada profesional en su usuario (sin el número por ahora).
+- [x] (Web 5) Sacar la página web vieja; la nueva es la de «Armá tu equipo».
+- [x] (Web 5) Falta la opción de precio «Por sesión».
+- [x] (Web 5) El menú de datos y precios del perfil, para cada profesional en su usuario (sin el número por ahora).
+
+Tanda 6 — cómo quedó: SQL `20261126120000_marketplace_formularios.sql` (por sesión + formularios). Pestaña «Formulario» en Mi página web; botón «Formulario» en cada solicitud (manda `/f/<token>` por WhatsApp) y las respuestas se ven desplegando la solicitud. Los videos de YouTube/Instagram/TikTok/Vimeo/Drive se reproducen en la página; si no se puede, botón «Tocá acá para ver el video del caso» (no hizo falta foto de portada). `/form` redirige a `/profesionales` salvo para quien ya estaba inscribiéndose (o `?continuar`).
 
 ## Notas
 

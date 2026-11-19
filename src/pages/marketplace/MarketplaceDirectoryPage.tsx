@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowUpRight, MapPin, Search, Star } from 'lucide-react'
+import { ArrowUpRight, MapPin, Search, Star, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PublicShell, ProfessionalPhoto, RoleIcon, TeamBar, VerifiedMark } from '@/components/marketplace/PublicShell'
 import { useDirectory } from '@/data/marketplace'
+import { usePublicCaseCounts } from '@/data/marketplaceCases'
 import { controlSelectClassName } from '@/lib/formControlClasses'
 import {
   DIRECTORY_PAGE_SIZE,
@@ -13,7 +14,7 @@ import {
   PRICE_RANGES,
   ROLE_TONE,
   formatPrice,
-  hasPhoto,
+  roleBadgeClass,
   modalityLabel,
   roleLabel,
   sportLabel,
@@ -35,7 +36,7 @@ const SORTS: { value: DirectorySort; label: string }[] = [
 const HOW_IT_WORKS = [
   { title: 'Elegí a tus profesionales', text: 'Entrenador, nutricionista, psicólogo, kinesiólogo: los que necesites.' },
   { title: 'Sumá un plan de cada uno', text: 'Ves el precio y lo que incluye antes de decidir.' },
-  { title: 'Te escriben por WhatsApp', text: 'Coordinan con vos el inicio y el pago. Acá no se cobra nada.' },
+  { title: 'Te escribimos por WhatsApp', text: 'Tomás coordina con vos el inicio y el pago. Acá no se cobra nada.' },
 ]
 
 /** Los filtros viven en la dirección: se puede compartir «/profesionales?deporte=boxeo». */
@@ -97,14 +98,12 @@ function FilterSelect({
   )
 }
 
-function ProfessionalCard({ p }: { p: MarketplaceDirectoryRow }) {
+function ProfessionalCard({ p, cases }: { p: MarketplaceDirectoryRow; cases: number }) {
   const tags = [...p.especialidades.slice(0, 2), ...p.deportes.slice(0, 2).map(sportLabel)].slice(0, 3)
   const mode = modalityLabel(p.modalidad)
   return (
-    <Link
-      to={`/p/${p.slug}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface-card transition-colors hover:border-surface-inputBorder"
-    >
+    // Toda la tarjeta abre el perfil (el link del nombre se estira encima); «Ver casos de éxito» va por arriba.
+    <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface-card transition-colors hover:border-surface-inputBorder">
       <div className="relative">
         <ProfessionalPhoto
           nombre={p.nombre}
@@ -112,7 +111,7 @@ function ProfessionalCard({ p }: { p: MarketplaceDirectoryRow }) {
           rol={p.rol}
           className="aspect-[4/3] w-full rounded-none border-0 text-5xl"
         />
-        <span className={cn('absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold', hasPhoto(p.foto_url) ? cn('hh-pastel', ROLE_TONE[p.rol]) : 'bg-surface-card text-ink-primary')}>
+        <span className={cn('absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold', roleBadgeClass(p.rol))}>
           <RoleIcon rol={p.rol} className="h-3.5 w-3.5" />
           {roleLabel(p.rol)}
         </span>
@@ -127,7 +126,11 @@ function ProfessionalCard({ p }: { p: MarketplaceDirectoryRow }) {
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5">
-            <h2 className="truncate text-lg font-semibold tracking-tight">{p.nombre}</h2>
+            <h2 className="truncate text-lg font-semibold tracking-tight">
+              <Link to={`/p/${p.slug}`} className="hh-focus after:absolute after:inset-0 after:content-['']">
+                {p.nombre}
+              </Link>
+            </h2>
             {p.verificado ? <VerifiedMark /> : null}
           </div>
           <p className="flex items-center gap-1.5 text-body-sm text-ink-muted">
@@ -160,8 +163,18 @@ function ProfessionalCard({ p }: { p: MarketplaceDirectoryRow }) {
             <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </span>
         </div>
+        {/* Feedback nov19 (tanda 6): que pueda ver primero los resultados. */}
+        {cases > 0 ? (
+          <Link
+            to={`/p/${p.slug}#casos`}
+            className="hh-focus relative z-10 -mt-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-surface-inputBorder px-3.5 text-sm font-semibold text-ink-primary transition-colors hover:bg-surface-elevated"
+          >
+            <Trophy className="h-4 w-4" aria-hidden="true" />
+            Ver casos de éxito
+          </Link>
+        ) : null}
       </div>
-    </Link>
+    </article>
   )
 }
 
@@ -173,6 +186,7 @@ export function MarketplaceDirectoryPage() {
   const [filters, update] = useDirectoryFilters()
   const [search, setSearch] = useState(filters.q)
   const { data, isPending, isError, isPlaceholderData, refetch } = useDirectory(filters)
+  const caseCounts = usePublicCaseCounts(data?.rows.map((r) => r.id) ?? []).data ?? {}
 
   useEffect(() => {
     document.title = 'Profesionales · Haciéndolo Hábito'
@@ -339,7 +353,7 @@ export function MarketplaceDirectoryPage() {
         ) : (
           <div className={cn('grid gap-4 sm:grid-cols-2 lg:grid-cols-3', isPlaceholderData && 'opacity-60')}>
             {data!.rows.map((p) => (
-              <ProfessionalCard key={p.id} p={p} />
+              <ProfessionalCard key={p.id} p={p} cases={caseCounts[p.id] ?? 0} />
             ))}
           </div>
         )}

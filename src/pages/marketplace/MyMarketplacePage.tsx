@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ArrowLeft, ArrowUpRight, Camera, Check, ChevronDown, Copy, ExternalLink, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Camera, Check, ChevronDown, ClipboardList, Copy, ExternalLink, Plus, Trash2, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Input'
@@ -59,8 +59,10 @@ import { cn, formatDate } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import { AccessTab, ManagerChoice, grantBlocker, isEmail, type AccessContext } from './panel/AccessTab'
 import { CasesTab } from './panel/CasesTab'
+import { FormTab } from './panel/FormTab'
+import { PAY_DAY_QUESTION, payDayLabel, requestFormMessage } from '@/lib/marketplaceForm'
 
-type Tab = 'perfil' | 'planes' | 'acceso' | 'solicitudes' | 'casos'
+type Tab = 'perfil' | 'planes' | 'acceso' | 'solicitudes' | 'formulario' | 'casos'
 
 const MIGRATION = '20261112120000_marketplace_managed_profiles.sql'
 
@@ -368,17 +370,9 @@ function ProfileForm({
         />
       </FormSection>
 
-      <FormSection title="Cómo trabaja" hint="El WhatsApp es a donde le llegan los clientes que lo eligen.">
+      {/* Feedback nov19 (tanda 6): por ahora la consulta por WhatsApp es solo la de Tomás; el número de cada uno no se pide. */}
+      <FormSection title="Cómo trabaja" hint="Las consultas por WhatsApp de la web le llegan a Tomás.">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="WhatsApp"
-            type="tel"
-            inputMode="tel"
-            value={d.whatsapp}
-            onChange={(e) => set({ whatsapp: e.target.value })}
-            hint="Con código de país, por ejemplo +54 11 5905 9170."
-            maxLength={30}
-          />
           <Input label="Ubicación" value={d.ubicacion} onChange={(e) => set({ ubicacion: e.target.value })} hint="Dónde atiende si es presencial." maxLength={80} />
         </div>
         <fieldset>
@@ -731,7 +725,7 @@ const REQUEST_STATUS: Record<MarketplaceRequestStatus, { label: string; classNam
   descartada: { label: 'Descartada', className: 'bg-surface-elevated text-ink-secondary' },
 }
 
-function RequestsTab({ requests }: { requests: MarketplaceRequest[] }) {
+function RequestsTab({ requests, professionalName }: { requests: MarketplaceRequest[]; professionalName: string }) {
   const setStatus = useSetRequestStatus()
   const [filter, setFilter] = useState<'abiertas' | 'cerradas'>('abiertas')
   const open = requests.filter((r) => r.estado === 'nueva' || r.estado === 'contactada')
@@ -760,6 +754,8 @@ function RequestsTab({ requests }: { requests: MarketplaceRequest[] }) {
       ) : (
         list.map((r) => {
           const wa = whatsappLink(r.cliente_whatsapp, `Hola ${r.cliente_nombre.split(' ')[0]}, recibí tu solicitud por ${r.plan_titulo}.`)
+          // Feedback nov19 (tanda 6): el link del formulario del profesional, por WhatsApp.
+          const waForm = r.form_token ? whatsappLink(r.cliente_whatsapp, requestFormMessage(r.cliente_nombre, professionalName, r.form_token)) : null
           return (
             <article key={r.id} className="flex flex-col gap-3 rounded-xl border border-surface-border bg-surface-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -780,11 +776,25 @@ function RequestsTab({ requests }: { requests: MarketplaceRequest[] }) {
               </div>
               {r.objetivo ? <p className="whitespace-pre-line text-sm text-ink-secondary">{r.objetivo}</p> : null}
               {r.equipo_resumen ? <p className="text-body-sm text-ink-muted">También eligió: {r.equipo_resumen}</p> : null}
+              <RequestFormAnswers r={r} />
               <div className="flex flex-wrap gap-2">
                 {wa ? (
                   <Button asChild variant="secondary" icon={<WhatsAppIcon className="h-4 w-4" />}>
                     <a href={wa} target="_blank" rel="noopener noreferrer" onClick={() => r.estado === 'nueva' && change(r.id, 'contactada')}>
                       Escribirle
+                    </a>
+                  </Button>
+                ) : null}
+                {waForm ? (
+                  <Button asChild variant="secondary" icon={<ClipboardList className="h-4 w-4" />}>
+                    <a
+                      href={waForm}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Le manda por WhatsApp el link de tu formulario"
+                      onClick={() => r.estado === 'nueva' && change(r.id, 'contactada')}
+                    >
+                      Formulario
                     </a>
                   </Button>
                 ) : null}
@@ -813,6 +823,32 @@ function RequestsTab({ requests }: { requests: MarketplaceRequest[] }) {
         })
       )}
     </div>
+  )
+}
+
+/** Lo que contestó el cliente en el formulario (desplegable), o que todavía no lo completó. */
+function RequestFormAnswers({ r }: { r: MarketplaceRequest }) {
+  if (!r.form_token) return null
+  if (!r.form_enviado_at) return <p className="text-body-sm text-ink-muted">Todavía no completó el formulario.</p>
+  return (
+    <details className="rounded-lg bg-surface-elevated/70 px-3 py-2 text-sm">
+      <summary className="hh-focus cursor-pointer font-medium text-ink-primary">
+        Completó el formulario el {formatDate(r.form_enviado_at)}
+        {r.form_dia_pago ? <span className="font-normal text-ink-muted"> · paga {payDayLabel(r.form_dia_pago)}</span> : null}
+      </summary>
+      <dl className="mt-2 flex flex-col gap-2">
+        {(r.form_respuestas ?? []).map((a, i) => (
+          <div key={i}>
+            <dt className="text-xs text-ink-muted">{a.pregunta}</dt>
+            <dd className="whitespace-pre-line text-ink-primary">{a.respuesta || '—'}</dd>
+          </div>
+        ))}
+        <div>
+          <dt className="text-xs text-ink-muted">{PAY_DAY_QUESTION}</dt>
+          <dd className="text-ink-primary">{payDayLabel(r.form_dia_pago) || '—'}</dd>
+        </div>
+      </dl>
+    </details>
   )
 }
 
@@ -849,7 +885,7 @@ type Step = { key: string; title: string; detail: string; status: 'done' | 'todo
 
 /** Los cuatro pasos para que un profesional quede andando, con lo que falta en cada uno. */
 function setupSteps(p: ManagedProfessional, myId: string | undefined): Step[] {
-  const missing = [!hasPhoto(p.foto_url) && 'foto', !p.bio.trim() && 'presentación', !p.whatsapp.trim() && 'WhatsApp'].filter(Boolean) as string[]
+  const missing = [!hasPhoto(p.foto_url) && 'foto', !p.bio.trim() && 'presentación'].filter(Boolean) as string[]
   const active = p.plans.filter((x) => x.activo).length
   const access = accessState(p, myId)
   return [
@@ -939,7 +975,7 @@ function SetupSteps({ steps, current, onGo }: { steps: Step[]; current: Tab; onG
 const HOW_KEY = 'hh-mkt-howto'
 
 const HOW_STEPS = [
-  { title: 'Cargás el perfil', body: 'Foto, a qué se dedica y su WhatsApp. Es su página en la web.' },
+  { title: 'Cargás el perfil', body: 'Foto y a qué se dedica. Es su página en la web.' },
   { title: 'Le sumás los planes', body: 'Qué ofrece y a qué precio. Es lo que el cliente agrega a su equipo.' },
   { title: 'Elegís quién lo maneja', body: 'Vos desde acá, o él con su propia cuenta de la app. Se la creás con su correo.' },
   { title: 'Lo publicás', body: 'Aparece en el directorio y las solicitudes llegan a quien lo maneja.' },
@@ -1155,6 +1191,7 @@ function Editor({
               { value: 'planes', label: 'Planes', count: professional.plans.length },
               { value: 'acceso', label: 'Acceso' },
               { value: 'solicitudes', label: 'Solicitudes', count: newRequests },
+              { value: 'formulario', label: 'Formulario' },
               { value: 'casos', label: 'Casos de éxito' },
             ]}
           />
@@ -1174,8 +1211,9 @@ function Editor({
             <AccessTab professional={professional} ctx={ctx} />
           </div>
           <div hidden={tab !== 'solicitudes'}>
-            <RequestsTab requests={professional.requests} />
+            <RequestsTab requests={professional.requests} professionalName={professional.nombre} />
           </div>
+          {tab === 'formulario' ? <FormTab professionalId={professional.id} /> : null}
           {tab === 'casos' ? <CasesTab professionalId={professional.id} published={professional.estado === 'aprobado'} /> : null}
         </>
       ) : null}
