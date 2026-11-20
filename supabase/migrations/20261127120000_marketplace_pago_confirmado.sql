@@ -15,7 +15,7 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 BEGIN
-  IF NEW.pago_confirmado_at IS DISTINCT FROM OLD.pago_confirmado_at AND NOT public.is_app_admin() THEN
+  IF NEW.pago_confirmado_at IS DISTINCT FROM OLD.pago_confirmado_at AND NOT coalesce(public.is_app_admin(), false) THEN
     NEW.pago_confirmado_at := OLD.pago_confirmado_at;
   END IF;
   RETURN NEW;
@@ -42,7 +42,8 @@ DECLARE
   v_avisados integer := 0;
   r record;
 BEGIN
-  IF NOT public.is_app_admin() THEN
+  -- coalesce: sin sesión is_app_admin() da NULL y el IF no frenaría.
+  IF auth.uid() IS NULL OR NOT coalesce(public.is_app_admin(), false) THEN
     RAISE EXCEPTION 'Solo el administrador puede confirmar pagos.' USING ERRCODE = '42501';
   END IF;
 
@@ -90,7 +91,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.confirm_marketplace_payment(uuid, boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.confirm_marketplace_payment(uuid, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.confirm_marketplace_payment(uuid, boolean) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
