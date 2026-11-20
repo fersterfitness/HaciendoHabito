@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  requestToStudentPrefill,
   DEFAULT_QUESTIONS,
   answerErrors,
   buildAnswers,
@@ -46,5 +47,42 @@ describe('formulario propio del profesional (feedback nov19, tanda 6)', () => {
     ])
     expect(payDayLabel('10')).toBe('el día 10 de cada mes')
     expect(payDayLabel('ultimo')).toBe('el último día del mes')
+  })
+})
+
+describe('requestToStudentPrefill', () => {
+  const base = {
+    cliente_nombre: ' Ana Pérez ',
+    cliente_email: 'ana@mail.com',
+    cliente_whatsapp: '11 2345 6789',
+    plan_titulo: 'Plan mensual',
+    plan_precio: 50000,
+    plan_duracion: 'mensual',
+    deporte: 'Running',
+    objetivo: 'Bajar tiempos',
+  }
+
+  it('pasa datos, respuestas, día de pago y cuota mensual', () => {
+    const p = requestToStudentPrefill({
+      ...base,
+      form_dia_pago: 'ultimo',
+      form_respuestas: [
+        { pregunta: 'Edad', respuesta: '30' },
+        { pregunta: 'Lesiones', respuesta: '' },
+      ],
+    })
+    expect(p.full_name).toBe('Ana Pérez')
+    expect(p.payment_day).toBe(31)
+    expect(p.monthly_fee).toBe(50000)
+    expect(p.notes).toContain('Plan mensual')
+    expect(p.notes).toContain('- Edad: 30')
+    expect(p.notes).not.toContain('Lesiones')
+  })
+
+  it('sin formulario ni plan mensual no inventa día ni cuota', () => {
+    const p = requestToStudentPrefill({ ...base, plan_duracion: 'sesion' })
+    expect(p.payment_day).toBeNull()
+    expect(p.monthly_fee).toBeNull()
+    expect(p.notes).not.toContain('Formulario:')
   })
 })

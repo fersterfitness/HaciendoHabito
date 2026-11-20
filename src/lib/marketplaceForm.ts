@@ -127,3 +127,44 @@ export function requestFormMessage(clientName: string, professionalName: string,
   const first = clientName.trim().split(/\s+/)[0] ?? ''
   return `Hola ${first}! Para arrancar con ${professionalName}, completá este formulario con tus datos (son unos minutos): ${requestFormUrl(token)}`
 }
+
+/** Lo que precarga «Crear alumno» desde una solicitud del marketplace. */
+export interface StudentPrefill {
+  full_name: string
+  email: string
+  phone: string
+  notes: string
+  /** Día del mes (31 = último día), del formulario. */
+  payment_day: number | null
+  /** Solo si el plan es mensual. */
+  monthly_fee: number | null
+}
+
+interface RequestForStudent {
+  cliente_nombre: string
+  cliente_email: string
+  cliente_whatsapp: string
+  plan_titulo: string
+  plan_precio: number
+  plan_duracion: string
+  deporte: string
+  objetivo: string
+  form_respuestas?: FormAnswer[] | null
+  form_dia_pago?: string | null
+}
+
+export function requestToStudentPrefill(r: RequestForStudent): StudentPrefill {
+  const day = r.form_dia_pago === 'ultimo' ? 31 : Number(r.form_dia_pago)
+  const price = r.plan_precio > 0 ? ` ($${r.plan_precio.toLocaleString('es-AR')})` : ''
+  const lines = [`Llegó por la web: ${r.plan_titulo}${price}.`, r.deporte ? `Deporte: ${r.deporte}.` : '', r.objetivo ? `Objetivo: ${r.objetivo}` : ''].filter(Boolean)
+  const answers = (r.form_respuestas ?? []).filter((a) => a.respuesta.trim())
+  if (answers.length) lines.push('', 'Formulario:', ...answers.map((a) => `- ${a.pregunta}: ${a.respuesta}`))
+  return {
+    full_name: r.cliente_nombre.trim(),
+    email: r.cliente_email.trim(),
+    phone: r.cliente_whatsapp.trim(),
+    notes: lines.join('\n'),
+    payment_day: Number.isInteger(day) && day >= 1 && day <= 31 ? day : null,
+    monthly_fee: r.plan_duracion === 'mensual' && r.plan_precio > 0 ? r.plan_precio : null,
+  }
+}

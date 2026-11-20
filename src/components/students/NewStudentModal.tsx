@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { X } from 'lucide-react'
 import { StudentFormContent } from '@/components/students/StudentFormContent'
+import type { StudentPrefill } from '@/lib/marketplaceForm'
 import { cn } from '@/lib/utils'
 import { modalPanelMotionVariants } from '@/lib/modalPanelMotion'
 
@@ -12,6 +13,8 @@ type Props = {
   title: string
   onClose: () => void
   onCreated: (studentId: string) => void
+  /** Alta desde una solicitud del marketplace. */
+  prefill?: StudentPrefill
 }
 
 const PANEL_EASE = [0.16, 1, 0.3, 1] as const
@@ -28,7 +31,7 @@ const modalPanelBg: CSSProperties = {
  * Hijo `motion` + estilo sólido: la animación solo usa `x` (nunca opacity en el panel).
  * Backdrop y panel son hermanos bajo AnimatePresence para que cierren bien.
  */
-export function NewStudentModal({ open, title, onClose, onCreated }: Props) {
+export function NewStudentModal({ open, title, onClose, onCreated, prefill }: Props) {
   const reduceMotion = useReducedMotion()
 
   useEffect(() => {
@@ -114,6 +117,8 @@ export function NewStudentModal({ open, title, onClose, onCreated }: Props) {
               style={modalPanelBg}
             >
               <StudentFormContent
+                key={prefill ? 'solicitud' : 'nuevo'}
+                prefill={prefill}
                 variant="modal"
                 onCancel={onClose}
                 onSuccess={(id) => {

@@ -852,7 +852,7 @@ function RequestsTab({ requests, professionalName }: { requests: MarketplaceRequ
                   <>
                     {r.estado === 'aceptada' ? (
                       <Button asChild variant="secondary">
-                        <Link to="/students?create=1">Crear alumno</Link>
+                        <Link to={`/students?create=1&solicitud=${r.id}`}>Crear alumno</Link>
                       </Button>
                     ) : null}
                     <Button variant="ghost" onClick={() => change(r.id, 'contactada')}>

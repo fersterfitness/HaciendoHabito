@@ -59,6 +59,7 @@ SQL: `supabase/migrations/20261123120000_finanzas_reinicio_dias_pago.sql` (lo co
 - [x] (Web 5) El menú de datos y precios del perfil, para cada profesional en su usuario (sin el número por ahora).
 
 Tanda 6 — cómo quedó: SQL `20261126120000_marketplace_formularios.sql` (por sesión + formularios). Pestaña «Formulario» en Mi página web; botón «Formulario» en cada solicitud (manda `/f/<token>` por WhatsApp) y las respuestas se ven desplegando la solicitud. Los videos de YouTube/Instagram/TikTok/Vimeo/Drive se reproducen en la página; si no se puede, botón «Tocá acá para ver el video del caso» (no hizo falta foto de portada). `/form` redirige a `/profesionales` salvo para quien ya estaba inscribiéndose (o `?continuar`).
+Después (2026-11-20): «Crear alumno» en una solicitud aceptada abre el alta ya cargada (nombre, email, WhatsApp, notas con plan, objetivo y respuestas, día de pago y cuota si el plan es mensual).
 
 ## Notas
 

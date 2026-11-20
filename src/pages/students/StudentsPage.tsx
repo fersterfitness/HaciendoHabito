@@ -56,6 +56,7 @@ import { loadBlockCountsByRoutine, loadWeekStatusByOwner, weekStatusOrEmpty } fr
 import { loadRmTestWeeksByOwner, RM_TEST_EVERY_WEEKS } from '@/lib/checkIn/rmTestReminder'
 import type { LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { NewStudentModal } from '@/components/students/NewStudentModal'
+import { requestToStudentPrefill, type StudentPrefill } from '@/lib/marketplaceForm'
 import { StudentDeletionHistoryPanel } from '@/components/students/StudentDeletionHistoryPanel'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
@@ -593,11 +594,32 @@ export function StudentsPage() {
       (prev) => {
         const next = new URLSearchParams(prev)
         next.delete('create')
+        next.delete('solicitud')
         return next
       },
       { replace: true },
     )
   }, [setSearchParams])
+
+  // «Crear alumno» desde una solicitud del marketplace (?solicitud=<id>): precarga datos, respuestas y pago.
+  const requestId = showNewStudentModal ? searchParams.get('solicitud') : null
+  const [prefill, setPrefill] = useState<StudentPrefill | undefined>(undefined)
+  useEffect(() => {
+    setPrefill(undefined)
+    if (!requestId) return
+    let alive = true
+    void supabase
+      .from('marketplace_requests')
+      .select('*')
+      .eq('id', requestId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (alive && data) setPrefill(requestToStudentPrefill(data as Parameters<typeof requestToStudentPrefill>[0]))
+      })
+    return () => {
+      alive = false
+    }
+  }, [requestId])
 
   const { students, loading, fetchStudents, filterStudents, deleteStudent } = useStudents()
   const [localStudents, setLocalStudents] = useState<Student[]>([])
@@ -1181,6 +1203,7 @@ export function StudentsPage() {
         title={role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
         onClose={closeNewStudentModal}
         onCreated={(id) => navigate(`/students/${id}`)}
+        prefill={prefill}
       />
 
       <ConfirmDialog

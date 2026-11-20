@@ -19,6 +19,7 @@ import {
 } from '@/lib/formUtils'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
+import type { StudentPrefill } from '@/lib/marketplaceForm'
 
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT} (solo dígitos, +54, espacios entre bloques).`
 
@@ -108,6 +109,8 @@ export type StudentFormContentProps = {
   onSuccess: (id: string) => void
   /** `modal`: más ancho en columna doble, rejillas más aireadas */
   variant?: 'page' | 'modal'
+  /** Alta desde una solicitud del marketplace: datos del cliente, respuestas, día de pago y cuota. */
+  prefill?: StudentPrefill
 }
 
 export function StudentFormContent({
@@ -115,6 +118,7 @@ export function StudentFormContent({
   onCancel,
   onSuccess,
   variant = 'page',
+  prefill,
 }: StudentFormContentProps) {
   const isEditing = !!studentId
   const role = useAuthStore((state) => state.profile?.role)
@@ -131,7 +135,11 @@ export function StudentFormContent({
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { level: 'inicial', status: 'activo' },
+    defaultValues: {
+      level: 'inicial',
+      status: 'activo',
+      ...(prefill ? { full_name: prefill.full_name, email: prefill.email, phone: prefill.phone, notes: prefill.notes } : {}),
+    },
   })
 
   const genderValue = useWatch({ control, name: 'gender' })
@@ -238,6 +246,13 @@ export function StudentFormContent({
       profile_id: null,
       intake_nutrition: null,
       avatar_path: null,
+      ...(!isEditing && prefill
+        ? {
+            payment_day_from: prefill.payment_day,
+            payment_day_to: prefill.payment_day,
+            ...(prefill.monthly_fee ? { monthly_fee_amount: prefill.monthly_fee } : {}),
+          }
+        : {}),
     }
 
     if (isEditing && studentId) {
