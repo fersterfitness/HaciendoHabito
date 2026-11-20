@@ -343,6 +343,22 @@ export function useSetRequestStatus() {
   })
 }
 
+/**
+ * El administrador confirma (o deshace) el pago de todo el envío; a los otros profesionales del equipo
+ * les llega «Nuevo alumno confirmado». Devuelve a cuántos se avisó (20261127120000_marketplace_pago_confirmado.sql).
+ */
+export function useConfirmRequestPayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, confirmado }: { id: string; confirmado: boolean }): Promise<number> => {
+      const { data, error } = await supabase.rpc('confirm_marketplace_payment', { p_request_id: id, p_confirmado: confirmado })
+      if (error) throw error
+      return typeof data === 'number' ? data : 0
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['marketplace'] }),
+  })
+}
+
 // ───────────────────────── Admin ─────────────────────────
 
 export type AdminProfessionalRow = MarketplaceProfessional & { planes: number; precio_desde: number | null }

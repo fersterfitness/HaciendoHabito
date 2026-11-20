@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ArrowLeft, ArrowUpRight, Camera, Check, ChevronDown, ClipboardList, Copy, ExternalLink, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BadgeCheck, Camera, Check, ChevronDown, ClipboardList, Copy, ExternalLink, Plus, Trash2, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Input'
@@ -16,6 +16,7 @@ import {
   useManagedProfessionals,
   useSavePlan,
   useSaveProfessional,
+  useConfirmRequestPayment,
   useSetRequestStatus,
   type ManagedProfessional,
   type PlanInput,
@@ -727,6 +728,9 @@ const REQUEST_STATUS: Record<MarketplaceRequestStatus, { label: string; classNam
 
 function RequestsTab({ requests, professionalName }: { requests: MarketplaceRequest[]; professionalName: string }) {
   const setStatus = useSetRequestStatus()
+  const confirmPay = useConfirmRequestPayment()
+  // Feedback nov19 (Web 5): solo el administrador (Tomás) confirma el pago.
+  const isAdmin = useAuthStore((s) => s.profile?.role === 'admin')
   const [filter, setFilter] = useState<'abiertas' | 'cerradas'>('abiertas')
   const open = requests.filter((r) => r.estado === 'nueva' || r.estado === 'contactada')
   const closed = requests.filter((r) => r.estado === 'aceptada' || r.estado === 'descartada')
@@ -734,6 +738,22 @@ function RequestsTab({ requests, professionalName }: { requests: MarketplaceRequ
 
   const change = (id: string, estado: MarketplaceRequestStatus) =>
     setStatus.mutate({ id, estado }, { onError: () => toast.error('No se pudo actualizar la solicitud.') })
+
+  const setPaid = (id: string, confirmado: boolean) =>
+    confirmPay.mutate(
+      { id, confirmado },
+      {
+        onSuccess: (avisados) =>
+          toast.success(
+            !confirmado
+              ? 'Se deshizo la confirmación del pago.'
+              : avisados > 0
+                ? `Pago confirmado. Le avisamos a ${avisados === 1 ? 'otro profesional' : `${avisados} profesionales`} del equipo.`
+                : 'Pago confirmado.',
+          ),
+        onError: () => toast.error('No se pudo confirmar el pago. Si sigue pasando, falta correr el SQL del pago confirmado.'),
+      },
+    )
 
   return (
     <div className="flex flex-col gap-3">
@@ -776,6 +796,13 @@ function RequestsTab({ requests, professionalName }: { requests: MarketplaceRequ
               </div>
               {r.objetivo ? <p className="whitespace-pre-line text-sm text-ink-secondary">{r.objetivo}</p> : null}
               {r.equipo_resumen ? <p className="text-body-sm text-ink-muted">También eligió: {r.equipo_resumen}</p> : null}
+              {r.pago_confirmado_at ? (
+                <p className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-primary">
+                  <BadgeCheck className="h-4 w-4 text-status-ok" aria-hidden="true" />
+                  Pago confirmado el {formatDate(r.pago_confirmado_at)}
+                  {isAdmin ? null : ' por Tomás'}
+                </p>
+              ) : null}
               <RequestFormAnswers r={r} />
               <div className="flex flex-wrap gap-2">
                 {wa ? (
@@ -797,6 +824,22 @@ function RequestsTab({ requests, professionalName }: { requests: MarketplaceRequ
                       Formulario
                     </a>
                   </Button>
+                ) : null}
+                {isAdmin && r.estado !== 'descartada' && 'pago_confirmado_at' in r ? (
+                  r.pago_confirmado_at ? (
+                    <Button variant="ghost" disabled={confirmPay.isPending} onClick={() => setPaid(r.id, false)}>
+                      Deshacer pago
+                    </Button>
+                  ) : (
+                    <Button
+                      icon={<BadgeCheck className="h-4 w-4" />}
+                      loading={confirmPay.isPending && confirmPay.variables?.id === r.id}
+                      title="Marca el pago de todo el equipo y les avisa a los otros profesionales"
+                      onClick={() => setPaid(r.id, true)}
+                    >
+                      Pago confirmado
+                    </Button>
+                  )
                 ) : null}
                 {r.estado === 'nueva' || r.estado === 'contactada' ? (
                   <>

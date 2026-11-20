@@ -53,7 +53,7 @@ SQL: `supabase/migrations/20261123120000_finanzas_reinicio_dias_pago.sql` (lo co
 - [x] (Web 3) En la primera pantalla, junto a «Ver planes», un botón «Ver casos de éxito».
 - [x] (Web 4) Etiqueta «Entrenador» de la tarjeta: más contraste.
 - [x] (Web 5) Solo el WhatsApp de Tomas Ferster como contacto; el resto de los profesionales sin número por ahora.
-- [?] (Web 5) Flujo con otro profesional: Tomas confirma el pago y habilita; al otro profesional le llega «nuevo alumno confirmado». Los usuarios de otros profesionales todavía no existen.
+- [x] (Web 5) Flujo con otro profesional: Tomas confirma el pago y habilita; al otro profesional le llega «nuevo alumno confirmado». Hecho con supuestos (sin confirmar con el entrenador): en Solicitudes, solo el administrador ve «Pago confirmado»; vale para todo el equipo del envío, pasa las abiertas a «Aceptada» y a cada profesional con cuenta propia le llega una notificación que abre Mi página web. SQL `20261127120000_marketplace_pago_confirmado.sql`.
 - [x] (Web 5) Sacar la página web vieja; la nueva es la de «Armá tu equipo».
 - [x] (Web 5) Falta la opción de precio «Por sesión».
 - [x] (Web 5) El menú de datos y precios del perfil, para cada profesional en su usuario (sin el número por ahora).

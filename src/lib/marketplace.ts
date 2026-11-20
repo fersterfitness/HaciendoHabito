@@ -101,6 +101,8 @@ export interface MarketplaceRequest {
   form_respuestas?: { pregunta: string; respuesta: string }[] | null
   form_dia_pago?: string | null
   form_enviado_at?: string | null
+  /** Pago confirmado por el administrador (20261127120000). Sin la migración no viene. */
+  pago_confirmado_at?: string | null
 }
 
 export interface MarketplaceApplication {

@@ -45,6 +45,9 @@ export function notificationHref(n: Pick<Notification, 'type' | 'linked_table' |
   if (n.type === 'pago_registrado' || n.type === 'pago_pendiente') {
     return '/finances?tab=income'
   }
+  if (n.linked_table === 'marketplace_requests') {
+    return '/mi-pagina'
+  }
   if (n.type === 'intake_acceso_solicitado' || n.linked_table === 'web_intake_access_requests') {
     return '/#accesos-inscripcion'
   }
