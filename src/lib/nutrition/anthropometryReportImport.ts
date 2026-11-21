@@ -151,8 +151,9 @@ export function parseAnthropometryReport(pages: string[][]): ImportedAnthropomet
   const n = plain.match(/numero de medicion:?\s*(\d{1,3})\b/i)
   const measurementNumber = n ? Number(n[1]) : null
 
-  const name = text.match(/Nombre:\s*(.+?)\s*(?:Edad:|$)/m)
-  const patientName = name && name[1].trim() && !/^edad/i.test(name[1]) ? name[1].trim() : null
+  // La primera página puede traer «Nombre:» vacío; vale la primera que tenga el nombre.
+  const patientName =
+    [...text.matchAll(/Nombre: *(.*?) *(?:Edad:|$)/gm)].map((m) => m[1].trim()).find((v) => v && !/^edad/i.test(v)) ?? null
 
   // Fraccionamiento en 5 masas (Kerr): "Masa Adiposa <kg> <porcentaje>% <kg ajustado> ..."
   function mass(prefix: string): { pct: number | null; kg: number | null } {

@@ -65,6 +65,12 @@ describe('importar informe de composición corporal', () => {
     expect(r.muscleMassKg).toBe(24.9)
   })
 
+  it('si la primera página trae «Nombre:» vacío, toma el de la siguiente', () => {
+    const page1 = PAGE1.map((l) => (l.startsWith('Nombre:') ? 'Nombre: Edad: 28,10' : l))
+    expect(parseAnthropometryReport([page1, PAGE2]).patientName).toBe('Ana Pérez')
+    expect(parseAnthropometryReport([page1]).patientName).toBeNull()
+  })
+
   it('un PDF que no es el informe no trae medidas', () => {
     const r = parseAnthropometryReport([['Factura B N° 0001-000123', 'Total $ 45.000', 'Peso neto del envío']])
     expect(Object.keys(r.values)).toHaveLength(0)
