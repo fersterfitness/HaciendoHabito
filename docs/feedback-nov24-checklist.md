@@ -39,7 +39,9 @@ La tanda 4 necesita `20261128130000_rutinas_borrador_fechas_historial.sql`.
 
 ## Tanda 7 — Marketplace (respuestas del 21/11)
 
-- [ ] (R1) Ingresos por profesional: por defecto 80 % para el profesional y 20 % para Tomás, configurable por profesional (puede variar).
-- [ ] (R2) «Pago confirmado»: además de la notificación en la app, mandar WhatsApp al otro profesional.
+- [x] (R1) Ingresos por profesional: por defecto 80 % para el profesional y 20 % para Tomás, configurable por profesional (puede variar). Hecho: en «Mi página», Tomás ve «Ingresos por profesional» por mes (cobrado, su parte y la de los profesionales) y cambia «Tu parte» de cada uno. El porcentaje se guarda al confirmar cada pago, así cambiarlo no toca lo ya cobrado. En la solicitud confirmada se ve el reparto.
+- [x] (R2) «Pago confirmado»: además de la notificación en la app, mandar WhatsApp al otro profesional. Hecho: después de confirmar se abre «Avisar por WhatsApp» con un botón por cada profesional del equipo y el mensaje listo (WhatsApp no deja mandarlo solo: hay que tocar Enviar).
+
+La tanda 7 necesita `20261128140000_marketplace_reparto_y_whatsapp.sql`.
 - [x] (R3) WhatsApp de Tomás 11 3330 5248: confirmado, no hay que cambiar nada.
 - [x] (R4) Cuota de Agustín Peluffo $45.000: confirmada.

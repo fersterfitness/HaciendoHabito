@@ -28,6 +28,8 @@ export interface MarketplaceProfessional {
   verificado: boolean
   destacado: boolean
   estado: MarketplaceProfessionalStatus
+  /** Porcentaje del administrador (20261128140000); por defecto 20. */
+  comision_pct?: number
   created_at: string
   updated_at: string
 }
@@ -103,6 +105,8 @@ export interface MarketplaceRequest {
   form_enviado_at?: string | null
   /** Pago confirmado por el administrador (20261127120000). Sin la migración no viene. */
   pago_confirmado_at?: string | null
+  /** Porcentaje del administrador al confirmar el pago (20261128140000). */
+  comision_pct?: number | null
 }
 
 export interface MarketplaceApplication {

@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { MarketplaceIncomePanel } from '@/components/marketplace/MarketplaceIncomePanel'
+import { fetchPaymentContacts } from '@/data/marketplaceIncome'
+import { paymentWhatsAppMessage, pctLabel, splitAmount, type PaymentContact } from '@/lib/marketplaceIncome'
 import toast from 'react-hot-toast'
 import { ArrowLeft, ArrowUpRight, BadgeCheck, Camera, Check, ChevronDown, ClipboardList, Copy, ExternalLink, Plus, Trash2, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -731,7 +734,10 @@ function RequestsTab({ requests, professionalName }: { requests: MarketplaceRequ
   const confirmPay = useConfirmRequestPayment()
   // Feedback nov19 (Web 5): solo el administrador (Tomás) confirma el pago.
   const isAdmin = useAuthStore((s) => s.profile?.role === 'admin')
+  const adminName = useAuthStore((s) => s.profile?.full_name ?? '')
   const [filter, setFilter] = useState<'abiertas' | 'cerradas'>('abiertas')
+  // Feedback nov24 (R2): al confirmar el pago, avisarles también por WhatsApp a los otros profesionales.
+  const [waContacts, setWaContacts] = useState<PaymentContact[] | null>(null)
   const open = requests.filter((r) => r.estado === 'nueva' || r.estado === 'contactada')
   const closed = requests.filter((r) => r.estado === 'aceptada' || r.estado === 'descartada')
   const list = filter === 'abiertas' ? open : closed
@@ -743,20 +749,44 @@ function RequestsTab({ requests, professionalName }: { requests: MarketplaceRequ
     confirmPay.mutate(
       { id, confirmado },
       {
-        onSuccess: (avisados) =>
+        onSuccess: (avisados) => {
           toast.success(
             !confirmado
               ? 'Se deshizo la confirmación del pago.'
               : avisados > 0
                 ? `Pago confirmado. Le avisamos a ${avisados === 1 ? 'otro profesional' : `${avisados} profesionales`} del equipo.`
                 : 'Pago confirmado.',
-          ),
+          )
+          if (confirmado)
+            void fetchPaymentContacts(id)
+              .then((list) => {
+                if (list.length) setWaContacts(list)
+              })
+              .catch(() => undefined)
+        },
         onError: () => toast.error('No se pudo confirmar el pago. Si sigue pasando, falta correr el SQL del pago confirmado.'),
       },
     )
 
   return (
     <div className="flex flex-col gap-3">
+      <Modal open={!!waContacts} onClose={() => setWaContacts(null)} title="Avisar por WhatsApp">
+        <p className="text-sm text-ink-secondary">La notificación en la app ya les llegó. Si querés, avisales también por WhatsApp:</p>
+        <ul className="mt-3 flex flex-col gap-2">
+          {(waContacts ?? []).map((c) => {
+            const href = whatsappLink(c.whatsapp, paymentWhatsAppMessage(c, adminName))
+            return href ? (
+              <li key={c.professional_id}>
+                <Button asChild variant="secondary" icon={<WhatsAppIcon className="h-4 w-4" />}>
+                  <a href={href} target="_blank" rel="noopener noreferrer">
+                    Avisarle a {c.nombre}
+                  </a>
+                </Button>
+              </li>
+            ) : null
+          })}
+        </ul>
+      </Modal>
       <SegmentedV2
         value={filter}
         onChange={setFilter}
@@ -801,6 +831,14 @@ function RequestsTab({ requests, professionalName }: { requests: MarketplaceRequ
                   <BadgeCheck className="h-4 w-4 text-status-ok" aria-hidden="true" />
                   Pago confirmado el {formatDate(r.pago_confirmado_at)}
                   {isAdmin ? null : ' por Tomás'}
+                </p>
+              ) : null}
+              {r.pago_confirmado_at && r.comision_pct != null && r.plan_precio > 0 ? (
+                <p className="text-body-sm text-ink-muted">
+                  {(() => {
+                    const s = splitAmount(r.plan_precio, Number(r.comision_pct))
+                    return `Reparto: ${formatPrice(s.professional)} para ${professionalName.split(' ')[0] || 'el profesional'} · ${formatPrice(s.admin)} para Tomás (${pctLabel(Number(r.comision_pct))})`
+                  })()}
                 </p>
               ) : null}
               <RequestFormAnswers r={r} />
@@ -1425,6 +1463,7 @@ export function MyMarketplacePage() {
                   </div>
                 ))}
               </dl>
+              {isAdmin ? <MarketplaceIncomePanel /> : null}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {professionals.map((p) => (
                   <ProfessionalCard key={p.id} p={p} myId={user?.id} onOpen={() => setSelected(p.id)} />
