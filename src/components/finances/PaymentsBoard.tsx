@@ -23,6 +23,7 @@ import {
   paymentWindowLabel,
   reminderMessage,
   webPlanPriceMap,
+  upcomingPaymentLabel,
   type PaymentState,
   type StudentPaymentRow,
 } from '@/lib/finance/studentPayments'
@@ -39,7 +40,7 @@ const LAVENDER_CHIP = 'bg-pastel-lavender text-pastel-lavender-ink dark:bg-paste
 const STATE_META: Record<PaymentState, { label: string; chip: string; color: string }> = {
   pagado: { label: 'Pagó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: 'rgb(var(--chart-ok))' },
   parcial: { label: 'Parcial', chip: 'bg-status-pending/15 text-status-pending', color: '#f97316' },
-  pendiente: { label: 'Al día', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? 'rgb(var(--tw-amber-300))' : '#f59e0b' },
+  pendiente: { label: 'Por pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? 'rgb(var(--tw-amber-300))' : '#f59e0b' },
   falta: { label: 'Falta pagar', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: 'rgb(var(--chart-bad))' },
   vencido: { label: 'Vencido', chip: LAVENDER_CHIP, color: '#8b5cf6' },
   sin_cargo: { label: 'Bonificado', chip: 'bg-surface-elevated text-ink-muted', color: '#a1a1aa' },
@@ -54,6 +55,7 @@ const METHOD_LABEL = Object.fromEntries(PAYMENT_METHODS.map((m) => [m.value, m.l
 /** Etiqueta del estado: el día de pago dice «Paga hoy» (pedido del entrenador). */
 function stateLabel(r: StudentPaymentRow): string {
   if (r.state === 'pendiente' && r.timing === 'hoy') return 'Paga hoy'
+  if (isAlDia(r)) return upcomingPaymentLabel(r)
   return STATE_META[r.state].label
 }
 
@@ -355,7 +357,7 @@ export function PaymentsBoard() {
               { id: 'all', label: 'Todos', count: rows.length },
               { id: 'vencido', label: 'Vencidos', count: totals.vencidos },
               { id: 'pendiente', label: 'Falta pagar', count: totals.faltan },
-              { id: 'al_dia', label: 'Al día', count: totals.alDia },
+              { id: 'al_dia', label: 'Todavía no pagan', count: totals.alDia },
               { id: 'pagado', label: 'Pagaron', count: totals.pagados },
             ]}
           />

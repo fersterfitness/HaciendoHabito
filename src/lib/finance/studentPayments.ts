@@ -264,3 +264,15 @@ export function paymentWindowLabel(from: number | null, to: number | null): stri
   const day = to ?? from
   return day == null ? 'Sin fecha' : `Día ${day}`
 }
+
+/**
+ * Feedback nov24 (3): «Al día» se leía como «pagó». Antes de su fecha se muestra cuándo paga:
+ * «Paga el 10» o «Paga el último día».
+ */
+export function upcomingPaymentLabel(r: Pick<StudentPaymentRow, 'dueDate' | 'dueDay'>): string {
+  if (!r.dueDate) return 'Todavía no paga'
+  const day = Number(r.dueDate.slice(8, 10))
+  const [y, m] = r.dueDate.slice(0, 7).split('-').map(Number)
+  const last = new Date(y!, m!, 0).getDate()
+  return day === last && (r.dueDay ?? day) >= last ? 'Paga el último día' : `Paga el ${day}`
+}

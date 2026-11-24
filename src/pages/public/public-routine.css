@@ -829,3 +829,12 @@
 @media (max-width: 1023px) {
   .hhr .hhr-circuit.is-open .hhr-circuit-plus ~ .hhr-ex .hhr-ex-back { display: none; }
 }
+
+/*
+ * Feedback nov24 (1): el ejercicio abierto no puede ser más ancho que la pantalla. Un texto largo sin espacios
+ * (por ejemplo un link en las notas) estiraba la columna del panel y dejaba afuera los campos de las series.
+ */
+.hhr-ex-panel, .hhr-ex-extra, .hhr-kg, .hhr-exfb, .hhr-field { grid-template-columns: minmax(0, 1fr); }
+.hhr-ex-panel > *, .hhr-kg > *, .hhr-exfb > *, .hhr-field > * { min-width: 0; }
+.hhr-notes, .hhr-coachnote, .hhr-ex-extra, .hhr-kg-hint, .hhr-kgmode small { overflow-wrap: anywhere; }
+.hhr .hhr-ex.is-open, .hhr .hhr-circuit.is-open { overflow-x: hidden; }

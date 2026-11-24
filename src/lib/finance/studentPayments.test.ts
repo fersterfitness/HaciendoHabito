@@ -8,6 +8,7 @@ import {
   dueReminderMessage,
   overduePaymentMessage,
   paymentWindowLabel,
+  upcomingPaymentLabel,
 } from '@/lib/finance/studentPayments'
 
 const oct = new Date(2026, 9, 1)
@@ -171,5 +172,13 @@ describe('cuota desde el plan web (feedback nov3)', () => {
     })
     expect(row.expected).toBe(35000)
     expect(row.state).toBe('falta')
+  })
+})
+
+describe('upcomingPaymentLabel (feedback nov24)', () => {
+  it('dice qué día paga en lugar de «Al día»', () => {
+    expect(upcomingPaymentLabel({ dueDate: '2026-11-10', dueDay: 10 })).toBe('Paga el 10')
+    expect(upcomingPaymentLabel({ dueDate: '2026-11-30', dueDay: 31 })).toBe('Paga el último día')
+    expect(upcomingPaymentLabel({ dueDate: null, dueDay: null })).toBe('Todavía no paga')
   })
 })

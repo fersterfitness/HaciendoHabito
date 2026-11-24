@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { weekStatusOrEmpty } from '@/lib/checkIn/routineWeekProgress'
 import type { LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { effectivePaymentStatus } from '@/lib/studentPlanAssignments'
+import { upcomingPaymentLabel, type StudentPaymentRow } from '@/lib/finance/studentPayments'
 import { TONE_TINT, type Tone } from '@/components/v2/ui'
 import { cn } from '@/lib/utils'
 import type { Student, StudentPlanAssignment } from '@/types/database'
@@ -22,8 +23,25 @@ function routineTile(hasRoutine: boolean, totalWeeks: number, w: LatestWeekStatu
   return { tone: null, value: totalWeeks ? `${totalWeeks} semanas` : 'Con rutina', hint: 'Todavía sin feedback' }
 }
 
+/**
+ * Feedback nov24 (2): el pago sale de Finanzas (lo mismo que muestra el tablero de cobros). El estado del plan
+ * asignado no se entera de los cobros y dejaba «Pago pendiente» a quien ya pagó.
+ */
+function financeTile(r: StudentPaymentRow, hint: string): Tile {
+  if (r.gifted || r.state === 'sin_cargo') return { tone: null, value: 'Bonificado', hint }
+  if (r.state === 'pagado') return { tone: null, value: 'Pagó el mes', hint }
+  if (r.state === 'vencido') return { tone: 'rose', value: 'Pago vencido', hint }
+  if (r.state === 'falta') return { tone: 'butter', value: 'Falta pagar', hint }
+  if (r.state === 'parcial') return { tone: 'butter', value: 'Pago parcial', hint }
+  if (r.timing === 'hoy') return { tone: 'butter', value: 'Paga hoy', hint }
+  return { tone: null, value: upcomingPaymentLabel(r), hint }
+}
+
 /** Plan contratado y cómo viene el pago. */
-function planTile(plan: StudentPlanAssignment | undefined): Tile {
+function planTile(plan: StudentPlanAssignment | undefined, payment?: StudentPaymentRow): Tile {
+  if (payment && (payment.dueDay != null || payment.paidCount > 0 || payment.gifted)) {
+    return financeTile(payment, plan?.plan_name_snapshot ?? 'Cuota mensual')
+  }
   if (!plan) return { tone: null, value: '—', hint: 'Sin plan' }
   const status = effectivePaymentStatus(plan)
   const name = plan.plan_name_snapshot
@@ -46,6 +64,7 @@ export function StudentCardsV2({
   weeksByStudent,
   rmTestDueIds,
   currentPlanByStudent,
+  paymentByStudent,
 }: {
   students: Student[]
   selectedStudentId: string | null
@@ -56,12 +75,14 @@ export function StudentCardsV2({
   weeksByStudent: Map<string, number>
   rmTestDueIds: Set<string>
   currentPlanByStudent: Record<string, StudentPlanAssignment>
+  /** Cobro del mes de cada alumno, de Finanzas. */
+  paymentByStudent?: Map<string, StudentPaymentRow>
 }) {
   return (
     <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {students.map((s) => {
         const routine = routineTile(activeRoutineStudentIds.has(s.id), weeksByStudent.get(s.id) ?? 0, weekStatusOrEmpty(weekByStudent, s.id))
-        const plan = planTile(currentPlanByStudent[s.id])
+        const plan = planTile(currentPlanByStudent[s.id], paymentByStudent?.get(s.id))
         const active = s.status === 'activo'
         return (
           <li

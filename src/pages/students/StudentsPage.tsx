@@ -64,6 +64,9 @@ import { TableSkeleton } from '@/components/ui/Skeleton'
 import toast from 'react-hot-toast'
 import type { Student, StudentStatus } from '@/types/database'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { useActiveStudents, useIncomes } from '@/data/finance'
+import { useWebPlanPrices } from '@/data/priceIncrease'
+import { buildPaymentBoard, webPlanPriceMap } from '@/lib/finance/studentPayments'
 
 const LEVEL_LABELS: Record<string, string> = {
   inicial: 'Inicial',
@@ -667,6 +670,21 @@ export function StudentsPage() {
   const [hasMealPlanStudentIds, setHasMealPlanStudentIds] = useState<Set<string>>(new Set())
   const [currentPlanByStudent, setCurrentPlanByStudent] = useState<Record<string, import('@/types/database').StudentPlanAssignment>>({})
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  // Feedback nov24 (2): el pago de la tarjeta sale de Finanzas, igual que el tablero de cobros.
+  const financeStudents = useActiveStudents()
+  const financeIncomes = useIncomes()
+  const webPlanPrices = useWebPlanPrices()
+  const paymentByStudent = useMemo(() => {
+    const today = new Date()
+    const rows = buildPaymentBoard({
+      students: financeStudents.data ?? [],
+      incomes: (financeIncomes.data ?? []).filter((i) => (i.scope ?? 'business') === 'business' && i.student_id),
+      month: new Date(today.getFullYear(), today.getMonth(), 1),
+      today,
+      planPrices: webPlanPriceMap(webPlanPrices.data),
+    })
+    return new Map(rows.map((r) => [r.studentId, r]))
+  }, [financeStudents.data, financeIncomes.data, webPlanPrices.data])
   const searchRef = useRef<HTMLInputElement>(null)
   const studentPanelRef = useRef<HTMLDivElement>(null)
 
@@ -1123,6 +1141,7 @@ export function StudentsPage() {
                 weeksByStudent={weeksByStudent}
                 rmTestDueIds={rmTestDueIds}
                 currentPlanByStudent={currentPlanByStudent}
+                paymentByStudent={paymentByStudent}
               />
             ) : (
             <StudentDirectoryTable
