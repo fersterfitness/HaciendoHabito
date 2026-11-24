@@ -19,7 +19,7 @@ Necesita `20261127130000_notas_por_semana_y_circuito.sql`. Sin correrlo, todo si
 
 ## Tanda 3 — Tareas propias del entrenador
 
-- [ ] (5) En el Inicio, un lugar para anotarse tareas propias, generales o de un alumno («revisar calendario de Ailu»), con check. Separadas de los avisos y de «Para hoy».
+- [x] (5) En el Inicio, un lugar para anotarse tareas propias, generales o de un alumno («revisar calendario de Ailu»), con check. Separadas de los avisos y de «Para hoy». Hecho: tarjeta «Mis tareas» arriba de la columna derecha del Inicio (en el celu, después de «Para hoy»): se escribe la tarea, se elige «General» o un alumno, y se tilda. Las hechas quedan una semana en «Hechas esta semana» para deshacerlas. Necesita `20261128120000_tareas_del_entrenador.sql`.
 
 ## Tanda 4 — Rutinas
 

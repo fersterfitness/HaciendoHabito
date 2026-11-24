@@ -60,6 +60,7 @@ import { TrainingLiveTileV2 } from '@/components/dashboard/TrainingMonitorCardV2
 import { MonthReviewsPanelV2 } from '@/components/dashboard/MonthReviewsPanelV2'
 import { AdminNewStudentsPanelV2 } from '@/components/dashboard/AdminNewStudentsPanelV2'
 import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
+import { TrainerTasksPanelV2 } from '@/components/dashboard/TrainerTasksPanelV2'
 import { UpcomingConsultCardV2 } from '@/components/dashboard/UpcomingConsultCardV2'
 import { recordMenuUse } from '@/lib/nutrition/menuSuggestions'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
@@ -1428,6 +1429,10 @@ export function DashboardV2Page() {
           </section>
 
           <aside className="space-y-4 max-lg:contents">
+            {/* Feedback nov24 (punto 5): tareas propias del entrenador, aparte de «Para hoy» y los avisos. */}
+            {user && trains && !isNutri ? (
+              <TrainerTasksPanelV2 ownerId={user.id} students={students} onOpenStudent={(sid) => navigate(`/students/${sid}`)} />
+            ) : null}
             <CardV2
               // En el celu: para la nutricionista la agenda va primero; para el entrenador, «Para hoy».
               className={isNutri ? 'max-lg:order-first' : undefined}
