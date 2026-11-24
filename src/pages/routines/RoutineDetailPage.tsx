@@ -37,6 +37,7 @@ import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
 import { RoutineComparePane } from '@/components/routines/RoutineComparePane'
 import { ExerciseLogsContext, fetchRoutineExerciseLogs, type ExerciseLogsByExercise } from '@/lib/routine/exerciseLogs'
 import { TrainingExtrasContext, fetchRoutineTrainingExtras, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { activateRoutineDraft } from '@/lib/routine/routineDraft'
 import { CoachNotesContext, fetchCoachNoteItems, fetchCoachNotes, type CoachNote, type CoachNoteItem, type CoachNotesState } from '@/lib/routine/coachNotes'
 import { CheckinAverages } from '@/components/routines/CheckinAverages'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
@@ -314,9 +315,30 @@ export function RoutineDetailPage() {
 
   // ── Status ────────────────────────────────────────────────────────────────
 
+  // Feedback nov24 (11): la rutina guardada sin activar se activa con su propio paso (arranca hoy y termina la actual).
+  const [activateOpen, setActivateOpen] = useState(false)
+  const [activating, setActivating] = useState(false)
+  async function handleActivateDraft() {
+    if (!id) return
+    setActivating(true)
+    try {
+      const closed = await activateRoutineDraft(id)
+      toast.success(closed > 0 ? 'Rutina activada: arranca hoy y la anterior quedó terminada' : 'Rutina activada: arranca hoy')
+      setActivateOpen(false)
+      await fetchData()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo activar la rutina')
+    }
+    setActivating(false)
+  }
+
   async function handleStatusChange(newStatus: string) {
     if (!id) return
     const status = newStatus as Routine['status']
+    if (routine?.status === 'borrador' && status === 'activa') {
+      setActivateOpen(true)
+      return
+    }
     const completed_at =
       status === 'completada' ? new Date().toISOString() : status === 'activa' ? null : undefined
     const patch: Partial<Routine> = { status, last_status_change: new Date().toISOString() }
@@ -1480,6 +1502,15 @@ export function RoutineDetailPage() {
         <ExerciseLogsContext.Provider value={exerciseLogs}>
         <TrainingExtrasContext.Provider value={trainingExtras}>
         <CoachNotesContext.Provider value={coachNotesState}>
+        {routine.status === 'borrador' ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-status-paused/30 bg-status-paused/10 px-3.5 py-3 text-xs text-ink-secondary">
+            <p className="min-w-0 flex-1">
+              <strong className="text-ink-primary">Guardada sin activar.</strong> {studentLabel ?? 'El alumno'} sigue con su rutina actual y todavía no ve esta.
+              Al activarla arranca hoy y la actual queda terminada.
+            </p>
+            <Button size="sm" onClick={() => setActivateOpen(true)}>Activar ahora</Button>
+          </div>
+        ) : null}
         <CheckinAverages
           dayIds={blocks.flatMap((b) => b.days.map((d) => d.id))}
           label="Promedio de toda la rutina"
@@ -1720,6 +1751,16 @@ export function RoutineDetailPage() {
         </div>
       )}
 
+      <ConfirmDialog
+        open={activateOpen}
+        onClose={() => setActivateOpen(false)}
+        onConfirm={() => void handleActivateDraft()}
+        title="¿Activar esta rutina?"
+        description={`Arranca hoy y ${studentLabel ?? 'el alumno'} la ve en su link. Si tiene otra rutina activa, queda terminada. Las fechas se acomodan al primer día que entrene.`}
+        confirmLabel="Sí, activar"
+        variant="warning"
+        loading={activating}
+      />
       <ConfirmDialog
         open={showDelete}
         onClose={() => setShowDelete(false)}

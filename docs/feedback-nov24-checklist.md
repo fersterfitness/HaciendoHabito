@@ -23,9 +23,11 @@ Necesita `20261127130000_notas_por_semana_y_circuito.sql`. Sin correrlo, todo si
 
 ## Tanda 4 — Rutinas
 
-- [ ] (9) La rutina nueva arranca con fecha de hoy; cuando el alumno marca que terminó su primer día, las fechas y el calendario se corren a ese día.
-- [ ] (11) Armar la rutina siguiente sin activarla: la actual sigue activa para que el alumno termine de cargar, y la nueva queda guardada para después.
-- [ ] (10) El alumno puede ver el historial de sus rutinas anteriores.
+- [x] (9) La rutina nueva arranca con fecha de hoy; cuando el alumno marca que terminó su primer día, las fechas y el calendario se corren a ese día. Hecho: la primera vez que el alumno cierra un día como entrenado, la rutina y todas sus semanas se corren para que arranquen ese día (una sola vez por rutina). Vale para las rutinas nuevas y para las activas de las últimas dos semanas que todavía no empezó.
+- [x] (11) Armar la rutina siguiente sin activarla: la actual sigue activa para que el alumno termine de cargar, y la nueva queda guardada para después. Hecho: al crear la rutina, «Guardarla sin activar» (estado «Sin activar»). El alumno no la ve. En la rutina aparece «Activar ahora»: arranca hoy, la actual queda terminada y las fechas se vuelven a acomodar al primer día entrenado.
+- [x] (10) El alumno puede ver el historial de sus rutinas anteriores. Hecho: en la pestaña Progreso del link, «Tus rutinas anteriores» con fechas y días entrenados; cada una se abre solo para ver (`?rutina=`). También aparece cuando la rutina está terminada.
+
+La tanda 4 necesita `20261128130000_rutinas_borrador_fechas_historial.sql`.
 
 ## Tanda 5 — Ver la rutina como el alumno
 

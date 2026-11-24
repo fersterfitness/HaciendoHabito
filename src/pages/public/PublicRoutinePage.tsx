@@ -6,6 +6,7 @@ import { CalendarHeart, Check, ChevronDown, ChevronLeft, Lock, Dumbbell, Flame, 
 import {
   currentBlockIndex,
   exerciseDetails,
+  fetchSharedPastRoutine,
   fetchSharedRoutine,
   formatKg,
   groupExercises,
@@ -34,6 +35,7 @@ import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, R
 import { weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
 import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/studentAppExtras'
 import { CycleCard, MonthReviewCard, PaymentBanner, ProgressCard } from './PublicRoutineExtras'
+import { RoutineHistoryCard } from './PublicRoutineHistory'
 import { movementArtwork, routineAthlete, type Athlete } from '@/lib/routine/exerciseArtwork'
 import { clockLabel, previousLabel, previousSetsByExercise } from '@/lib/routine/previousSets'
 import { progressWeekIndex, startDayIndex } from '@/lib/routine/routineProgress'
@@ -212,6 +214,9 @@ export function PublicRoutinePage() {
   // tocar nada; solo se puede escribir la nota para el alumno de cada ejercicio.
   const wantsCoach = search.get('vista') === 'profe'
   const wantsPreview = search.get('vista') === 'entrenador' || wantsCoach
+  // Feedback nov24 (10): ?rutina=<id> muestra una rutina anterior del historial, solo para ver.
+  const pastId = search.get('rutina')
+  const pastView = !!pastId
   const [preview, setPreview] = useState<'checking' | 'on' | 'off'>(wantsPreview ? 'checking' : 'off')
   const [previewGates, setPreviewGates] = useState(false)
   useEffect(() => {
@@ -230,7 +235,9 @@ export function PublicRoutinePage() {
     }
   }, [wantsPreview, token])
   const coachView = wantsCoach && preview === 'on'
-  const gatesOff = preview === 'on' && (coachView || !previewGates)
+  const gatesOff = pastView || (preview === 'on' && (coachView || !previewGates))
+  // Sin tocar nada: «Ver como profe» o una rutina anterior.
+  const viewOnly = coachView || pastView
   // Notas para el alumno: en «Ver como profe» se leen y escriben con la sesión del entrenador.
   const [coachEdit, setCoachEdit] = useState<{ ownerId: string; studentId: string; notes: Record<string, CoachNote> } | null>(null)
   useEffect(() => {
@@ -287,7 +294,7 @@ export function PublicRoutinePage() {
   const load = useCallback(
     (quiet: boolean) => {
       if (!quiet) setState({ status: 'loading' })
-      return fetchSharedRoutine(token)
+      return (pastId ? fetchSharedPastRoutine(token, pastId) : fetchSharedRoutine(token))
         .then((data) => {
           setState({ status: 'ok', data })
           setLogged((prev) => ({ ...loggedFrom(data), ...(quiet ? prev : {}) }))
@@ -296,7 +303,7 @@ export function PublicRoutinePage() {
           if (!quiet) setState({ status: 'error' })
         })
     },
-    [token],
+    [token, pastId],
   )
 
   useEffect(() => {
@@ -390,7 +397,7 @@ export function PublicRoutinePage() {
 
   // Rutina que el entrenador ve como «Sin rutina activa» (pausada, cancelada, terminada): no se deja anotar,
   // así lo que ve el alumno coincide con lo que ve el entrenador. Sin `status` (base sin la migración) se muestra como siempre.
-  const inactiveStatus = routine?.status && !['activa', 'por_vencer'].includes(routine.status) ? routine.status : null
+  const inactiveStatus = !pastView && routine?.status && !['activa', 'por_vencer'].includes(routine.status) ? routine.status : null
   if (inactiveStatus) {
     const wa = normalizePhoneForWhatsApp(data.professional_phone)
     const pro = data.professional_name && !data.professional_name.includes('@') ? niceCase(data.professional_name.trim().split(/\s+/)[0]) : ''
@@ -418,6 +425,7 @@ export function PublicRoutinePage() {
               <MessageCircle size={18} strokeWidth={1.8} aria-hidden /> Escribirle{pro ? ` a ${pro}` : ''}
             </a>
           ) : null}
+          <RoutineHistoryCard token={token} items={[...(routine?.id ? [{ ...routine, id: routine.id, objective: routine.objective, status: routine.status ?? '', days_done: -1 }] : []), ...(data.history ?? [])]} />
         </div>
       </Shell>
     )
@@ -428,7 +436,7 @@ export function PublicRoutinePage() {
   // Feedback nov19: la semana en curso sale del avance del alumno, no de las fechas del bloque.
   const currentWeek = extras ? progressWeekIndex(blocks, progressInput(extras, logged)) : currentBlockIndex(blocks, today)
   // Semanas como niveles: las de adelante se desbloquean al cerrar la anterior (en la vista previa, todas abiertas).
-  const lockedWeek = (i: number) => !!extras && preview !== 'on' && i > currentWeek
+  const lockedWeek = (i: number) => !!extras && preview !== 'on' && !pastView && i > currentWeek
   const wi = Math.min(week ?? currentWeek, Math.max(0, blocks.length - 1))
   const block = blocks[wi]
   const days = block?.days ?? []
@@ -557,10 +565,10 @@ export function PublicRoutinePage() {
         token={token}
         logged={loggedView[ex.id] ?? {}}
         weightModeOn={!!extras?.setModes}
-        readOnly={coachView}
+        readOnly={viewOnly}
         coachNote={coachView ? null : (extras?.coachNotes?.[coachNoteKey(ex.name)]?.note ?? null)}
         onHideCoachNote={() => hideCoachNote(coachNoteKey(ex.name))}
-        coachNoteItems={coachNoteItems.filter((x) => x.exercise_id === ex.id)}
+        coachNoteItems={pastView ? [] : coachNoteItems.filter((x) => x.exercise_id === ex.id)}
         onCoachNoteSeen={markCoachNoteSeen}
         coachEditor={coachView && coachEdit && coachNoteKey(ex.name) ? {
           value: coachEdit.notes[coachNoteKey(ex.name)]?.note ?? '',
@@ -588,7 +596,7 @@ export function PublicRoutinePage() {
     { id: 'entrenar', label: 'Entrenar', icon: Dumbbell },
     { id: 'progreso', label: 'Progreso', icon: TrendingUp },
     ...(showCycle ? [{ id: 'ciclo' as const, label: 'Ciclo', icon: CalendarHeart }] : []),
-    ...(extras && !coachView ? [{ id: 'consulta' as const, label: 'Consulta', icon: LifeBuoy }] : []),
+    ...(extras && !viewOnly ? [{ id: 'consulta' as const, label: 'Consulta', icon: LifeBuoy }] : []),
   ]
   const heroLine =
     weekProgress.total === 0
@@ -607,6 +615,15 @@ export function PublicRoutinePage() {
             <b>Vista del entrenador.</b> Ves lo que cargó {firstName || 'el alumno'}: series, kilos, chequeos y notas. No se puede modificar nada
             {coachEdit ? '; solo podés dejarle una nota en cada ejercicio.' : '.'}
           </span>
+        </div>
+      ) : pastView ? (
+        <div className="hhr-preview" role="status">
+          <span>
+            <b>Rutina anterior.</b> Es solo para ver lo que hiciste; no se puede anotar nada.
+          </span>
+          <a className="hhr-preview-back" href={`/rutina/${token}`}>
+            Volver a mi rutina
+          </a>
         </div>
       ) : preview === 'on' ? (
         <div className="hhr-preview" role="status">
@@ -680,9 +697,14 @@ export function PublicRoutinePage() {
               <ProgressCard blocks={blocks} extras={extras} kgOf={kgOf} open />
             </div>
           ) : null}
+          {!pastView && !coachView && data.history?.length ? (
+            <div className="hhr-pane hhr-pane-progreso hhr-pane-wrap">
+              <RoutineHistoryCard token={token} items={data.history} />
+            </div>
+          ) : null}
           {showCycle && studentExtras ? (
             <div className="hhr-pane hhr-pane-ciclo hhr-pane-wrap">
-              <fieldset className="hhr-ro" disabled={coachView}>
+              <fieldset className="hhr-ro" disabled={viewOnly}>
                 <CycleCard
                   token={token}
                   extras={studentExtras}
@@ -692,7 +714,7 @@ export function PublicRoutinePage() {
               </fieldset>
             </div>
           ) : null}
-          {extras && !coachView ? (
+          {extras && !viewOnly ? (
             <div className="hhr-pane hhr-pane-consulta hhr-pane-wrap">
               <UrgentCard token={token} proLabel={proLabel} />
             </div>
@@ -711,7 +733,7 @@ export function PublicRoutinePage() {
               <span>{closeMessage.body}</span>
             </section>
           ) : null}
-          {studentExtras && monthDone && reviewDayId && !coachView ? (
+          {studentExtras && monthDone && reviewDayId && !viewOnly ? (
             <MonthReviewCard token={token} dayId={reviewDayId} proLabel={proLabel} done={reviewDone} onDone={() => setReviewSent(true)} />
           ) : null}
 
@@ -892,7 +914,7 @@ export function PublicRoutinePage() {
                           <p className="hhr-circuit-note is-default">Sin pausa entre ellos.</p>
                         )}
                         <CoachNoteItems
-                          items={coachNoteItems.filter((x) => x.day_id === selectedDay.id && x.circuit_group === g.items[0]!.superset_group)}
+                          items={pastView ? [] : coachNoteItems.filter((x) => x.day_id === selectedDay.id && x.circuit_group === g.items[0]!.superset_group)}
                           proLabel={proLabel}
                           coachView={coachView}
                           onSeen={markCoachNoteSeen}
@@ -916,7 +938,7 @@ export function PublicRoutinePage() {
                     ),
                   )}
                   {dayLog && selectedDay.exercises.length > 0 ? (
-                    <fieldset className="hhr-ro" disabled={coachView}>
+                    <fieldset className="hhr-ro" disabled={viewOnly}>
                     <DayCloseCard
                       key={`close-${selectedDay.id}`}
                       token={token}

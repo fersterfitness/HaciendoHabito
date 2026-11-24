@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { draftSaveError } from '@/lib/routine/routineDraft'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -52,6 +53,8 @@ export function useRoutines() {
       start_date: string
       duration_days: number
       notes?: string
+      /** Feedback nov24 (11): `borrador` = guardada sin activar. */
+      status?: 'activa' | 'borrador'
     }) => {
       if (!user) return null
       const end_date = format(
@@ -64,15 +67,15 @@ export function useRoutines() {
           ...payload,
           owner_id: user.id,
           end_date,
-          status: 'activa',
+          status: payload.status ?? 'activa',
           price: 0,
           notes: payload.notes ?? null,
           student_plan_id: payload.student_plan_id ?? null,
         })
         .select()
         .single()
-      if (error) { toast.error(error.message); return null }
-      toast.success('Rutina creada')
+      if (error) { toast.error(draftSaveError(error.message) ?? error.message); return null }
+      toast.success(payload.status === 'borrador' ? 'Rutina guardada sin activar' : 'Rutina creada')
       void invalidateRoutines()
       return data
     },

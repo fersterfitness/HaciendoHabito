@@ -88,6 +88,8 @@ export interface SharedRoutine {
   professional_name: string | null
   professional_phone: string | null
   routine: {
+    /** Desde 20261128130000. */
+    id?: string
     name: string
     /** Estado de la rutina (desde la migración 20261119120000; antes no venía). */
     status?: string | null
@@ -98,6 +100,18 @@ export interface SharedRoutine {
     blocks: SharedRoutineBlock[]
   } | null
   feedback: { public_token: string; email: string | null; gender?: string | null; period: string | null; done: boolean } | null
+  /** Feedback nov24 (10): las otras rutinas del alumno, la más nueva primero. Desde 20261128130000. */
+  history?: SharedRoutineHistoryItem[]
+}
+
+export interface SharedRoutineHistoryItem {
+  id: string
+  name: string
+  objective: string | null
+  status: string
+  start_date: string | null
+  end_date: string | null
+  days_done: number
 }
 
 /**
@@ -140,6 +154,13 @@ export function sharedRoutineFeedbackUrl(fb: NonNullable<SharedRoutine['feedback
 /** El alumno abre el link sin sesión: va por el cliente anónimo. */
 export async function fetchSharedRoutine(token: string): Promise<SharedRoutine | null> {
   const { data, error } = await supabasePublic.rpc('get_shared_routine', { p_token: token })
+  if (error) throw new Error(error.message)
+  return (data as SharedRoutine | null) ?? null
+}
+
+/** Una rutina anterior del historial, solo para ver. */
+export async function fetchSharedPastRoutine(token: string, routineId: string): Promise<SharedRoutine | null> {
+  const { data, error } = await supabasePublic.rpc('get_shared_past_routine', { p_token: token, p_routine_id: routineId })
   if (error) throw new Error(error.message)
   return (data as SharedRoutine | null) ?? null
 }

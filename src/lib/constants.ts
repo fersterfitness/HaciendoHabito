@@ -21,6 +21,7 @@ export const ROUTINE_STATUSES = [
   { value: 'completada', label: 'Completada' },
   { value: 'pausada', label: 'Pausada' },
   { value: 'cancelada', label: 'Cancelada' },
+  { value: 'borrador', label: 'Sin activar' },
 ] as const
 
 export const PDF_STATUSES = [

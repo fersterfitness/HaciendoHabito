@@ -33,6 +33,8 @@ const schema = z.object({
   notes: z.string().optional().or(z.literal('')),
   /** Precio de la rutina: genera un cobro «pendiente» en Finanzas (Haciéndolo hábito). */
   price: z.string().optional().or(z.literal('')),
+  /** Feedback nov24 (11): guardarla sin activar; el alumno sigue con la actual. */
+  draft: z.boolean().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -352,6 +354,7 @@ export function RoutineFormContent({
         level: values.level,
         objective: values.objective,
         notes: values.notes || undefined,
+        status: values.draft && values.student_id ? 'borrador' : 'activa',
       })
       if (result) {
         if (templateBlueprintId) {
@@ -532,6 +535,15 @@ export function RoutineFormContent({
               {...register('start_date')}
             />
           </div>
+          {!isEditing && !editingLibrary && watchStudentId ? (
+            <label className="flex items-start gap-2 text-xs text-ink-secondary">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary" {...register('draft')} />
+              <span>
+                <strong className="text-ink-primary">Guardarla sin activar.</strong> El alumno sigue con su rutina actual y no ve esta
+                hasta que la actives (arranca ese día).
+              </span>
+            </label>
+          ) : null}
         </FormSection>
 
         <FormSection title="Detalle">

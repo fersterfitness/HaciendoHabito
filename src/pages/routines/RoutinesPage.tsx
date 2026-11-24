@@ -96,6 +96,7 @@ const ROUTINE_STATUS_OPTIONS: { value: RoutineStatus; label: string }[] = [
   { value: 'completada', label: 'Completada' },
   { value: 'pausada', label: 'Pausada' },
   { value: 'cancelada', label: 'Cancelada' },
+  { value: 'borrador', label: 'Sin activar' },
 ]
 
 function phraseRoutineStatus(status: RoutineStatus): string {

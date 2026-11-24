@@ -23,7 +23,7 @@ export interface StudentPlanAssignment {
 }
 export type StudentLevel = 'inicial' | 'intermedio' | 'avanzado'
 export type StudentStatus = 'activo' | 'inactivo' | 'pausado' | 'baja'
-export type RoutineStatus = 'activa' | 'por_vencer' | 'vencida' | 'pausada' | 'cancelada' | 'completada'
+export type RoutineStatus = 'activa' | 'por_vencer' | 'vencida' | 'pausada' | 'cancelada' | 'completada' | 'borrador'
 export type PdfStatus = 'pendiente' | 'en_proceso' | 'generado' | 'enviado' | 'error'
 export type QuestionStatus = 'recibida' | 'en_revision' | 'devuelta' | 'cerrada'
 export type PaymentStatus = 'pendiente' | 'cobrado' | 'cancelado' | 'reembolsado'

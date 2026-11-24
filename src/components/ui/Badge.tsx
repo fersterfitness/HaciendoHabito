@@ -7,6 +7,7 @@ type BadgeStatus =
   | 'completada'
   | 'pausada'
   | 'cancelada'
+  | 'borrador'
   | 'pendiente'
   | 'en_proceso'
   | 'generado'
@@ -47,6 +48,10 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   completada: {
     label: 'Completada',
     className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/30',
+  },
+  borrador: {
+    label: 'Sin activar',
+    className: 'bg-status-paused/12 text-status-paused ring-1 ring-inset ring-status-paused/30',
   },
   pausada: {
     label: 'Pausada',
