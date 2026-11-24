@@ -15,6 +15,7 @@ import type { RoutineDay, RoutineExercise, TrainingMethod } from '@/types/databa
 import toast from 'react-hot-toast'
 import { type DayWithEx, WARMUP_PRESETS, groupExercises } from './routineDetailShared'
 import { ExerciseRow } from './ExerciseRow'
+import { CoachNoteItemsField } from './CoachNoteItemsField'
 import { IS_V2 } from '@/lib/uiVersion'
 import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
 import { ExerciseLogsContext } from '@/lib/routine/exerciseLogs'
@@ -400,6 +401,9 @@ export function DayCard({
                     value={parseExerciseMeta(group.exercises[0]?.technical_notes).meta.circuitNote ?? ''}
                     onChange={(e) => onCircuitNoteChange(group.groupId, e.target.value)}
                   />
+                  <div className="mt-1.5">
+                    <CoachNoteItemsField target={{ dayId: day.id, circuitGroup: group.groupId }} label="Nota del circuito para el alumno" />
+                  </div>
                 </div>
                 {group.exercises.map((ex, i) => (
                   <div key={ex.id} className={i < group.exercises.length - 1 ? 'border-b border-brand-primary/15' : ''}>

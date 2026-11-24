@@ -11,9 +11,11 @@ Documento: «CORRECIONES EN APP.docx» (12 puntos + respuestas a las preguntas d
 
 ## Tanda 2 — Notas para el alumno
 
-- [ ] (4) Varias notas por ejercicio (hoy hay una sola) y que el alumno marque «Lo vi» en cada una.
-- [ ] (6) Nota de una semana: si se carga en la semana 2, aparece solo en la semana 2 (hoy aparece en todas).
-- [ ] (7) Nota general del bloque o circuito, además de las de cada ejercicio.
+- [x] (4) Varias notas por ejercicio (hoy hay una sola) y que el alumno marque «Lo vi» en cada una. Hecho: «+ Nota para el alumno» agrega una más; cada una muestra «la vio el …» o «todavía no la vio», con Editar y Borrar. Cambiar el texto la vuelve a dejar sin ver. Las notas viejas (una por ejercicio, en todas las semanas) se siguen viendo hasta que se borren.
+- [x] (6) Nota de una semana: si se carga en la semana 2, aparece solo en la semana 2 (hoy aparece en todas). Hecho: la nota queda atada al ejercicio de esa semana.
+- [x] (7) Nota general del bloque o circuito, además de las de cada ejercicio. Hecho: «+ Nota del circuito para el alumno» debajo de «Aclaración del circuito»; al alumno le aparece arriba del circuito con «Lo vi».
+
+Necesita `20261127130000_notas_por_semana_y_circuito.sql`. Sin correrlo, todo sigue como antes (una nota por ejercicio).
 
 ## Tanda 3 — Tareas propias del entrenador
 

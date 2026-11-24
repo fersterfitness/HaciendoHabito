@@ -13,6 +13,7 @@ import { useExerciseLogs } from '@/lib/routine/exerciseLogs'
 import { BORG_LABELS, useExerciseFeedback } from '@/lib/routine/studentTrainingLog'
 import { formatDate } from '@/lib/utils'
 import { COACH_NOTE_MAX, coachNoteKey, saveCoachNote, useCoachNotes } from '@/lib/routine/coachNotes'
+import { CoachNoteItemsField } from './CoachNoteItemsField'
 import toast from 'react-hot-toast'
 
 export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodWeekPlanAllDays, onDelete, onMoveUp, onMoveDown, onReplace, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
@@ -167,7 +168,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
         </div>
       ) : null}
 
-      <CoachNoteField exerciseName={exercise.exercise?.name ?? null} />
+      <CoachNoteField exerciseName={exercise.exercise?.name ?? null} exerciseId={exercise.id} />
 
       <div className="grid grid-cols-2 gap-1.5">
         <div>
@@ -504,13 +505,16 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
  * Feedback nov19 (tanda 4): nota para el alumno en este ejercicio. Al alumno le aparece en el link (en esta y en
  * las semanas que repiten el ejercicio) hasta que la oculta. Solo con la migración 20261125120000.
  */
-function CoachNoteField({ exerciseName }: { exerciseName: string | null }) {
+function CoachNoteField({ exerciseName, exerciseId }: { exerciseName: string | null; exerciseId: string }) {
   const ctx = useCoachNotes()
   const key = coachNoteKey(exerciseName)
   const saved = ctx && key ? ctx.notes[key] : undefined
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(saved?.note ?? '')
   const [busy, setBusy] = useState(false)
+  // Feedback nov24: con la migración nueva las notas son por semana y pueden ser varias. La nota vieja
+  // (por nombre, en todas las semanas) se sigue mostrando para poder editarla o borrarla.
+  if (ctx?.items && !open && !saved) return <CoachNoteItemsField target={{ exerciseId }} />
   if (!ctx || !key) return null
 
   async function save() {
@@ -536,6 +540,11 @@ function CoachNoteField({ exerciseName }: { exerciseName: string | null }) {
         <Button variant="ghost" size="sm" className="ml-auto" onClick={() => { setDraft(saved.note); setOpen(true) }}>
           Editar
         </Button>
+        {ctx.items ? (
+          <div className="basis-full">
+            <CoachNoteItemsField target={{ exerciseId }} />
+          </div>
+        ) : null}
       </div>
     ) : (
       <Button variant="ghost" size="sm" className="self-start text-ink-muted" onClick={() => { setDraft(''); setOpen(true) }}>

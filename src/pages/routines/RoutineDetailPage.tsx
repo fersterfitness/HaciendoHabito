@@ -37,7 +37,7 @@ import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
 import { RoutineComparePane } from '@/components/routines/RoutineComparePane'
 import { ExerciseLogsContext, fetchRoutineExerciseLogs, type ExerciseLogsByExercise } from '@/lib/routine/exerciseLogs'
 import { TrainingExtrasContext, fetchRoutineTrainingExtras, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
-import { CoachNotesContext, fetchCoachNotes, type CoachNote, type CoachNotesState } from '@/lib/routine/coachNotes'
+import { CoachNotesContext, fetchCoachNoteItems, fetchCoachNotes, type CoachNote, type CoachNoteItem, type CoachNotesState } from '@/lib/routine/coachNotes'
 import { CheckinAverages } from '@/components/routines/CheckinAverages'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { setWeekPhase } from '@/lib/macrocycle/macrocycleData'
@@ -111,11 +111,14 @@ export function RoutineDetailPage() {
   }, [id])
   // Feedback nov19 (tanda 4): notas del entrenador para el alumno, por ejercicio. `null` sin la migración.
   const [coachNotes, setCoachNotes] = useState<Record<string, CoachNote> | null>(null)
+  // Feedback nov24 (tanda 2): varias notas por ejercicio de la semana o por circuito. `null` sin la migración.
+  const [coachNoteItems, setCoachNoteItems] = useState<CoachNoteItem[] | null>(null)
   const coachStudentId = routine?.student_id ?? null
   useEffect(() => {
     if (!coachStudentId) return
     let alive = true
     void fetchCoachNotes(coachStudentId).then((n) => { if (alive) setCoachNotes(n) })
+    void fetchCoachNoteItems(coachStudentId).then((n) => { if (alive) setCoachNoteItems(n) })
     return () => { alive = false }
   }, [coachStudentId])
   const coachNotesState = useMemo<CoachNotesState | null>(
@@ -132,9 +135,16 @@ export function RoutineDetailPage() {
                 else delete next[key]
                 return next
               }),
+            items: coachNoteItems,
+            onItemSaved: (item) =>
+              setCoachNoteItems((prev) => {
+                const list = prev ?? []
+                return list.some((n) => n.id === item.id) ? list.map((n) => (n.id === item.id ? item : n)) : [...list, item]
+              }),
+            onItemDeleted: (itemId) => setCoachNoteItems((prev) => (prev ?? []).filter((n) => n.id !== itemId)),
           }
         : null,
-    [user, coachStudentId, coachNotes],
+    [user, coachStudentId, coachNotes, coachNoteItems],
   )
   // v2 · Pantalla dividida con otra rutina del alumno; queda abierta para la próxima rutina que se arme.
   const [comparing, setComparing] = useState(() => {

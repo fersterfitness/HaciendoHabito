@@ -85,6 +85,21 @@ export interface TrainingExtras {
    * Indefinido sin la migración 20261125120000_notas_para_el_alumno.sql.
    */
   coachNotes?: Record<string, { note: string; updated_at: string }>
+  /**
+   * Feedback nov24 (tanda 2): notas por ejercicio de la semana (`exercise_id`) o por circuito (`day_id` + grupo),
+   * con «Lo vi». Indefinido sin la migración 20261127130000_notas_por_semana_y_circuito.sql.
+   */
+  coachNoteItems?: SharedCoachNote[]
+}
+
+export interface SharedCoachNote {
+  id: string
+  exercise_id: string | null
+  day_id: string | null
+  circuit_group: number | null
+  note: string
+  created_at: string
+  seen_at: string | null
 }
 
 /** Cómo anotó el alumno los kilos de una serie. */
@@ -130,10 +145,11 @@ type RawExtras = {
   self_notes?: Record<string, string>
   set_modes?: { exercise_id: string; set: number; mode: SetWeightMode | null }[]
   coach_notes?: Record<string, { note: string; updated_at: string }>
+  coach_note_items?: SharedCoachNote[]
 }
 
 function toExtras(raw: RawExtras | null): TrainingExtras {
-  const out: TrainingExtras = { exercises: {}, days: {}, notices: raw?.notices, selfNotes: raw?.self_notes, coachNotes: raw?.coach_notes }
+  const out: TrainingExtras = { exercises: {}, days: {}, notices: raw?.notices, selfNotes: raw?.self_notes, coachNotes: raw?.coach_notes, coachNoteItems: raw?.coach_note_items }
   if (raw?.set_modes) {
     out.setModes = {}
     for (const m of raw.set_modes) if (m.mode) (out.setModes[m.exercise_id] ??= {})[m.set] = m.mode

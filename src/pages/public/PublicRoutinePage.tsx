@@ -25,11 +25,11 @@ import {
 import { barKgOf, parseExerciseMeta, perSideKg, plannedWeightText, weightModeOf } from '@/lib/routine/exerciseMeta'
 import { formatWarmupDisplayLines } from '@/lib/routine/warmupNotesFormat'
 import { splitWarmupLine, type WarmupMedia } from '@/lib/routine/warmupMedia'
-import { COACH_NOTE_MAX, coachNoteKey, dismissSharedCoachNote, fetchCoachNotes, fetchShareOwner, saveCoachNote, type CoachNote } from '@/lib/routine/coachNotes'
+import { COACH_NOTE_MAX, coachNoteKey, dismissSharedCoachNote, fetchCoachNotes, fetchShareOwner, markSharedCoachNoteSeen, saveCoachNote, type CoachNote } from '@/lib/routine/coachNotes'
 import { normalizePhoneForWhatsApp } from '@/lib/whatsapp'
 import './public-routine.css'
 import { setPublicPreview } from '@/lib/supabasePublic'
-import { EMPTY_DAY_LOG, exerciseNoteKey, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type RoutineNoticeKind, type SetWeightMode, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { EMPTY_DAY_LOG, exerciseNoteKey, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type RoutineNoticeKind, type SetWeightMode, type SharedCoachNote, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
 import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, RoutineNoticeCard, SelfNoteBox, UrgentCard } from './PublicRoutineLog'
 import { weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
 import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/studentAppExtras'
@@ -519,6 +519,18 @@ export function PublicRoutinePage() {
     void dismissSharedCoachNote(token, key).catch(() => void fetchSharedExtras(token).then((x) => setExtras(x)))
   }
 
+  /** El alumno marca «Lo vi» en una nota (en la vista previa no se guarda). */
+  function markCoachNoteSeen(id: string, seen: boolean) {
+    setExtras((prev) =>
+      prev?.coachNoteItems
+        ? { ...prev, coachNoteItems: prev.coachNoteItems.map((n) => (n.id === id ? { ...n, seen_at: seen ? new Date().toISOString() : null } : n)) }
+        : prev,
+    )
+    if (preview === 'on') return
+    void markSharedCoachNoteSeen(token, id, seen).catch(() => void fetchSharedExtras(token).then((x) => setExtras(x)))
+  }
+  const coachNoteItems = extras?.coachNoteItems ?? []
+
   async function saveCoachEditorNote(key: string, note: string) {
     if (!coachEdit) return
     const saved = await saveCoachNote(coachEdit.ownerId, coachEdit.studentId, key, note)
@@ -548,6 +560,8 @@ export function PublicRoutinePage() {
         readOnly={coachView}
         coachNote={coachView ? null : (extras?.coachNotes?.[coachNoteKey(ex.name)]?.note ?? null)}
         onHideCoachNote={() => hideCoachNote(coachNoteKey(ex.name))}
+        coachNoteItems={coachNoteItems.filter((x) => x.exercise_id === ex.id)}
+        onCoachNoteSeen={markCoachNoteSeen}
         coachEditor={coachView && coachEdit && coachNoteKey(ex.name) ? {
           value: coachEdit.notes[coachNoteKey(ex.name)]?.note ?? '',
           hidden: !!coachEdit.notes[coachNoteKey(ex.name)]?.dismissed_at,
@@ -877,6 +891,12 @@ export function PublicRoutinePage() {
                         ) : (
                           <p className="hhr-circuit-note is-default">Sin pausa entre ellos.</p>
                         )}
+                        <CoachNoteItems
+                          items={coachNoteItems.filter((x) => x.day_id === selectedDay.id && x.circuit_group === g.items[0]!.superset_group)}
+                          proLabel={proLabel}
+                          coachView={coachView}
+                          onSeen={markCoachNoteSeen}
+                        />
                         <div className="hhr-circuit-list">
                           {g.items.map((ex, i) => (
                             <Fragment key={ex.id}>
@@ -1031,6 +1051,8 @@ function ExerciseCard({
   readOnly,
   coachNote,
   onHideCoachNote,
+  coachNoteItems,
+  onCoachNoteSeen,
   coachEditor,
 }: {
   /** «Ver como profe»: se ve todo lo anotado pero no se puede tocar. */
@@ -1038,6 +1060,9 @@ function ExerciseCard({
   /** Nota del entrenador para el alumno (si no la ocultó). */
   coachNote: string | null
   onHideCoachNote: () => void
+  /** Notas de esta semana para este ejercicio, con «Lo vi». */
+  coachNoteItems: SharedCoachNote[]
+  onCoachNoteSeen: (id: string, seen: boolean) => void
   /** Solo en «Ver como profe»: escribir la nota para el alumno. */
   coachEditor: CoachEditorProps | null
   /** El alumno puede decir si anota el total o por lado (migración 20261124120000). */
@@ -1107,7 +1132,7 @@ function ExerciseCard({
               <Pin size={11} strokeWidth={2.4} aria-hidden /> {selfNote}
             </span>
           ) : null}
-          {coachNote || coachEditor?.value ? (
+          {coachNote || coachEditor?.value || coachNoteItems.some((x) => !x.seen_at) ? (
             <span className="hhr-ex-coachnote">
               <MessageCircle size={11} strokeWidth={2.4} aria-hidden /> {coachEditor ? `Tu nota: ${coachEditor.value}` : `Nota de ${proLabel}`}
             </span>
@@ -1153,6 +1178,7 @@ function ExerciseCard({
             </div>
           ) : null}
           {coachNote ? <CoachNoteCard note={coachNote} proLabel={proLabel} onHide={onHideCoachNote} /> : null}
+          <CoachNoteItems items={coachNoteItems} proLabel={proLabel} coachView={readOnly} onSeen={onCoachNoteSeen} />
           {coachEditor ? <CoachNoteEditor key={ex.id} {...coachEditor} /> : null}
           <fieldset className="hhr-ro" disabled={readOnly}>
           {selfNote != null ? <SelfNoteBox token={token} noteKey={exerciseNoteKey(ex.name)} value={selfNote} onSaved={onSelfNoteSaved} /> : null}
@@ -1209,6 +1235,32 @@ function CoachNoteCard({ note, proLabel, onHide }: { note: string; proLabel: str
         <input type="checkbox" onChange={onHide} /> Ya la leí, ocultarla
       </label>
     </div>
+  )
+}
+
+/** Feedback nov24: notas del entrenador de esta semana (ejercicio o circuito); el alumno marca «Lo vi» en cada una. */
+function CoachNoteItems({ items, proLabel, coachView, onSeen }: { items: SharedCoachNote[]; proLabel: string; coachView: boolean; onSeen: (id: string, seen: boolean) => void }) {
+  if (items.length === 0) return null
+  return (
+    <>
+      {items.map((n) => (
+        <div key={n.id} className={`hhr-coachnote${n.seen_at ? ' is-seen' : ''}`} role="note">
+          <span className="hhr-coachnote-title">
+            <MessageCircle size={13} strokeWidth={2.2} aria-hidden /> {coachView ? 'Tu nota' : `Nota de ${proLabel}`}
+          </span>
+          <p>{n.note}</p>
+          {coachView ? (
+            <small className="hhr-coachnote-state">
+              {n.seen_at ? `La vio el ${format(new Date(n.seen_at), "d 'de' MMMM", { locale: es })}` : 'Todavía no la vio'}
+            </small>
+          ) : (
+            <label className="hhr-coachnote-hide">
+              <input type="checkbox" checked={!!n.seen_at} onChange={(e) => onSeen(n.id, e.target.checked)} /> Lo vi
+            </label>
+          )}
+        </div>
+      ))}
+    </>
   )
 }
 
