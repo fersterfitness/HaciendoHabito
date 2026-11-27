@@ -861,3 +861,7 @@
 .hhr-lockhint strong { color: var(--ink); }
 .hhr .hhr-day.is-toclose { box-shadow: inset 0 0 0 2px var(--brand); }
 .hhr-save.is-warn { color: var(--brand-ink); font-weight: 600; }
+
+/* Feedback nov27 (1): el nombre largo de «Siguiente» no puede ensanchar el panel; se corta con «…». */
+.hhr-ex-foot, .hhr .hhr-next { min-width: 0; }
+.hhr-next b { flex: 1 1 0; width: 0; }
