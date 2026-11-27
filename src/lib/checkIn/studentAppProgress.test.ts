@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EMPTY_DAY_LOG, type DayLog } from '@/lib/routine/studentTrainingLog'
-import { bucketKey, logDate, notesFromDays, periodStart, progressBuckets, type ProgressDay } from './studentAppProgress'
+import { bucketKey, logDate, notesFromDays, periodStart, progressBuckets, scaleTone, type ProgressDay } from './studentAppProgress'
 
 const day = (date: string, log: Partial<DayLog>): ProgressDay => ({ date, routineName: 'Rutina', log: { ...EMPTY_DAY_LOG, ...log } })
 
@@ -44,5 +44,16 @@ describe('progreso del alumno en la ficha', () => {
     expect(notes[0]!.text).toContain('Pinchazo')
     expect(notes[2]!.text).toBe('Comí afuera')
     expect(notes[3]!.text).toContain('Durmió: Menos de 5 h')
+  })
+})
+
+describe('grilla semana a semana (nov27, 4b)', () => {
+  it('lee el promedio a favor del alumno', () => {
+    expect(scaleTone(4.5, 'high')).toBe('good')
+    expect(scaleTone(3, 'high')).toBe('mid')
+    expect(scaleTone(2, 'high')).toBe('low')
+    expect(scaleTone(1.5, 'low')).toBe('good')
+    expect(scaleTone(4.5, 'low')).toBe('low')
+    expect(scaleTone(null, 'high')).toBeNull()
   })
 })

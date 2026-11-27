@@ -101,6 +101,16 @@ export function progressBuckets(days: ProgressDay[], period: ProgressPeriod, fro
     })
 }
 
+/**
+ * Feedback nov27 (4b): la grilla semana a semana del entrenador. Lee cada promedio (1 a 5) a favor del
+ * alumno, como en su link: en estrés y dolores, más bajo es mejor.
+ */
+export function scaleTone(value: number | null, good: 'high' | 'low'): 'good' | 'mid' | 'low' | null {
+  if (value == null) return null
+  const score = good === 'high' ? value : 6 - value
+  return score >= 4 ? 'good' : score >= 3 ? 'mid' : 'low'
+}
+
 /** Lo que el alumno escribió o marcó y conviene leer, día por día. */
 export function notesFromDays(days: ProgressDay[]): ProgressNote[] {
   const out: ProgressNote[] = []

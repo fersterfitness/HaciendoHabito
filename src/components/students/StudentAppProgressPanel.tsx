@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { Activity, CalendarCheck, Flame, HeartPulse, MessageSquareText, TriangleAlert } from 'lucide-react'
+import { Activity, CalendarCheck, Flame, HeartPulse, MessageSquareText, Table2, TriangleAlert } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { ChartLegend, ChartTooltip, chartAxis, chartBarCursor, chartBarRadius, chartCursor, chartGrid } from '@/components/charts/chartKit'
@@ -11,6 +11,8 @@ import {
   loadStudentAppProgress,
   periodStart,
   progressBuckets,
+  scaleTone,
+  type ProgressBucket,
   type ProgressNote,
   type ProgressPeriod,
   type StudentAppProgress,
@@ -82,6 +84,82 @@ function Kpi({ label, value, hint, tone }: { label: string; value: ReactNode; hi
   )
 }
 
+const TONE_CLASS = {
+  good: 'bg-status-ok/15 text-status-ok',
+  mid: 'bg-status-expiring/15 text-status-expiring',
+  low: 'bg-status-expired/15 text-status-expired',
+} as const
+
+/** Feedback nov27 (4b): como «Cómo llegás a entrenar, semana a semana» del link, pero con todas las semanas. */
+function WeekGrid({ weeks }: { weeks: ProgressBucket[] }) {
+  const scroller = useRef<HTMLDivElement>(null)
+  // Arranca mostrando las semanas más nuevas (a la derecha).
+  useEffect(() => {
+    const el = scroller.current
+    if (el) el.scrollLeft = el.scrollWidth
+  }, [weeks])
+  const scales = DAILY_SCALES.filter((s) => weeks.some((w) => w.averages[s.key] != null))
+  const cell = 'min-w-[3.25rem] px-1.5 py-1.5 text-center tabular-nums'
+  const head = 'sticky left-0 z-10 bg-surface-card py-1.5 pr-3 text-left font-semibold text-ink-secondary'
+  return (
+    <>
+      <div ref={scroller} className="overflow-x-auto">
+        <table className="w-max min-w-full border-separate border-spacing-0.5 text-2xs">
+          <thead>
+            <tr>
+              <th className={head} />
+              {weeks.map((w) => (
+                <th key={w.key} className={cn(cell, 'whitespace-nowrap font-semibold text-ink-muted')}>
+                  {w.label.replace('Sem. ', '')}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th className={head}>Días</th>
+              {weeks.map((w) => (
+                <td key={w.key} className={cn(cell, 'rounded-md bg-surface-elevated text-ink-primary')} title={`${w.done} entrenados · ${w.missed} sin entrenar`}>
+                  {w.done}
+                  {w.missed ? <span className="text-status-expired"> / {w.missed}✕</span> : null}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <th className={head}>Esfuerzo</th>
+              {weeks.map((w) => (
+                <td key={w.key} className={cn(cell, 'rounded-md bg-surface-elevated text-ink-primary')}>
+                  {nf(w.effort)}
+                </td>
+              ))}
+            </tr>
+            {scales.map((s) => (
+              <tr key={s.key}>
+                <th className={head}>
+                  {s.short}
+                  {s.good === 'low' ? <span className="font-normal text-ink-muted"> ↓</span> : null}
+                </th>
+                {weeks.map((w) => {
+                  const v = w.averages[s.key]
+                  const tone = scaleTone(v, s.good)
+                  return (
+                    <td key={w.key} className={cn(cell, 'rounded-md font-semibold', tone ? TONE_CLASS[tone] : 'text-ink-muted')}>
+                      {nf(v)}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-3xs text-ink-muted">
+        Semanas de lunes a domingo. Días: entrenados / sin entrenar. Verde: muy bien · naranja: normal · rojo: a cuidar. ↓: más bajo es mejor.
+      </p>
+    </>
+  )
+}
+
 function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-xl border border-dashed border-surface-border px-3 py-6 text-center text-2xs leading-relaxed text-ink-muted">{children}</p>
 }
@@ -91,7 +169,6 @@ export function StudentAppProgressPanel({ studentId }: { studentId: string }) {
   const [data, setData] = useState<StudentAppProgress | null>(null)
   const [error, setError] = useState(false)
   const [period, setPeriod] = useState<ProgressPeriod>('week')
-  const [shown, setShown] = useState<ScaleKey[]>(['energy', 'sleep', 'stress', 'soreness'])
 
   useEffect(() => {
     if (!ownerId) return
@@ -108,6 +185,7 @@ export function StudentAppProgressPanel({ studentId }: { studentId: string }) {
 
   const from = useMemo(() => periodStart(period, new Date()), [period])
   const buckets = useMemo(() => (data ? progressBuckets(data.days, period, from) : []), [data, period, from])
+  const allWeeks = useMemo(() => (data ? progressBuckets(data.days, 'week', null) : []), [data])
   const notes = useMemo(() => (data ? data.notes.filter((n) => !from || n.date >= from) : []), [data, from])
 
   if (error) return <Empty>No se pudo cargar el progreso. Probá de nuevo en un rato.</Empty>
@@ -151,47 +229,34 @@ export function StudentAppProgressPanel({ studentId }: { studentId: string }) {
             <Kpi label="Dolores no habituales" value={pains} hint="marcados en el chequeo" tone={pains ? 'bad' : undefined} />
           </div>
 
-          <Card icon={<HeartPulse />} title="Cómo llega a entrenar" subtitle="Promedio del chequeo diario (1 a 5). Tocá cada escala para mostrarla u ocultarla.">
+          <Card icon={<HeartPulse />} title="Cómo llega a entrenar" subtitle="Promedio del chequeo diario (1 a 5), un gráfico por dato.">
             {withScales.length ? (
-              <>
-                <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Escalas">
-                  {withScales.map((s) => {
-                    const on = shown.includes(s.key)
-                    return (
-                      <label
-                        key={s.key}
-                        className={cn(
-                          'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-3xs font-semibold',
-                          on ? 'border-transparent bg-surface-elevated text-ink-primary' : 'border-surface-border text-ink-muted',
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          className="sr-only"
-                          checked={on}
-                          onChange={() => setShown((prev) => (on ? prev.filter((k) => k !== s.key) : [...prev, s.key]))}
-                        />
-                        <span className="h-2 w-2 rounded-full" style={{ background: on ? SCALE_COLOR[s.key] : 'transparent', border: `1.5px solid ${SCALE_COLOR[s.key]}` }} />
-                        {s.short}
-                        {s.good === 'low' ? <span className="font-normal text-ink-muted">(mejor bajo)</span> : null}
-                      </label>
-                    )
-                  })}
-                </div>
-                <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid {...chartGrid} />
-                    <XAxis dataKey="label" {...chartAxis} interval="preserveStartEnd" />
-                    <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} {...chartAxis} width={28} />
-                    <Tooltip cursor={chartCursor} content={<ChartTooltip formatValue={(v) => nf(Number(v))} />} />
-                    {withScales
-                      .filter((s) => shown.includes(s.key))
-                      .map((s) => (
-                        <Line key={s.key} type="monotone" dataKey={s.short} stroke={SCALE_COLOR[s.key]} strokeWidth={2} dot={rows.length < 20} connectNulls />
-                      ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {withScales.map((s) => {
+                  const last = [...buckets].reverse().find((b) => b.averages[s.key] != null)?.averages[s.key] ?? null
+                  return (
+                    <div key={s.key} className="min-w-0 rounded-xl border border-surface-border/70 p-2.5">
+                      <p className="flex items-baseline justify-between gap-2 text-2xs font-semibold text-ink-primary">
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: SCALE_COLOR[s.key] }} />
+                          {s.short}
+                          {s.good === 'low' ? <span className="font-normal text-ink-muted">(mejor bajo)</span> : null}
+                        </span>
+                        <span className="tabular-nums text-ink-secondary">{nf(last)}</span>
+                      </p>
+                      <ResponsiveContainer width="100%" height={110}>
+                        <LineChart data={rows} margin={{ top: 8, right: 6, bottom: 0, left: 0 }}>
+                          <CartesianGrid {...chartGrid} />
+                          <XAxis dataKey="label" {...chartAxis} interval="preserveStartEnd" />
+                          <YAxis domain={[1, 5]} ticks={[1, 3, 5]} {...chartAxis} width={18} />
+                          <Tooltip cursor={chartCursor} content={<ChartTooltip formatValue={(v) => nf(Number(v))} />} />
+                          <Line type="monotone" dataKey={s.short} stroke={SCALE_COLOR[s.key]} strokeWidth={2} dot={rows.length < 20} connectNulls />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )
+                })}
+              </div>
             ) : (
               <Empty>Sin chequeos en este período.</Empty>
             )}
@@ -240,6 +305,10 @@ export function StudentAppProgressPanel({ studentId }: { studentId: string }) {
               )}
             </Card>
           </div>
+
+          <Card icon={<Table2 />} title="Semana a semana" subtitle="Todas las semanas desde que usa el link, como la ve el alumno en «Tu progreso».">
+            {allWeeks.length ? <WeekGrid weeks={allWeeks} /> : <Empty>Sin semanas con datos.</Empty>}
+          </Card>
 
           <Card icon={<MessageSquareText />} title="Aclaraciones" subtitle="Lo que te dejó escrito o marcó: dolores, días sin entrenar, alimentación, notas por ejercicio y avisos.">
             {notes.length ? (

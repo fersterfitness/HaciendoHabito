@@ -19,8 +19,9 @@ Documento: «CORRECIONES EN APP.docx» (un aviso nuevo + respuestas a las 3 preg
 
 ## Tanda 4 — Progreso del alumno en la ficha
 
-- [ ] (4a) El gráfico de chequeos de la ficha (Energía, Sueño, Estrés, Dolores… en un solo gráfico de líneas) mezcla todo: cada dato en su propio gráfico, separado.
-- [ ] (4b) Para el entrenador, una tabla como «Cómo llegás a entrenar, semana a semana» de la app del alumno, pero con todas las semanas.
+- [x] (4a) El gráfico de chequeos de la ficha (Energía, Sueño, Estrés, Dolores… en un solo gráfico de líneas) mezcla todo: cada dato en su propio gráfico, separado.
+- [x] (4b) Para el entrenador, una tabla como «Cómo llegás a entrenar, semana a semana» de la app del alumno, pero con todas las semanas.
+  - Hecho: «Cómo llega a entrenar» pasa a un gráfico chico por dato (con el último valor); nueva tarjeta «Semana a semana» con todas las semanas (días, esfuerzo y cada escala, en verde/naranja/rojo como el link), arranca mostrando las más nuevas.
 
 ## Tanda 5 — Macrociclo
 
