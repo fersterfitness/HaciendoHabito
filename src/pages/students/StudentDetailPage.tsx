@@ -56,6 +56,8 @@ import { FuerzaTab } from './studentDetail/FuerzaTab'
 import { QuickPayModal } from './studentDetail/QuickPayModal'
 import { useWebPlanPrices } from '@/data/priceIncrease'
 import { studentMonthlyAmount, webPlanPriceMap } from '@/lib/finance/studentPayments'
+import { webPlanOptions } from '@/lib/finance/webPlanOptions'
+import { labelForSelectedWebPlanSlug } from '@/lib/selectedWebPlanLabel'
 
 /** Ficha completa del alumno: página dedicada o panel lateral desde la lista. */
 export interface StudentDetailViewProps {
@@ -164,7 +166,8 @@ export function StudentDetailView({
 
   // Pago rápido
   const [showPayModal,  setShowPayModal]  = useState(false)
-  const webPlansQ = useWebPlanPrices(showPayModal)
+  // Feedback nov27 (5): los planes de la web se usan en la ficha (nombre del plan) y en «Registrar pago».
+  const webPlansQ = useWebPlanPrices(true)
 
   const [mealPlans, setMealPlans] = useState<TrainerStudentMealPlan[]>([])
   const [mealPlansLoading, setMealPlansLoading] = useState(false)
@@ -497,14 +500,10 @@ export function StudentDetailView({
   const inProgreso = sheetTab === 'progreso' || sheetTab === 'seguimiento'
   const progresoView: 'app' | 'seguimiento' = showHabitsTab && sheetTab === 'progreso' ? 'app' : 'seguimiento'
 
-  const selectedPlanLabel =
-    student.selected_web_plan_slug === 'plan-entrenamiento'
-      ? 'Plan Entrenamiento'
-      : student.selected_web_plan_slug === 'plan-nutricion'
-      ? 'Plan Nutrición'
-      : student.selected_web_plan_slug === 'plan-full'
-      ? 'Plan Full'
-      : null
+  const selectedPlanLabel = labelForSelectedWebPlanSlug(
+    student.selected_web_plan_slug,
+    new Map((webPlansQ.data ?? []).map((p) => [p.slug, p.title])),
+  )
 
   const notesSection = (
     <>
@@ -1684,6 +1683,9 @@ export function StudentDetailView({
           studentId={student.id}
           studentName={student.full_name}
           defaultAmount={studentMonthlyAmount(student, webPlanPriceMap(webPlansQ.data))}
+          webPlans={webPlanOptions(webPlansQ.data, student.selected_web_plan_slug)}
+          currentPlanSlug={student.selected_web_plan_slug}
+          onPlanSaved={(slug) => setStudent((prev) => (prev ? { ...prev, selected_web_plan_slug: slug } : prev))}
           onClose={() => setShowPayModal(false)}
         />
       )}

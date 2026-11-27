@@ -14,7 +14,8 @@ Documento: «CORRECIONES EN APP.docx» (un aviso nuevo + respuestas a las 3 preg
 
 ## Tanda 3 — Registrar pago con el plan web
 
-- [ ] (5) En «Registrar pago», «Tipo de ingreso / plan» tiene que ofrecer los planes existentes de la web, para registrar con su plan a los alumnos que entraron por el formulario anterior. La ficha hoy dice «Sin plan web» (`students.selected_web_plan_slug` vacío). Al elegir un plan web en el pago, que quede como plan del alumno. Más adelante se completa solo, porque el alumno nuevo entra por la web con su plan. Cada profesional carga sus planes (ya se puede en «Mi página») y el alumno, al registrarse, ve qué plan paga.
+- [x] (5) En «Registrar pago», «Tipo de ingreso / plan» tiene que ofrecer los planes existentes de la web, para registrar con su plan a los alumnos que entraron por el formulario anterior. La ficha hoy dice «Sin plan web» (`students.selected_web_plan_slug` vacío). Al elegir un plan web en el pago, que quede como plan del alumno. Más adelante se completa solo, porque el alumno nuevo entra por la web con su plan. Cada profesional carga sus planes (ya se puede en «Mi página») y el alumno, al registrarse, ve qué plan paga.
+  - Hecho: el select muestra «Planes de la web» (activos + el del alumno) arriba de los tipos fijos; elegir uno completa el monto, guarda el título como tipo de ingreso y deja el slug en el alumno. La ficha ya muestra el nombre real del plan (antes solo 3 slugs fijos).
 
 ## Tanda 4 — Progreso del alumno en la ficha
 

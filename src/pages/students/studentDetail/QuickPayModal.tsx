@@ -11,6 +11,7 @@ import { buildPersonalFullMirrorIncomeRow, buildPersonalHalfIncomeRow } from '@/
 import { notifyPaymentRegistered } from '@/lib/notifications'
 import toast from 'react-hot-toast'
 import { Modal } from '@/components/ui/Modal'
+import { webPlanSlugFrom, webPlanValue, type WebPlanOption } from '@/lib/finance/webPlanOptions'
 
 // ─── QuickPayModal ────────────────────────────────────────────────────────────
 
@@ -18,12 +19,19 @@ export function QuickPayModal({
   studentId,
   studentName,
   defaultAmount,
+  webPlans = [],
+  currentPlanSlug,
+  onPlanSaved,
   onClose,
 }: {
   studentId: string
   studentName: string
   /** Cuota del alumno o, si no tiene, precio de su plan web. */
   defaultAmount?: number
+  /** Feedback nov27 (5): planes de la web; elegir uno lo deja como plan del alumno. */
+  webPlans?: WebPlanOption[]
+  currentPlanSlug?: string | null
+  onPlanSaved?: (slug: string) => void
   onClose: () => void
 }) {
   const { user } = useAuthStore()
@@ -33,7 +41,14 @@ export function QuickPayModal({
     if (defaultAmount && defaultAmount > 0) setAmount((cur) => cur || String(defaultAmount))
   }, [defaultAmount])
   const [method, setMethod] = useState('efectivo_ars')
-  const [type, setType] = useState(INCOME_TYPES[0] ?? 'Otro')
+  const hasCurrentPlan = !!currentPlanSlug && webPlans.some((p) => p.slug === currentPlanSlug)
+  const [type, setType] = useState(hasCurrentPlan ? webPlanValue(currentPlanSlug!) : (INCOME_TYPES[0] ?? 'Otro'))
+  // Los planes llegan después de abrir: si el alumno tiene uno, se elige solo.
+  useEffect(() => {
+    if (hasCurrentPlan) setType((cur) => (cur === (INCOME_TYPES[0] ?? 'Otro') ? webPlanValue(currentPlanSlug!) : cur))
+  }, [hasCurrentPlan, currentPlanSlug])
+  const planSlug = webPlanSlugFrom(type)
+  const plan = planSlug ? webPlans.find((p) => p.slug === planSlug) : undefined
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -48,7 +63,7 @@ export function QuickPayModal({
       student_id: studentId,
       amount: amt,
       payment_method: method as Income['payment_method'],
-      income_type: type,
+      income_type: plan ? plan.title : type,
       income_date: date,
       description: `Pago de ${studentName}`,
       category: 'Entrenamiento',
@@ -61,6 +76,12 @@ export function QuickPayModal({
       setSaving(false)
       toast.error(error.message)
       return
+    }
+    // Plan web elegido en el pago: queda como plan del alumno (así la ficha deja de decir «Sin plan web»).
+    if (plan && plan.slug !== currentPlanSlug) {
+      const { error: planErr } = await supabase.from('students').update({ selected_web_plan_slug: plan.slug }).eq('id', studentId)
+      if (planErr) toast.error(`Pago guardado, pero no se pudo guardar el plan: ${planErr.message}`)
+      else onPlanSaved?.(plan.slug)
     }
     void notifyPaymentRegistered({
       userId: user.id,
@@ -133,12 +154,30 @@ export function QuickPayModal({
           <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo de ingreso / plan</label>
           <select
             className={controlSelectClassName}
-            value={type} onChange={(e) => setType(e.target.value)}
+            value={type}
+            onChange={(e) => {
+              setType(e.target.value)
+              // Plan web con precio: se completa el monto.
+              const next = webPlans.find((p) => p.slug === webPlanSlugFrom(e.target.value))
+              if (next && next.price > 0) setAmount(String(next.price))
+            }}
           >
-            {INCOME_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
+            {webPlans.length ? (
+              <optgroup label="Planes de la web">
+                {webPlans.map((p) => (
+                  <option key={p.slug} value={webPlanValue(p.slug)}>{p.title}</option>
+                ))}
+              </optgroup>
+            ) : null}
+            <optgroup label={webPlans.length ? 'Otros' : 'Tipo de ingreso'}>
+              {INCOME_TYPES.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </optgroup>
           </select>
+          {plan && plan.slug !== currentPlanSlug ? (
+            <p className="mt-1 text-2xs text-ink-muted">Queda como plan web del alumno.</p>
+          ) : null}
         </div>
         {/* Método */}
         <div>
