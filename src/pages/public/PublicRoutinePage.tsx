@@ -195,6 +195,8 @@ export function PublicRoutinePage() {
   })
   const [week, setWeek] = useState<number | null>(null)
   const [day, setDay] = useState(0)
+  // Feedback nov27 (A): semana bloqueada que tocó el alumno, para explicarle qué le falta.
+  const [lockTapped, setLockTapped] = useState<number | null>(null)
   const [logged, setLogged] = useState<LoggedMap>({})
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({})
   const trainRef = useRef<HTMLElement | null>(null)
@@ -437,6 +439,24 @@ export function PublicRoutinePage() {
   const currentWeek = extras ? progressWeekIndex(blocks, progressInput(extras, logged)) : currentBlockIndex(blocks, today)
   // Semanas como niveles: las de adelante se desbloquean al cerrar la anterior (en la vista previa, todas abiertas).
   const lockedWeek = (i: number) => !!extras && preview !== 'on' && !pastView && i > currentWeek
+  // Días de la semana en curso que todavía no cerró («Terminé este entrenamiento» o «No pude entrenar»).
+  const unclosedDays =
+    extras && blocks.length > currentWeek + 1
+      ? (blocks[currentWeek]?.days ?? [])
+          .map((d, idx) => ({ d, idx }))
+          .filter(({ d }) => d.exercises.length > 0 && !extras.days[d.id]?.status)
+      : []
+  // Aviso: si tocó una semana bloqueada, o si ya entrenó todos los días que le faltan cerrar (tildó series)
+  // pero no tocó «Terminé»: así no se queda trabado sin saber por qué.
+  const lockHint =
+    unclosedDays.length > 0 &&
+    (lockTapped != null || unclosedDays.every(({ d }) => progressInput(extras!, logged).hasSets(d)))
+      ? {
+          next: niceCase(blocks[lockTapped ?? currentWeek + 1]?.name) || `Semana ${(lockTapped ?? currentWeek + 1) + 1}`,
+          current: niceCase(blocks[currentWeek]?.name) || `Semana ${currentWeek + 1}`,
+          days: unclosedDays.map(({ d, idx }) => d.day_name?.trim() || `Día ${idx + 1}`),
+        }
+      : null
   const wi = Math.min(week ?? currentWeek, Math.max(0, blocks.length - 1))
   const block = blocks[wi]
   const days = block?.days ?? []
@@ -759,9 +779,18 @@ export function PublicRoutinePage() {
                       type="button"
                       className="hhr-week"
                       aria-pressed={i === wi}
-                      disabled={lockedWeek(i)}
-                      title={lockedWeek(i) ? 'Se desbloquea cuando cerrás todos los días de la semana anterior' : undefined}
+                      aria-disabled={lockedWeek(i) || undefined}
+                      data-locked={lockedWeek(i) || undefined}
+                      title={lockedWeek(i) ? 'Se desbloquea cuando cerrás todos los entrenamientos de la semana anterior' : undefined}
                       onClick={() => {
+                        // Semana bloqueada: lo lleva al primer día que le falta cerrar y le explica qué hacer.
+                        if (lockedWeek(i)) {
+                          setLockTapped(i)
+                          setWeek(currentWeek)
+                          setDay(unclosedDays[0]?.idx ?? 0)
+                          return
+                        }
+                        setLockTapped(null)
                         setWeek(i)
                         setDay(extras ? startDayIndex(blocks, i, progressInput(extras, logged)) : 0)
                       }}
@@ -774,6 +803,24 @@ export function PublicRoutinePage() {
                 </nav>
               ) : null}
 
+              {lockHint ? (
+                <section className="hhr-card hhr-lockhint" role="status">
+                  <Lock size={18} strokeWidth={2.2} aria-hidden />
+                  <div>
+                    <b>
+                      {lockTapped != null ? `${lockHint.next} está bloqueada` : `Para desbloquear ${lockHint.next}`}
+                    </b>
+                    <p>
+                      Revisá que marcaste como terminado cada entrenamiento de {lockHint.current}. Te falta cerrar{' '}
+                      <strong>{joinNames(lockHint.days)}</strong>.
+                    </p>
+                    <p>
+                      Al final de cada día tocá <strong>«Terminé este entrenamiento»</strong> y elegí qué tan exigente fue (del 1 al 10).
+                    </p>
+                  </div>
+                </section>
+              ) : null}
+
               {days.length > 1 ? (
                 <nav className="hhr-card hhr-days" aria-label="Días">
                   {days.map((d, i) => {
@@ -781,11 +828,13 @@ export function PublicRoutinePage() {
                     const dpct = p.total ? p.done / p.total : 0
                     const chip = dayChip(d.day_name, i)
                     const st = extras?.days[d.id]?.status ?? null
+                    // Entrenó todo pero no tocó «Terminé»: se marca para que lo cierre.
+                    const toClose = !!extras && !st && p.total > 0 && p.done >= p.total
                     return (
                       <button
                         key={d.id}
                         type="button"
-                        className={st === 'missed' ? 'hhr-day is-missed' : 'hhr-day'}
+                        className={st === 'missed' ? 'hhr-day is-missed' : toClose ? 'hhr-day is-toclose' : 'hhr-day'}
                         aria-pressed={i === di}
                         aria-label={`${d.day_name || `Día ${i + 1}`}: ${st === 'missed' ? 'no entrenado' : st === 'done' ? 'terminado' : `${p.done} de ${p.total} series`}`}
                         onClick={() => setDay(i)}
@@ -1712,6 +1761,11 @@ function RestTimer({ until, total, onDone }: { until: number; total: number; onD
 }
 
 /** Cierres del día y series tildadas, para saber en qué semana y día va el alumno. */
+/** «Día 1», «Día 1 y Día 3», «Día 1, Día 2 y Día 3». */
+function joinNames(names: string[]): string {
+  return names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`
+}
+
 function progressInput(extras: TrainingExtras, logged: LoggedMap) {
   return {
     statusOf: (dayId: string) => extras.days[dayId]?.status ?? null,

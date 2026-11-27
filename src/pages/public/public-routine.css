@@ -814,7 +814,7 @@
 
 /* Feedback nov19: «Volver» con texto, circuitos juntos en una pantalla y semanas bloqueadas. */
 .hhr-ex-back { display: none; }
-.hhr .hhr-week:disabled { opacity: .42; cursor: not-allowed; }
+.hhr .hhr-week:disabled, .hhr .hhr-week[data-locked] { opacity: .42; }
 .hhr .hhr-week svg { margin-right: 5px; vertical-align: -1px; }
 @media (max-width: 1023px) {
   .hhr .hhr-ex.is-open .hhr-ex-head .hhr-chev { display: none; }
@@ -851,3 +851,13 @@
 .hhr-history b { font-size: 14px; overflow-wrap: anywhere; }
 .hhr-history small { font-size: 12px; color: var(--muted); }
 .hhr-preview-back { font-weight: 700; color: inherit; text-decoration: underline; white-space: nowrap; }
+
+/* Feedback nov27 (A): por qué no se desbloquea la semana siguiente. */
+.hhr-lockhint { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid var(--brand); background: var(--brand-soft); color: var(--ink); }
+.hhr-lockhint > svg { flex: 0 0 auto; margin-top: 2px; color: var(--brand-ink); }
+.hhr-lockhint div { display: grid; gap: 4px; min-width: 0; }
+.hhr-lockhint b { font-size: 14.5px; }
+.hhr-lockhint p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); overflow-wrap: anywhere; }
+.hhr-lockhint strong { color: var(--ink); }
+.hhr .hhr-day.is-toclose { box-shadow: inset 0 0 0 2px var(--brand); }
+.hhr-save.is-warn { color: var(--brand-ink); font-weight: 600; }

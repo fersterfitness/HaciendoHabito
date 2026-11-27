@@ -456,6 +456,8 @@ export function DayCloseCard({
         <b>¿Qué tan exigente fue el entrenamiento de hoy?</b>
         <BorgScale value={effort} onChange={setEffort} />
         {!allSetsDone ? <p className="hhr-save">Te quedaron series sin marcar. Podés terminar igual.</p> : null}
+        {/* Feedback nov27: sin elegir el esfuerzo no se puede terminar; que se entienda por qué. */}
+        {effort == null ? <p className="hhr-save is-warn">Elegí un número del 1 al 10 para poder terminar.</p> : null}
         {error ? <p className="hhr-save is-error">{error}</p> : null}
         <div className="hhr-log-actions">
           <button type="button" className="hhr-cta" disabled={busy || effort == null} onClick={() => void save('done')}>
